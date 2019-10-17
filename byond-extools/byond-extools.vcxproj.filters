@@ -1,0 +1,93 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Source Files\core">
+      <UniqueIdentifier>{9d9a48e6-0cae-4745-abda-5b73884018db}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\core">
+      <UniqueIdentifier>{8060fee0-929e-4031-92e7-7dcb371053dd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\core\sigscan">
+      <UniqueIdentifier>{7f933d38-6cd8-4c2e-88a1-113120e693a9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\core\sigscan">
+      <UniqueIdentifier>{2938fd25-8535-4c94-86e7-ad92de3b4d32}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\TFFI">
+      <UniqueIdentifier>{f4b62c55-65c1-4133-9118-d3e3d355e0dd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\TFFI">
+      <UniqueIdentifier>{0e4c7a3c-29b2-45f5-9536-ab7eecdddd68}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="framework.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="pch.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\core.h">
+      <Filter>Header Files\core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\sigscan\sigscan.h">
+      <Filter>Header Files\core\sigscan</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\byond_structures.h">
+      <Filter>Header Files\core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\internal_functions.h">
+      <Filter>Header Files\core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\find_functions.h">
+      <Filter>Header Files\core\sigscan</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\hooking.h">
+      <Filter>Header Files\core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\tffi\tffi.h">
+      <Filter>Header Files\TFFI</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\proc_management.h">
+      <Filter>Header Files\core</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="dllmain.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pch.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\core.cpp">
+      <Filter>Source Files\core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\sigscan\sigscan.cpp">
+      <Filter>Source Files\core\sigscan</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\find_functions.cpp">
+      <Filter>Source Files\core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\hooking.cpp">
+      <Filter>Source Files\core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\tffi\tffi.cpp">
+      <Filter>Source Files\TFFI</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\proc_management.cpp">
+      <Filter>Source Files\core</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>
