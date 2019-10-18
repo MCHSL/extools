@@ -12,24 +12,24 @@ Threaded FFI for BYOND. Automagically threads off all DLL calls and prevents the
 
 Calls the do_work function from sample.dll with 3 arguments. The proc sleeps until do_work returns.
 ```
-	var/result = call_wait("sample.dll", "do_work", "arg1", "arg2", "arg3")
+var/result = call_wait("sample.dll", "do_work", "arg1", "arg2", "arg3")
 ```
 
 
 
 Calls do_work with 1 argument. Returns a promise object. Runs some other code before calling P.resolve() to obtain the result.
 ```	
-    var/datum/promise/P = call_async("sample.dll", "do_work", "arg1")
-	... do something else ...
-	var/result = P.resolve()
+var/datum/promise/P = call_async("sample.dll", "do_work", "arg1")
+... do something else ...
+var/result = P.resolve()
 ```
 
 Calls do_work with 2 arguments. The callback is invoked with the result as the single argument. Execution resumes immediately.
 ```
-	/proc/print_result(result)
-		world << result
+/proc/print_result(result)
+	world << result
 
-	call_cb("sample.dll", "do_work", /proc/print_result, "arg1", "arg2")
+call_cb("sample.dll", "do_work", /proc/print_result, "arg1", "arg2")
 ```
 
 ## What will I be able to do with this?
