@@ -42,4 +42,4 @@ These modules are planned to be included in the future.
 - Lua: Allows writing lua scripts that replace builtin procs. Mostly for messing about.
 
 ## I want to use this!
-Download the DLL and .dm file from [Releases](https://github.com/MCHSL/extools/releases). Place the DLL next to your DMB and plop the .dm somewhere where you can easily tick it. Afterwards, add `extools_initialize()` to `world/New()` or equivalent. To load modules, call `<module>_initialize()`, for example `tffi_initialize()`. Module initialization functions must be called after `extools_initialize()!`
+Download the DLL and .dm file from [Releases](https://github.com/MCHSL/extools/releases). Place the DLL next to your DMB and plop the .dm somewhere where you can easily tick it. Afterwards, add `extools_initialize()` to `world/New()` or equivalent. To load modules, call `<module>_initialize()`, for example `tffi_initialize()`. Module initialization functions must be called after `extools_initialize()`!
