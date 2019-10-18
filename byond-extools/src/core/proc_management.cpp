@@ -42,12 +42,12 @@ int Core::Proc::get_local_varcount()
 	return setup_entry_varcount->local_var_count;
 }
 
-Core::Proc get_proc(std::string name)
+Core::Proc Core::get_proc(std::string name)
 {
 	return procs_by_name[name];
 }
 
-Core::Proc get_proc(unsigned int id)
+Core::Proc Core::get_proc(unsigned int id)
 {
 	return procs_by_id[id];
 }
@@ -72,4 +72,5 @@ bool Core::populate_proc_list()
 		procs_by_name[p.name] = p;
 		i++;
 	}
+	return true;
 }
