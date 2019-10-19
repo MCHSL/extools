@@ -43,3 +43,18 @@ These modules are planned to be included in the future.
 
 ## I want to use this!
 Download the DLL and .dm file from [Releases](https://github.com/MCHSL/extools/releases). Place the DLL next to your DMB and plop the .dm somewhere where you can easily tick it. Afterwards, add `extools_initialize()` to `world/New()` or equivalent. To load modules, call `<module>_initialize()`, for example `tffi_initialize()`. Module initialization functions must be called after `extools_initialize()`!
+
+
+## Credits
+Thank you to people who contributed in one way or another to the overall effort.
+
+- Somepotato
+- ThatLing
+- Steamport
+- Karma
+- Tobba
+- ACCount
+- Voidsploit
+- Canvas123
+
+Let me know if I forgot to include you!
