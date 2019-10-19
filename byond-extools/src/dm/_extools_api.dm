@@ -1,3 +1,4 @@
+#define EXTOOLS			(world.system_type == MS_WINDOWS ? "byond-extools.dll" : "byond-extools")
 #define EXTOOLS_SUCCESS	"gucci"
 #define EXTOOLS_FAILED	"pain"
 #define GLOBAL_PROC		"magic BS"
@@ -10,7 +11,7 @@
 */
 
 /proc/extools_initialize()
-	return call("byond-extools.dll", "core_initialize")() == EXTOOLS_SUCCESS
+	return call(EXTOOLS, "core_initialize")() == EXTOOLS_SUCCESS
 
 /*
 	TFFI - Threaded FFI
@@ -49,7 +50,7 @@
 */
 
 /proc/tffi_initialize()
-	call("byond-extools.dll", "tffi_initialize")() == EXTOOLS_SUCCESS
+	call(EXTOOLS, "tffi_initialize")() == EXTOOLS_SUCCESS
 
 var/fallback_alerted = FALSE
 var/next_promise_id = 0
@@ -57,7 +58,7 @@ var/next_promise_id = 0
 /datum/promise
 	var/completed = FALSE
 	var/result = ""
-	var/callback_obj = GLOBAL_PROC
+	var/callback_context = GLOBAL_PROC
 	var/callback_proc = null
 	var/__id = 0
 
@@ -77,10 +78,10 @@ var/next_promise_id = 0
 
 /datum/promise/proc/__resolve_callback()
 	__internal_resolve("\ref[src]", __id)
-	if(callback_obj == GLOBAL_PROC)
+	if(callback_context == GLOBAL_PROC)
 		call(callback_proc)(result)
 	else
-		call(callback_obj, callback_proc)(result)
+		call(callback_context, callback_proc)(result)
 
 /datum/promise/proc/resolve()
 	__internal_resolve("\ref[src]", __id)
@@ -90,17 +91,19 @@ var/next_promise_id = 0
 	var/list/arguments = args.Copy()
 	var/datum/promise/P = new
 	arguments.Insert(1, "\ref[P]")
-	call("byond-extools.dll", "call_async")(arglist(arguments))
+	call(EXTOOLS, "call_async")(arglist(arguments))
 	return P
 
 /proc/call_cb()
 	var/list/arguments = args.Copy()
-	var/callback = arguments[3]
-	arguments.Cut(3, 4)
+	var/context = arguments[3]
+	var/callback = arguments[4]
+	arguments.Cut(3, 5)
 	var/datum/promise/P = new
-	P.callback_obj = callback
+	P.callback_context = context
+	P.callback_proc = callback
 	arguments.Insert(1, "\ref[P]")
-	call("byond-extools.dll", "call_async")(arglist(arguments))
+	call(EXTOOLS, "call_async")(arglist(arguments))
 	spawn(0)
 		P.__resolve_callback()
 
