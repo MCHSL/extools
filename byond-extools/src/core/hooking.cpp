@@ -15,7 +15,11 @@ void hCrashProc(char* error, int argument)
 		Core::opcode_handlers[argument](*Core::current_execution_context_ptr);
 		return;
 	}
+#ifdef _WIN32
 	oCrashProc(error, argument);
+#else
+	CrashProcDetour.call(error, argument);
+#endif
 }
 
 bool Core::hook_em()

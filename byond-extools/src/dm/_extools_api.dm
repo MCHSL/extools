@@ -1,5 +1,6 @@
-#define EXTOOLS_SUCCESS "gucci"
-#define EXTOOLS_FAILED "pain"
+#define EXTOOLS_SUCCESS	"gucci"
+#define EXTOOLS_FAILED	"pain"
+#define GLOBAL_PROC		"magic BS"
 
 /*
 	Core - Provides necessary functionality for other modules.
@@ -56,7 +57,8 @@ var/next_promise_id = 0
 /datum/promise
 	var/completed = FALSE
 	var/result = ""
-	var/cb = null
+	var/callback_obj = GLOBAL_PROC
+	var/callback_proc = null
 	var/__id = 0
 
 /datum/promise/New()
@@ -75,7 +77,10 @@ var/next_promise_id = 0
 
 /datum/promise/proc/__resolve_callback()
 	__internal_resolve("\ref[src]", __id)
-	call(cb)(result)
+	if(callback_obj == GLOBAL_PROC)
+		call(callback_proc)(result)
+	else
+		call(callback_obj, callback_proc)(result)
 
 /datum/promise/proc/resolve()
 	__internal_resolve("\ref[src]", __id)
@@ -93,7 +98,7 @@ var/next_promise_id = 0
 	var/callback = arguments[3]
 	arguments.Cut(3, 4)
 	var/datum/promise/P = new
-	P.cb = callback
+	P.callback_obj = callback
 	arguments.Insert(1, "\ref[P]")
 	call("byond-extools.dll", "call_async")(arglist(arguments))
 	spawn(0)
