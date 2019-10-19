@@ -1,4 +1,5 @@
 #include <string>
+#include <string.h>
 
 #ifdef _WIN32
 #define EXPORT __declspec(dllexport)
@@ -6,30 +7,32 @@
 #define EXPORT __attribute__((visibility("default")))
 #endif
 
-#ifdef LINUX
-#include <unistd.h>
-#endif
-#ifdef WINDOWS
+#ifdef _WIN32
 #include <windows.h>
+#include <synchapi.h>
+#else
+#include <unistd.h>
 #endif
 
 void mySleep(int sleepMs)
 {
-#ifdef LINUX
-    usleep(sleepMs * 1000);   // usleep takes sleep time in us (1 millionth of a second)
-#endif
-#ifdef WINDOWS
+#ifdef _WIN32
     Sleep(sleepMs);
+#else
+    usleep(sleepMs * 1000);
 #endif
 }
 
+char ret[256];
+
 extern "C" EXPORT const char* slow_concat(int n_args, const char** args)
 {
-    std::string out;
-	int i = 0;
-    while (args[i] != 0) {
-        out.append(args[i]);
-        mySleep(750);
+    std::string s;
+    for (int i = 0; i < n_args; i++)
+    {
+        mySleep(500);
+        s += args[i];
     }
-    return out.c_str();
+    strcpy(ret, s.c_str());
+    return ret;
 }

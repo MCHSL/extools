@@ -28,10 +28,13 @@ bool TFFI::initialize()
 {
 	int suspension_opcode = Core::register_opcode("TFFI_SUSPEND", tffi_suspend);
 	Core::Proc internal_resolve = Core::get_proc("/datum/promise/proc/__internal_resolve");
+#ifdef _WIN32
+	// the CrashProc hook is currently super broken on Linux. It hooks but doesn't stop the crash.
 	internal_resolve.set_bytecode(new std::vector<int>({ suspension_opcode, 0, 0, 0 }));
-	result_string_id = GetStringTableIndex("result", 0, 0);
-	completed_string_id = GetStringTableIndex("completed", 0, 0);
-	internal_id_string_id = GetStringTableIndex("__id", 0, 0);
+#endif
+	result_string_id = GetStringTableIndex("result", 0, 1);
+	completed_string_id = GetStringTableIndex("completed", 0, 1);
+	internal_id_string_id = GetStringTableIndex("__id", 0, 1);
 	return true;
 }
 
@@ -55,7 +58,7 @@ void ffi_thread(byond_ffi_func* proc, int promise_id, int n_args, std::vector<st
 #ifdef _WIN32
 		Sleep(1);
 #else
-		usleep(1);
+		usleep(1000);
 #endif
 		//TODO: some kind of conditional variable or WaitForObject?
 	}

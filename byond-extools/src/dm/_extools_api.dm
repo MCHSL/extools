@@ -65,7 +65,7 @@ var/next_promise_id = 0
 //This proc's bytecode is overwritten to allow suspending and resuming on demand.
 //None of the code here should run.
 /datum/promise/proc/__internal_resolve(ref, id)
-	if(!fallback_alerted)
+	if(!fallback_alerted && world.system_type != UNIX) // the rewriting is currently broken on Linux.
 		world << "<b>TFFI: __internal_resolve has not been rewritten, the TFFI DLL was not loaded correctly.</b>"
 		world.log << "<b>TFFI: __internal_resolve has not been rewritten, the TFFI DLL was not loaded correctly.</b>"
 		fallback_alerted = TRUE
