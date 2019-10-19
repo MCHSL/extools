@@ -26,7 +26,11 @@ typedef Value(*NewPtr)(Value* type, Value* args, unsigned int num_args, int unkn
 typedef void(*CrashProcPtr)(char* error, int argument);
 //typedef SuspendedProc* (*ResumeIn)(ExecutionContext* ctx, float deciseconds);
 typedef void(*SendMapsPtr)(void);
+#ifdef _WIN32
 typedef SuspendedProc* (*SuspendPtr)(ExecutionContext* ctx, int unknown);
+#else
+typedef SuspendedProc* (*SuspendPtr)(ExecutionContext* ctx);
+#endif
 typedef void(*StartTimingPtr)(SuspendedProc*);
 
 extern CrashProcPtr CrashProc;

@@ -1,7 +1,11 @@
 #include "hooking.h"
 
+#ifdef _WIN32
 PLH::CapstoneDisassembler* disassembler;
 PLH::x86Detour* CrashProcDetour;
+#else
+urmem::hook CrashProcDetour;
+#endif
 CrashProcPtr oCrashProc;
 
 void hCrashProc(char* error, int argument)
@@ -16,6 +20,7 @@ void hCrashProc(char* error, int argument)
 
 bool Core::hook_em()
 {
+#ifdef _WIN32
 	disassembler = new PLH::CapstoneDisassembler(PLH::Mode::x86);
 	if (!disassembler)
 	{
@@ -37,5 +42,13 @@ bool Core::hook_em()
 		CrashProcDetour->unHook();
 		return false;
 	}
+#else
+	CrashProcDetour.install(urmem::get_func_addr(CrashProc), urmem::get_func_addr(hCrashProc));
+	CrashProcDetour.enable();
+	if(!CrashProcDetour.is_enabled()) {
+		CrashProcDetour.disable();
+		return false;
+	}
+#endif
 	return true;
 }
