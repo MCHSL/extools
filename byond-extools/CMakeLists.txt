@@ -1,0 +1,18 @@
+cmake_minimum_required(VERSION 3.15.0)
+project(byond-extools)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+if (NOT CMAKE_BUILD_TYPE OR CMAKE_BUILD_TYPE STREQUAL "")
+    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "" FORCE)
+endif()
+
+add_library(tffi SHARED src/core/sigscan/sigscan.cpp src/core/core.cpp src/core/find_functions.cpp src/core/hooking.cpp src/core/proc_management.cpp dllmain.cpp src/tffi/tffi.cpp)
+if (WIN32)
+    set_property(TARGET tffi PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    target_include_directories(tffi PUBLIC src/polyhook)
+    target_link_directories(tffi PUBLIC src/polyhook)
+    target_link_libraries(tffi asmjit)
+    target_link_libraries(tffi capstone)
+    target_link_libraries(tffi PolyHook_2)
+endif()
