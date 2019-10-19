@@ -56,5 +56,7 @@ Thank you to people who contributed in one way or another to the overall effort.
 - ACCount
 - Voidsploit
 - Canvas123
+- N3X1S
+- mloc
 
 Let me know if I forgot to include you!
