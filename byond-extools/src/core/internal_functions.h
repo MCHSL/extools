@@ -4,7 +4,11 @@
 
 typedef Value(*CallGlobalProcPtr)(char unk1, int unk2, int proc_type, unsigned int proc_id, int const_0, char unk3, int unk4, Value* argList, unsigned int argListLen, int const_0_2, int const_0_3);
 typedef Value(*Text2PathPtr)(unsigned int text);
+#ifdef _WIN32
 typedef unsigned int(*GetStringTableIndexPtr)(const char* string, int handleEscapes, int duplicateString);
+#else
+typedef unsigned int(*GetStringTableIndexPtr)(const char* string, int handleEscapes, int duplicateString) __attribute__((regparm(3)));
+#endif
 typedef void(*SetVariablePtr)(Value datum, unsigned int varNameId, Value newvalue);
 typedef Value(*GetVariablePtr)(Value datum, unsigned int varNameId);
 typedef Value(*CallProcPtr)(int unk1, int unk2, unsigned int proc_type, unsigned int proc_name, unsigned char datumType, unsigned int datumId, Value* argList, unsigned int argListLen, int unk4, int unk5);
@@ -26,8 +30,13 @@ typedef Value(*NewPtr)(Value* type, Value* args, unsigned int num_args, int unkn
 typedef void(*CrashProcPtr)(char* error, int argument);
 //typedef SuspendedProc* (*ResumeIn)(ExecutionContext* ctx, float deciseconds);
 typedef void(*SendMapsPtr)(void);
+#ifdef _WIN32
 typedef SuspendedProc* (*SuspendPtr)(ExecutionContext* ctx, int unknown);
 typedef void(*StartTimingPtr)(SuspendedProc*);
+#else
+typedef SuspendedProc* (*SuspendPtr)(ExecutionContext* ctx) __attribute__((regparm(3)));
+typedef void(*StartTimingPtr)(SuspendedProc*) __attribute__((regparm(3)));
+#endif
 
 extern CrashProcPtr CrashProc;
 extern StartTimingPtr StartTiming;

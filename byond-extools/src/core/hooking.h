@@ -2,8 +2,12 @@
 
 #include "internal_functions.h"
 #include "core.h"
-#include "../polyhook/headers/CapstoneDisassembler.hpp"
-#include "../polyhook/headers/Detour/x86Detour.hpp"
+#ifdef _WIN32
+#include <headers/CapstoneDisassembler.hpp>
+#include <headers/Detour/x86Detour.hpp>
+#else
+#include "urmem.hpp"
+#endif
 
 namespace Core
 {

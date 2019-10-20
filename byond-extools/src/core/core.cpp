@@ -23,6 +23,14 @@ bool Core::initialize()
 	return find_functions() && populate_proc_list();
 }
 
+void Core::Alert(const char* what) {
+#ifdef _WIN32
+	MessageBoxA(NULL, what, "Ouch!", NULL);
+#else
+	printf("%s\n", what);
+#endif
+}
+
 unsigned int Core::register_opcode(std::string name, opcode_handler handler)
 {
 	unsigned int next_opcode = next_opcode_id++;
@@ -34,22 +42,22 @@ unsigned int Core::register_opcode(std::string name, opcode_handler handler)
 const char* good = "gucci";
 const char* bad = "pain";
 
-extern "C" __declspec(dllexport) const char* core_initialize(int n_args, const char* args)
+extern "C" EXPORT const char* core_initialize(int n_args, const char* args)
 {
 	if (!Core::initialize())
 	{
-		MessageBoxA(NULL, "Core init failed!", "damn it", NULL);
+		Core::Alert("Core init failed!");
 		return bad;
 	}
 	if (!Core::hook_em())
 	{
-		MessageBoxA(NULL, "Hooking failed!", "damn it", NULL);
+		Core::Alert("Hooking failed!");
 		return bad;
 	}
 	return good;
 }
 
-extern "C" __declspec(dllexport) const char* tffi_initialize(int n_args, const char* args)
+extern "C" EXPORT const char* tffi_initialize(int n_args, const char* args)
 {
 	if (!TFFI::initialize())
 		return bad;

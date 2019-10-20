@@ -2,7 +2,7 @@
 #include "core.h"
 #include <string>
 #include <vector>
-
+#include <unordered_map>
 
 namespace Core
 {
