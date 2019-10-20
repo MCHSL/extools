@@ -46,6 +46,41 @@ These modules are planned to be included in the future.
 ## I want to use this!
 Download the DLL and .dm file from [Releases](https://github.com/MCHSL/extools/releases). Place the DLL next to your DMB and plop the .dm somewhere where you can easily tick it. Afterwards, add `extools_initialize()` to `world/New()` or equivalent. To load modules, call `<module>_initialize()`, for example `tffi_initialize()`. Module initialization functions must be called after `extools_initialize()`!
 
+## How do I compile this?
+You need [CMake](https://cmake.org/download/), at least version 3.15.  
+### Windows
+You need Visual Studio, preferably 2019. Be sure to include the "C++ CMake tools for Windows".  
+Create a folder next to "byond-extools" called "build". Use this as the CMake "where to build your binaries" directory.  
+You can use the CMake GUI. Ensure that you select **Win32**!  
+
+![](https://i.imgur.com/4Sg9ECc.gif)
+
+If you choose to use CMake from the command line:
+```
+D:\Code\C++\extools\byond-extools\build> cmake -G "Visual Studio 16 2019" -A Win32 ..
+-- The C compiler identification is MSVC 19.23.28106.4
+-- The CXX compiler identification is MSVC 19.23.28106.4
+-- Check for working C compiler: C:/Program Files (x86)/Microsoft Visual Studio/2019/Professional/VC/Tools/MSVC/14.23.28105/bin/Hostx64/x86/cl.exe
+-- Check for working C compiler: C:/Program Files (x86)/Microsoft Visual Studio/2019/Professional/VC/Tools/MSVC/14.23.28105/bin/Hostx64/x86/cl.exe -- works
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Check for working CXX compiler: C:/Program Files (x86)/Microsoft Visual Studio/2019/Professional/VC/Tools/MSVC/14.23.28105/bin/Hostx64/x86/cl.exe
+-- Check for working CXX compiler: C:/Program Files (x86)/Microsoft Visual Studio/2019/Professional/VC/Tools/MSVC/14.23.28105/bin/Hostx64/x86/cl.exe -- works
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Configuring done
+-- Generating done
+-- Build files have been written to: D:/Code/C++/extools/byond-extools/build
+D:\Code\C++\extools\byond-extools\build>
+```
+
+## Linux
+You can just make the build directory and do `cmake ..` and then `make`.  
+32-bit is automatically forced when compiling on Linux.
 
 ## Credits
 Thank you to people who contributed in one way or another to the overall effort.
