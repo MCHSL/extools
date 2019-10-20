@@ -3,7 +3,26 @@ project(byond-extools)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_library(byond-extools SHARED src/core/sigscan/sigscan.cpp src/core/core.cpp src/core/find_functions.cpp src/core/hooking.cpp src/core/proc_management.cpp dllmain.cpp src/tffi/tffi.cpp)
+set(SRC_DIR ${CMAKE_SOURCE_DIR}/src)
+file(GLOB_RECURSE SRC_FILES
+    "${SRC_DIR}/*.cpp"
+    "${SRC_DIR}/*.h"
+    "${SRC_DIR}/*.hpp"
+)
+
+# get rid of polyhook/asmjit/capstone so we don't compile it every time. we already got the static libs!
+foreach (TMP_PATH ${SRC_FILES})
+    string (FIND ${TMP_PATH} "polyhook" EXCLUDE_DIR_FOUND)
+    if (NOT ${EXCLUDE_DIR_FOUND} EQUAL -1)
+        list (REMOVE_ITEM SRC_FILES ${TMP_PATH})
+    endif ()
+endforeach(TMP_PATH)
+
+
+add_library(byond-extools SHARED ${SRC_FILES})
+source_group(TREE ${SRC_DIR} FILES ${SRC_FILES})
+#source_group("core"                 FILES ${CORE})
+#source_group("tffi"                 FILES ${TFFI})
 if (WIN32)
     set_property(TARGET byond-extools PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
     target_include_directories(byond-extools PUBLIC src/polyhook)
