@@ -39,6 +39,7 @@ These modules are planned to be included in the future.
 - Debug server: For use with debugging; Manages breakpoints, sends and receives data from debuggers.
 - Hotpatch server: Receives compiled bytecode (eg. from the [VSCode extension](https://github.com/SpaceManiac/SpacemanDMM)) and patches it in for live code replacement.
 - Maptick: Measures time taken by BYOND's SendMaps() function and makes it accessible from DM code, helping reduce lag spikes from not leaving enough processing time.
+- Proxy objects: Forward variable reads and writes to C++.
 - Lua: Allows writing lua scripts that replace builtin procs. Mostly for messing about.
 
 ## I want to use this!
