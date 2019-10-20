@@ -8,7 +8,7 @@ Most of development of [Lunar-Dreamland](https://github.com/goonstation/Lunar-Dr
 Here are the modules currently available (not counting the core). Scroll to the bottom to see install instructions.
 
 #### TFFI
-Threaded FFI for BYOND. Automagically threads off all DLL calls and prevents them from locking up the game until they return. You may use a Promise datum, pass a callback or simply sleep until the call returns.
+Threaded FFI for BYOND. Automagically threads off all DLL calls and prevents them from locking up the game until they return. You may use a Promise datum, pass a callback (global or an object) or simply sleep until the call returns.
 
 Calls the do_work function from sample.dll with 3 arguments. The proc sleeps until do_work returns.
 ```
@@ -24,12 +24,20 @@ var/datum/promise/P = call_async("sample.dll", "do_work", "arg1")
 var/result = P.resolve()
 ```
 
-Calls do_work with 2 arguments. The callback is invoked with the result as the single argument. Execution resumes immediately.
+Calls do_work with 2 arguments. The callback, a global proc, is invoked with the result as the single argument. Execution resumes immediately.
 ```
 /proc/print_result(result)
 	world << result
 
-call_cb("sample.dll", "do_work", /proc/print_result, "arg1", "arg2")
+call_cb("sample.dll", "do_work", GLOBAL_PROC, /proc/print_result, "arg1", "arg2")
+```
+
+Calls do_work with 3 arguments. The callback is invoked on the target object, with the result as the single argument. Execution resumes immediately.
+```
+/mob/proc/tell_result(result)
+	src << result
+
+call_cb("sample.dll", "do_work", mob, /mob.proc/print_result, "arg1", "arg2", "arg3")
 ```
 
 ## What will I be able to do with this?
