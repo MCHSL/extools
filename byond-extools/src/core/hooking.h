@@ -11,5 +11,6 @@
 
 namespace Core
 {
-	bool hook_em();
+	void* install_hook(void* original, void* hook);
+	bool hook_custom_opcodes();
 }

@@ -1,8 +1,7 @@
 #include "hooking.h"
 
 #ifdef _WIN32
-PLH::CapstoneDisassembler* disassembler;
-PLH::x86Detour* CrashProcDetour;
+static PLH::CapstoneDisassembler* disassembler;
 #else
 urmem::hook CrashProcDetour;
 #endif
@@ -22,37 +21,47 @@ void hCrashProc(char* error, int argument)
 #endif
 }
 
-bool Core::hook_em()
+
+void* Core::install_hook(void* original, void* hook)
 {
 #ifdef _WIN32
 	disassembler = new PLH::CapstoneDisassembler(PLH::Mode::x86);
 	if (!disassembler)
 	{
-		return false;
+		return nullptr;
 	}
-	std::uint64_t sendMapsTrampoline;
-	CrashProcDetour = new PLH::x86Detour((char*)CrashProc, (char*)&hCrashProc, &sendMapsTrampoline, *disassembler);
-	if (!CrashProcDetour)
+	std::uint64_t trampoline;
+	PLH::x86Detour* detour = new PLH::x86Detour((char*)original, (char*)hook, &trampoline, *disassembler);
+	if (!detour)
 	{
-		return false;
+		Core::Alert("No detour");
+		return nullptr;
 	}
-	if (!CrashProcDetour->hook())
+	if (!detour->hook())
 	{
-		return false;
+		Core::Alert("hook failed");
+		return nullptr;
 	}
-	oCrashProc = PLH::FnCast(sendMapsTrampoline, oCrashProc);
-	if (!oCrashProc)
-	{
-		CrashProcDetour->unHook();
-		return false;
-	}
+	return (void*)trampoline;
 #else
-	CrashProcDetour.install(urmem::get_func_addr(CrashProc), urmem::get_func_addr(hCrashProc));
-	CrashProcDetour.enable();
-	if(!CrashProcDetour.is_enabled()) {
-		CrashProcDetour.disable();
-		return false;
+	detour.install(original, hook);
+	detour.enable();
+	if (!detour.is_enabled())
+	{
+		detour.disable();
+		return nullptr;
 	}
+	return (void*)detour;
 #endif
-	return true;
+}
+
+bool Core::hook_custom_opcodes()
+{
+#ifdef _WIN32
+	oCrashProc = (CrashProcPtr)install_hook(CrashProc, hCrashProc);
+	return oCrashProc;
+#else
+	CrashProcDetour = (CrashProcDetour)install_hook(CrashProc, hCrashProc);
+	return CrashProcDetour;
+#endif
 }

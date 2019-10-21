@@ -1,6 +1,7 @@
 #include "core.h"
 #include "find_functions.h"
 #include "../tffi/tffi.h"
+#include "../proxy/proxy_object.h"
 
 CrashProcPtr CrashProc;
 SuspendPtr Suspend;
@@ -17,10 +18,16 @@ ProcSetupEntry** Core::proc_setup_table;
 std::map<unsigned int, opcode_handler> Core::opcode_handlers;
 std::map<std::string, unsigned int> Core::name_to_opcode;
 unsigned int next_opcode_id = 0x1337;
+bool Core::initialized = false;
 
 bool Core::initialize()
 {
-	return find_functions() && populate_proc_list();
+	if (initialized)
+	{
+		return true;
+	}
+	initialized = find_functions() && populate_proc_list() && hook_custom_opcodes();
+	return initialized;
 }
 
 void Core::Alert(const char* what) {
@@ -49,17 +56,19 @@ extern "C" EXPORT const char* core_initialize(int n_args, const char* args)
 		Core::Alert("Core init failed!");
 		return bad;
 	}
-	if (!Core::hook_em())
-	{
-		Core::Alert("Hooking failed!");
-		return bad;
-	}
 	return good;
 }
 
 extern "C" EXPORT const char* tffi_initialize(int n_args, const char* args)
 {
-	if (!TFFI::initialize())
+	if (!(Core::initialize() && TFFI::initialize()))
+		return bad;
+	return good;
+}
+
+extern "C" EXPORT const char* proxy_initialize(int n_args, const char* args)
+{
+	if (!(Core::initialize() && Proxy::initialize()))
 		return bad;
 	return good;
 }

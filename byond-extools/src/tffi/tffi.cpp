@@ -26,10 +26,10 @@ void tffi_suspend(ExecutionContext* ctx)
 
 bool TFFI::initialize()
 {
+	// the CrashProc hook is currently super broken on Linux. It hooks but doesn't stop the crash.
+#ifdef _WIN32
 	int suspension_opcode = Core::register_opcode("TFFI_SUSPEND", tffi_suspend);
 	Core::Proc internal_resolve = Core::get_proc("/datum/promise/proc/__internal_resolve");
-#ifdef _WIN32
-	// the CrashProc hook is currently super broken on Linux. It hooks but doesn't stop the crash.
 	internal_resolve.set_bytecode(new std::vector<int>({ suspension_opcode, 0, 0, 0 }));
 #endif
 	result_string_id = GetStringTableIndex("result", 0, 1);

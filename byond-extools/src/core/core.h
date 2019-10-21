@@ -25,4 +25,5 @@ namespace Core
 	unsigned int register_opcode(std::string name, opcode_handler handler);
 	void Alert(const char* what);
 	bool initialize();
+	extern bool initialized;
 }
