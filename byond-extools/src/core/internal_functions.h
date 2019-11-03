@@ -2,15 +2,15 @@
 
 #include "byond_structures.h"
 
-typedef Value(*CallGlobalProcPtr)(char unk1, int unk2, int proc_type, unsigned int proc_id, int const_0, char unk3, int unk4, Value* argList, unsigned int argListLen, int const_0_2, int const_0_3);
+typedef trvh(__cdecl *CallGlobalProcPtr)(char usr_type, int usr_value, int proc_type, unsigned int proc_id, int const_0, char src_type, int src_value, Value* argList, unsigned int argListLen, int const_0_2, int const_0_3);
 typedef Value(*Text2PathPtr)(unsigned int text);
 #ifdef _WIN32
 typedef unsigned int(*GetStringTableIndexPtr)(const char* string, int handleEscapes, int duplicateString);
 #else
 typedef unsigned int(*GetStringTableIndexPtr)(const char* string, int handleEscapes, int duplicateString) __attribute__((regparm(3)));
 #endif
-typedef void(*SetVariablePtr)(Value datum, unsigned int varNameId, Value newvalue);
-typedef Value(*GetVariablePtr)(Value datum, unsigned int varNameId);
+typedef void(*SetVariablePtr)(int datumType, int datumId, unsigned int varNameId, Value newvalue);
+typedef trvh(*GetVariablePtr)(int datumType, int datumId, unsigned int varNameId);
 typedef Value(*CallProcPtr)(int unk1, int unk2, unsigned int proc_type, unsigned int proc_name, unsigned char datumType, unsigned int datumId, Value* argList, unsigned int argListLen, int unk4, int unk5);
 typedef IDArrayEntry* (*GetIDArrayEntryPtr)(unsigned int index);
 typedef int(*ThrowDMErrorPtr)(const char* msg);
@@ -37,6 +37,7 @@ typedef void(*StartTimingPtr)(SuspendedProc*);
 typedef SuspendedProc* (*SuspendPtr)(ExecutionContext* ctx) __attribute__((regparm(3)));
 typedef void(*StartTimingPtr)(SuspendedProc*) __attribute__((regparm(3)));
 #endif
+typedef ProfileInfo* (*GetProfileInfoPtr)(unsigned int proc_id);
 
 extern CrashProcPtr CrashProc;
 extern StartTimingPtr StartTiming;
@@ -46,3 +47,5 @@ extern GetVariablePtr GetVariable;
 extern GetStringTableIndexPtr GetStringTableIndex;
 extern GetProcArrayEntryPtr GetProcArrayEntry;
 extern GetStringTableEntryPtr GetStringTableEntry;
+extern CallGlobalProcPtr CallGlobalProc;
+extern GetProfileInfoPtr GetProfileInfo;

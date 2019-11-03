@@ -1,5 +1,6 @@
 #pragma once
 #include "../core/core.h"
+#include <cmath>
 #include <thread>
 #ifndef _WIN32
 #include <dlfcn.h>
@@ -11,3 +12,5 @@ namespace TFFI
 {
 	bool initialize();
 }
+
+void cheap_hypotenuse(ExecutionContext* ctx);

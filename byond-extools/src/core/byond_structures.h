@@ -1,11 +1,23 @@
 #pragma once
 
+#define FLAG_PROFILE 0x10000
+
 struct String
 {
 	char* stringData;
 	int unk1;
 	int unk2;
 	unsigned int refcount;
+};
+
+struct trvh //temporary return value holder, used for sidestepping the fact that structs with constructors are passed in memory and not in eax/ecx when returning them
+{
+	char type;
+	union
+	{
+		int value;
+		float valuef;
+	};
 };
 
 struct Value
@@ -16,6 +28,20 @@ struct Value
 		int value;
 		float valuef;
 	};
+
+	Value(char type, int value) : type(type), value(value) {};
+	Value(char type, float valuef) : type(type), valuef(valuef) {};
+	Value(trvh trvh)
+	{
+		type = trvh.type;
+		if (type == 0x2A)
+			value = trvh.value;
+		else
+			valuef = trvh.valuef;
+	}
+	inline static Value Null() {
+		return { 0 ,0 };
+	}
 };
 
 struct IDArrayEntry
@@ -120,4 +146,29 @@ struct ProcSetupEntry
 	};
 	int* bytecode;
 	int unknown;
+};
+
+struct ProfileEntry
+{
+	unsigned int seconds;
+	unsigned int microseconds;
+
+	unsigned long long as_microseconds()
+	{
+		return 1000000 * (unsigned long long)seconds + microseconds;
+	}
+	double as_seconds()
+	{
+		return (double)seconds + microseconds / 1000000;
+	}
+};
+
+struct ProfileInfo
+{
+	unsigned int call_count;
+	ProfileEntry real;
+	ProfileEntry total;
+	ProfileEntry self;
+	ProfileEntry overtime;
+	unsigned int proc_id;
 };

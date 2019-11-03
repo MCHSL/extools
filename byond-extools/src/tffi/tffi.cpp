@@ -1,4 +1,7 @@
 #include "tffi.h"
+#include "../dmdism/disassembler.h"
+#include "../dmdism/disassembly.h"
+#include "../dmdism/opcodes.h"
 
 typedef const char* (byond_ffi_func)(int, const char**);
 
@@ -35,6 +38,7 @@ bool TFFI::initialize()
 	result_string_id = GetStringTableIndex("result", 0, 1);
 	completed_string_id = GetStringTableIndex("completed", 0, 1);
 	internal_id_string_id = GetStringTableIndex("__id", 0, 1);
+
 	return true;
 }
 
@@ -46,9 +50,9 @@ void ffi_thread(byond_ffi_func* proc, int promise_id, int n_args, std::vector<st
 		a.push_back(args[i].c_str());
 	}
 	const char* res = proc(n_args, a.data());
-	SetVariable({ 0x21, promise_id }, result_string_id, { 0x06, (int)GetStringTableIndex(res, 0, 1) });
-	SetVariable({ 0x21, promise_id }, completed_string_id, { 0x2A, 1 });
-	float internal_id = GetVariable({ 0x21, promise_id }, internal_id_string_id).valuef;
+	SetVariable( 0x21, promise_id , result_string_id, { 0x06, (int)GetStringTableIndex(res, 0, 1) });
+	SetVariable( 0x21, promise_id , completed_string_id, { 0x2A, 1 });
+	float internal_id = GetVariable( 0x21, promise_id , internal_id_string_id).valuef;
 	while (true)
 	{
 		if (suspended_procs.find(internal_id) != suspended_procs.end())

@@ -2,6 +2,7 @@
 #include "find_functions.h"
 #include "../tffi/tffi.h"
 #include "../proxy/proxy_object.h"
+#include "../optimizer/optimizer.h"
 
 CrashProcPtr CrashProc;
 SuspendPtr Suspend;
@@ -11,9 +12,14 @@ GetVariablePtr GetVariable;
 GetStringTableIndexPtr GetStringTableIndex;
 GetProcArrayEntryPtr GetProcArrayEntry;
 GetStringTableEntryPtr GetStringTableEntry;
+CallGlobalProcPtr CallGlobalProc;
+GetProfileInfoPtr GetProfileInfo;
 
 ExecutionContext** Core::current_execution_context_ptr;
+ExecutionContext** Core::parent_context_ptr_hack;
 ProcSetupEntry** Core::proc_setup_table;
+
+unsigned int* Core::some_flags_including_profile;
 
 std::map<unsigned int, opcode_handler> Core::opcode_handlers;
 std::map<std::string, unsigned int> Core::name_to_opcode;
@@ -46,8 +52,57 @@ unsigned int Core::register_opcode(std::string name, opcode_handler handler)
 	return next_opcode;
 }
 
+ExecutionContext* Core::get_context()
+{
+	return *current_execution_context_ptr;
+}
+
+ExecutionContext* Core::_get_parent_context()
+{
+	return *parent_context_ptr_hack;
+}
+
+Value Core::get_stack_value(unsigned int which)
+{
+	return (*Core::current_execution_context_ptr)->stack[(*Core::current_execution_context_ptr)->stack_size - which - 1];
+}
+
+void Core::stack_pop(unsigned int how_many)
+{
+	(*Core::current_execution_context_ptr)->stack_size -= how_many;
+}
+
+void Core::stack_push(Value val)
+{
+	(*Core::current_execution_context_ptr)->stack_size++;
+	(*Core::current_execution_context_ptr)->stack[(*Core::current_execution_context_ptr)->stack_size-1] = val;
+}
+
+void Core::enable_profiling()
+{
+	*some_flags_including_profile |= FLAG_PROFILE;
+}
+
+void Core::disable_profiling()
+{
+	*some_flags_including_profile &= ~FLAG_PROFILE;
+}
+
+
 const char* good = "gucci";
 const char* bad = "pain";
+
+extern "C" EXPORT const char* enable_profiling(int n_args, const char* args)
+{
+	Core::enable_profiling();
+	return good;
+}
+
+extern "C" EXPORT const char* disable_profiling(int n_args, const char* args)
+{
+	Core::disable_profiling();
+	return good;
+}
 
 extern "C" EXPORT const char* core_initialize(int n_args, const char* args)
 {
@@ -56,6 +111,7 @@ extern "C" EXPORT const char* core_initialize(int n_args, const char* args)
 		Core::Alert("Core init failed!");
 		return bad;
 	}
+	optimizer_initialize();
 	return good;
 }
 
@@ -70,5 +126,14 @@ extern "C" EXPORT const char* proxy_initialize(int n_args, const char* args)
 {
 	if (!(Core::initialize() && Proxy::initialize()))
 		return bad;
+	return good;
+}
+
+void init_testing();
+void run_tests();
+extern "C" EXPORT const char* run_tests(int n_args, const char* args)
+{
+	init_testing();
+	run_tests();
 	return good;
 }
