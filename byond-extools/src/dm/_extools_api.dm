@@ -50,7 +50,7 @@
 */
 
 /proc/tffi_initialize()
-	call(EXTOOLS, "tffi_initialize")() == EXTOOLS_SUCCESS
+	return call(EXTOOLS, "tffi_initialize")() == EXTOOLS_SUCCESS
 
 var/fallback_alerted = FALSE
 var/next_promise_id = 0
