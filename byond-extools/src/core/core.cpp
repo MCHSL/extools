@@ -11,9 +11,14 @@ GetVariablePtr GetVariable;
 GetStringTableIndexPtr GetStringTableIndex;
 GetProcArrayEntryPtr GetProcArrayEntry;
 GetStringTableEntryPtr GetStringTableEntry;
+GetByondVersionPtr GetByondVersion;
+GetByondBuildPtr GetByondBuild;
 
 ExecutionContext** Core::current_execution_context_ptr;
 ProcSetupEntry** Core::proc_setup_table;
+
+int ByondVersion;
+int ByondBuild;
 
 std::map<unsigned int, opcode_handler> Core::opcode_handlers;
 std::map<std::string, unsigned int> Core::name_to_opcode;

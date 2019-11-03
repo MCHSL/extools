@@ -9,6 +9,8 @@ typedef unsigned int(*GetStringTableIndexPtr)(const char* string, int handleEsca
 #else
 typedef unsigned int(*GetStringTableIndexPtr)(const char* string, int handleEscapes, int duplicateString) __attribute__((regparm(3)));
 #endif
+typedef int(*GetByondVersionPtr)();
+typedef int(*GetByondBuildPtr)();
 typedef void(*SetVariablePtr)(Value datum, unsigned int varNameId, Value newvalue);
 typedef Value(*GetVariablePtr)(Value datum, unsigned int varNameId);
 typedef Value(*CallProcPtr)(int unk1, int unk2, unsigned int proc_type, unsigned int proc_name, unsigned char datumType, unsigned int datumId, Value* argList, unsigned int argListLen, int unk4, int unk5);
@@ -46,3 +48,5 @@ extern GetVariablePtr GetVariable;
 extern GetStringTableIndexPtr GetStringTableIndex;
 extern GetProcArrayEntryPtr GetProcArrayEntry;
 extern GetStringTableEntryPtr GetStringTableEntry;
+extern GetByondVersionPtr GetByondVersion;
+extern GetByondBuildPtr GetByondBuild;

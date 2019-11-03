@@ -4,6 +4,9 @@
 #include "internal_functions.h"
 #include "hooking.h"
 #include "proc_management.h"
+#ifndef _WIN32
+#include <dlfcn.h>
+#endif
 
 #include <map>
 #include <string>
@@ -15,6 +18,9 @@
 #endif
 
 typedef void(*opcode_handler)(ExecutionContext* ctx);
+
+extern int ByondVersion;
+extern int ByondBuild;
 
 namespace Core
 {

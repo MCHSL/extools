@@ -2,7 +2,6 @@
 #include "../core/core.h"
 #include <thread>
 #ifndef _WIN32
-#include <dlfcn.h>
 #include <link.h>
 #include <unistd.h>
 #endif
