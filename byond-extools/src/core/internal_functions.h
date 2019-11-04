@@ -2,7 +2,7 @@
 
 #include "byond_structures.h"
 
-typedef trvh(__cdecl *CallGlobalProcPtr)(char usr_type, int usr_value, int proc_type, unsigned int proc_id, int const_0, char src_type, int src_value, Value* argList, unsigned int argListLen, int const_0_2, int const_0_3);
+typedef trvh(*CallGlobalProcPtr)(char usr_type, int usr_value, int proc_type, unsigned int proc_id, int const_0, char src_type, int src_value, Value* argList, unsigned int argListLen, int const_0_2, int const_0_3);
 typedef Value(*Text2PathPtr)(unsigned int text);
 #ifdef _WIN32
 typedef unsigned int(*GetStringTableIndexPtr)(const char* string, int handleEscapes, int duplicateString);

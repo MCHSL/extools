@@ -178,14 +178,14 @@ void* Core::install_hook(void* original, void* hook)
 	}
 	return (void*)trampoline;
 #else
-	detour.install(original, hook);
-	detour.enable();
-	if (!detour.is_enabled())
+	CrashProcDetour.install(original, hook);
+	CrashProcDetour.enable();
+	if (!CrashProcDetour.is_enabled())
 	{
-		detour.disable();
+		CrashProcDetour.disable();
 		return nullptr;
 	}
-	return (void*)detour;
+	return (void*)CrashProcDetour.get_original_addr();
 #endif
 }
 
@@ -197,6 +197,6 @@ bool Core::hook_custom_opcodes()
 	return oCrashProc && oCallGlobalProc;
 #else
 	CrashProcDetour = (CrashProcDetour)install_hook(CrashProc, hCrashProc);
-	return CrashProcDetour;
+	return CrashProcDetour != NULL;
 #endif
 }
