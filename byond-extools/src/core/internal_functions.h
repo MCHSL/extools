@@ -40,6 +40,8 @@ typedef SuspendedProc* (*SuspendPtr)(ExecutionContext* ctx) __attribute__((regpa
 typedef void(*StartTimingPtr)(SuspendedProc*) __attribute__((regparm(3)));
 #endif
 typedef ProfileInfo* (*GetProfileInfoPtr)(unsigned int proc_id);
+typedef void(*ProcCleanupPtr)(ExecutionContext* thing_that_just_executed); //this one is hooked to help with extended profiling
+typedef void(*CreateContextPtr)(void* unknown, ExecutionContext* new_ctx);
 
 extern CrashProcPtr CrashProc;
 extern StartTimingPtr StartTiming;
@@ -53,3 +55,5 @@ extern GetByondVersionPtr GetByondVersion;
 extern GetByondBuildPtr GetByondBuild;
 extern CallGlobalProcPtr CallGlobalProc;
 extern GetProfileInfoPtr GetProfileInfo;
+extern ProcCleanupPtr ProcCleanup;
+extern CreateContextPtr CreateContext;

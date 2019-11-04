@@ -33,7 +33,7 @@ namespace Core
 	ExecutionContext* get_context();
 	ExecutionContext* _get_parent_context();
 	unsigned int register_opcode(std::string name, opcode_handler handler);
-	void Alert(const char* what);
+	void Alert(std::string what);
 	bool initialize();
 	extern bool initialized;
 	Value get_stack_value(unsigned int which);

@@ -1,0 +1,23 @@
+#pragma once
+#include "../core/core.h"
+#include <chrono>
+#include <vector>
+#include <unordered_map>
+#include <stack>
+
+struct ExtendedProfile
+{
+	unsigned int proc_id;
+	int hash;
+	std::vector<ExtendedProfile*> subcalls;
+	std::vector<ExtendedProfile*> call_stack;
+	std::chrono::time_point<std::chrono::steady_clock> start_time;
+	std::chrono::time_point<std::chrono::steady_clock> end_time;
+
+	void start_timer();
+	void stop_timer();
+	unsigned long long total_time();
+};
+
+extern std::unordered_map<unsigned int, bool> procs_to_profile;
+bool extended_profiling_initialize();
