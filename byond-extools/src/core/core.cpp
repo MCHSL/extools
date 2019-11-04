@@ -3,6 +3,7 @@
 #include "../tffi/tffi.h"
 #include "../proxy/proxy_object.h"
 #include "../optimizer/optimizer.h"
+#include "../extended_profiling/extended_profiling.h"
 
 CrashProcPtr CrashProc;
 SuspendPtr Suspend;
@@ -14,6 +15,8 @@ GetProcArrayEntryPtr GetProcArrayEntry;
 GetStringTableEntryPtr GetStringTableEntry;
 CallGlobalProcPtr CallGlobalProc;
 GetProfileInfoPtr GetProfileInfo;
+ProcCleanupPtr ProcCleanup;
+CreateContextPtr CreateContext;
 
 ExecutionContext** Core::current_execution_context_ptr;
 ExecutionContext** Core::parent_context_ptr_hack;
@@ -36,9 +39,9 @@ bool Core::initialize()
 	return initialized;
 }
 
-void Core::Alert(const char* what) {
+void Core::Alert(std::string what) {
 #ifdef _WIN32
-	MessageBoxA(NULL, what, "Ouch!", NULL);
+	MessageBoxA(NULL, what.c_str(), "Ouch!", NULL);
 #else
 	printf("%s\n", what);
 #endif
@@ -112,6 +115,7 @@ extern "C" EXPORT const char* core_initialize(int n_args, const char* args)
 		return bad;
 	}
 	optimizer_initialize();
+	extended_profiling_initialize();
 	return good;
 }
 

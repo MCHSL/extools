@@ -36,6 +36,7 @@ namespace Core
 		void assemble(Disassembly disasm);
 
 		ProfileInfo* profile();
+		void extended_profile();
 		void hook(ProcHook hook_func);
 		Value call(std::vector<Value> arguments, Value usr = Value::Null(), Value src = Value::Null());
 
@@ -47,6 +48,16 @@ namespace Core
 		bool operator==(const Proc& rhs) const
 		{
 			return id == rhs.id;
+		}
+
+		operator int()
+		{
+			return id;
+		}
+
+		operator std::string()
+		{
+			return name;
 		}
 	};
 

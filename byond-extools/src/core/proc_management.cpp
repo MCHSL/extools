@@ -1,6 +1,7 @@
 #include "proc_management.h"
 #include "../dmdism/disassembly.h"
 #include "../dmdism/disassembler.h"
+#include "../extended_profiling/extended_profiling.h"
 
 std::vector<Core::Proc> procs_by_id;
 std::unordered_map<std::string, Core::Proc> procs_by_name;
@@ -55,6 +56,11 @@ int Core::Proc::get_local_varcount()
 ProfileInfo* Core::Proc::profile()
 {
 	return GetProfileInfo(id);
+}
+
+void Core::Proc::extended_profile()
+{
+	procs_to_profile[id] = true;
 }
 
 void Core::Proc::hook(ProcHook hook_func)
@@ -131,5 +137,11 @@ bool Core::populate_proc_list()
 		procs_by_bytecode[p.get_bytecode()] = p;
 		i++;
 	}
+	//Temporary - fake proc used by profiler
+	Proc sleep = Proc();
+	sleep.id = i;
+	sleep.name = "SLEEP";
+	procs_by_id.push_back(sleep);
+	procs_by_name["SLEEP"] = sleep;
 	return true;
 }

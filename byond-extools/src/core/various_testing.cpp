@@ -54,7 +54,10 @@ trvh update_light_objects;
 void init_testing()
 {
 	Core::enable_profiling();
-	//extended_profiling_procs[Core::get_proc("/datum/controller/subsystem/atoms/proc/InitializeAtoms").id] = true;
+	Core::get_proc("/datum/explosion/New").extended_profile();
+	//Core::get_proc("/client/verb/test_reentry").extended_profile();
+	//Core::get_proc("/client/verb/test_extended_profiling").extended_profile();
+	//extended_profiling_procs[.id] = true;
 	//Core::get_proc("/proc/cheap_hypotenuse_hook").hook(cheap_hypotenuse);
 	//Core::get_proc("/proc/measure_get_variable").hook(measure_get_variable);
 	//Core::get_proc("/proc/laugh").hook(show_profiles);

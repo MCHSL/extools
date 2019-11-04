@@ -99,8 +99,12 @@ struct ProcConstants
 	Value usr;
 	ExecutionContext* context;
 	int unknown3;
-	int unknown4;
-	int unknown5;
+	int unknown4; //some callback thing
+	union
+	{
+		int unknown5;
+		int extended_profile_id;
+	};
 	int arg_count;
 	Value* args;
 };
@@ -121,12 +125,13 @@ struct ExecutionContext
 	Value* stack;
 	short local_var_count;
 	short stack_size;
-	int unknown;
+	int unknown; //callback something
 	Value* current_iterator;
 	int iterator_allocated;
 	int iterator_length;
 	int iterator_index;
-	char unknown4[7];
+	int another_unknown2;
+	char unknown4[3];
 	char iterator_filtered_type;
 	char unknown5;
 	char iterator_unknown;
@@ -135,6 +140,11 @@ struct ExecutionContext
 	char unknown7[2];
 	bool paused;
 	char unknown8[51];
+
+	int hash()
+	{
+		return constants->proc_id + (int)constants->args;
+	}
 };
 
 struct ProcSetupEntry
