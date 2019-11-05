@@ -82,6 +82,7 @@ bool Core::hook_custom_opcodes()
 	oCallGlobalProc = (CallGlobalProcPtr)callGlobalProc->trampoline;
 	CallGlobalProcDetour = callGlobalProc->hook;
 	return oCrashProc && oCallGlobalProc;
+	return true;
 #else // casting to void* for install_hook and using urmem causes weird byond bug errors and i don't feel like debugging why
 	CrashProcDetour.install(urmem::get_func_addr(CrashProc), urmem::get_func_addr(hCrashProc));
 	oCrashProc = (CrashProcPtr)CrashProcDetour.get_original_addr();
