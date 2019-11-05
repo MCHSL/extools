@@ -23,6 +23,7 @@ ExecutionContext** Core::parent_context_ptr_hack;
 ProcSetupEntry** Core::proc_setup_table;
 
 unsigned int* Core::some_flags_including_profile;
+unsigned int Core::extended_profiling_insanely_hacky_check_if_its_a_new_call_or_resume;
 
 std::map<unsigned int, opcode_handler> Core::opcode_handlers;
 std::map<std::string, unsigned int> Core::name_to_opcode;
@@ -95,19 +96,19 @@ void Core::disable_profiling()
 const char* good = "gucci";
 const char* bad = "pain";
 
-extern "C" EXPORT const char* enable_profiling(int n_args, const char* args)
+extern "C" EXPORT const char* enable_profiling(int n_args, const char** args)
 {
 	Core::enable_profiling();
 	return good;
 }
 
-extern "C" EXPORT const char* disable_profiling(int n_args, const char* args)
+extern "C" EXPORT const char* disable_profiling(int n_args, const char** args)
 {
 	Core::disable_profiling();
 	return good;
 }
 
-extern "C" EXPORT const char* core_initialize(int n_args, const char* args)
+extern "C" EXPORT const char* core_initialize(int n_args, const char** args)
 {
 	if (!Core::initialize())
 	{
@@ -115,18 +116,18 @@ extern "C" EXPORT const char* core_initialize(int n_args, const char* args)
 		return bad;
 	}
 	optimizer_initialize();
-	extended_profiling_initialize();
+	//extended_profiling_initialize();
 	return good;
 }
 
-extern "C" EXPORT const char* tffi_initialize(int n_args, const char* args)
+extern "C" EXPORT const char* tffi_initialize(int n_args, const char** args)
 {
 	if (!(Core::initialize() && TFFI::initialize()))
 		return bad;
 	return good;
 }
 
-extern "C" EXPORT const char* proxy_initialize(int n_args, const char* args)
+extern "C" EXPORT const char* proxy_initialize(int n_args, const char** args)
 {
 	if (!(Core::initialize() && Proxy::initialize()))
 		return bad;
@@ -135,9 +136,29 @@ extern "C" EXPORT const char* proxy_initialize(int n_args, const char* args)
 
 void init_testing();
 void run_tests();
-extern "C" EXPORT const char* run_tests(int n_args, const char* args)
+extern "C" EXPORT const char* run_tests(int n_args, const char** args)
 {
 	init_testing();
 	run_tests();
+	return good;
+}
+
+extern "C" EXPORT const char* extended_profiling_initialize(int n_args, const char** args)
+{
+	if (!(Core::initialize() && actual_extended_profiling_initialize()))
+		return bad;
+	return good;
+}
+
+extern "C" EXPORT const char* enable_extended_profiling(int n_args, const char** args)
+{
+	//Core::Alert("Enabling logging for " + std::string(args[0]));
+	Core::get_proc(args[0]).extended_profile();
+	return good;
+}
+
+extern "C" EXPORT const char* disable_extended_profiling(int n_args, const char** args)
+{
+	procs_to_profile.erase(Core::get_proc(args[0]).id); //TODO: improve consistency and reconsider how initialization works
 	return good;
 }
