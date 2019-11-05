@@ -10,8 +10,17 @@
 #include "urmem.hpp"
 #endif
 
+#ifdef _WIN32
+struct Hook {
+	PLH::x86Detour* hook;
+	void* trampoline;
+};
+#endif
+
 namespace Core
 {
-	void* install_hook(void* original, void* hook);
+#ifdef _WIN32
+	Hook* install_hook(void* original, void* hook);
+#endif
 	bool hook_custom_opcodes();
 }

@@ -10,7 +10,7 @@ std::string byond_tostring(int idx)
 
 int intern_string(std::string str)
 {
-	int idx = GetStringTableIndex(str.c_str(), 0, 1);
+	int idx = Core::GetString(str.c_str());
 	String* s = GetStringTableEntry(idx);
 	s->refcount++;
 	return idx;

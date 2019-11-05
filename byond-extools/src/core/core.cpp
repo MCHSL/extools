@@ -11,6 +11,7 @@ StartTimingPtr StartTiming;
 SetVariablePtr SetVariable;
 GetVariablePtr GetVariable;
 GetStringTableIndexPtr GetStringTableIndex;
+GetStringTableIndexUTF8Ptr GetStringTableIndexUTF8;
 GetProcArrayEntryPtr GetProcArrayEntry;
 GetStringTableEntryPtr GetStringTableEntry;
 CallGlobalProcPtr CallGlobalProc;
@@ -49,6 +50,17 @@ void Core::Alert(std::string what) {
 #else
 	printf("%s\n", what);
 #endif
+}
+
+unsigned int Core::GetString(const char* str) {
+	switch (ByondVersion) {
+		case 512:
+			return GetStringTableIndex(str, 0, 1);
+		case 513:
+			return GetStringTableIndexUTF8(str, 0, 0, 1);
+		default: break;
+	}
+	return 0;
 }
 
 unsigned int Core::register_opcode(std::string name, opcode_handler handler)
@@ -119,7 +131,9 @@ extern "C" EXPORT const char* core_initialize(int n_args, const char* args)
 		return bad;
 	}
 	optimizer_initialize();
+#ifdef _WIN32 // i ain't fixing this awful Linux situation anytime soon
 	extended_profiling_initialize();
+#endif
 	return good;
 }
 

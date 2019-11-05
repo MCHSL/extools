@@ -10,6 +10,7 @@
 
 #include <map>
 #include <string>
+#include <cmath>
 
 #ifdef _WIN32
 #define EXPORT __declspec(dllexport)
@@ -30,6 +31,7 @@ namespace Core
 	extern ExecutionContext** parent_context_ptr_hack;
 	extern ProcSetupEntry** proc_setup_table;
 	extern unsigned int* some_flags_including_profile;
+	unsigned int GetString(const char* str);
 	ExecutionContext* get_context();
 	ExecutionContext* _get_parent_context();
 	unsigned int register_opcode(std::string name, opcode_handler handler);

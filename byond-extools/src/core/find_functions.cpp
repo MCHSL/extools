@@ -36,7 +36,7 @@ bool Core::find_functions()
 			FIND_OR_DIE(GetStringTableIndex, "55 8B EC 8B 45 ?? 83 EC ?? 53 8B 1D ?? ?? ?? ??");
 			break;
 		case 513:
-			FIND_OR_DIE(GetStringTableIndex, "55 8B EC 8B 45 ?? 83 EC ?? 53 56 8B 35 ?? ?? ?? ??");
+			FIND_OR_DIE(GetStringTableIndexUTF8, "55 8B EC 8B 45 ?? 83 EC ?? 53 56 8B 35 ?? ?? ?? ??");
 			break;
 		default: break;
 	}
@@ -56,6 +56,8 @@ bool Core::find_functions()
 	FIND_OR_DIE(GetProcArrayEntry, "55 31 C0 89 E5 8B 55 ?? 39 15 ?? ?? ?? ?? 76 ?? 8D 04 D2");
 	FIND_OR_DIE(GetStringTableEntry, "55 89 E5 83 EC ?? 8B 45 ?? 39 05 ?? ?? ?? ??");
 	FIND_OR_DIE(GetProfileInfo, "55 31 C0 89 E5 53 83 EC ?? 8B 5D ?? 8B 15 ?? ?? ?? ??");
+	FIND_OR_DIE(ProcCleanup, "55 89 E5 56 89 C6 53 83 EC ?? 8B 58 ??");
+	FIND_OR_DIE(CreateContext, "55 89 E5 57 56 89 C6 53 89 D3 83 EC ?? 80 3D ?? ?? ?? ?? ??");
 	switch(ByondVersion) {
 		case 512:
 			FIND_OR_DIE(SetVariable, "55 89 E5 81 EC ?? ?? ?? ?? 89 75 ?? 8B 55 ?? 8B 75 ??");
@@ -63,7 +65,7 @@ bool Core::find_functions()
 			break;
 		case 513:
 			FIND_OR_DIE(SetVariable, "55 89 E5 81 EC ?? ?? ?? ?? 8B 55 ?? 8B 45 ??");
-			FIND_OR_DIE(GetStringTableIndex, "55 89 E5 57 56 89 CE 53 89 D3 83 EC ?? 8B 55 ?? 85 C0") // regparm3
+			FIND_OR_DIE(GetStringTableIndexUTF8, "55 89 E5 57 56 89 CE 53 89 D3 83 EC ?? 8B 55 ?? 85 C0") // regparm3
 			break;
 		default: break;
 	}
