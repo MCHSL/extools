@@ -15,11 +15,7 @@ int internal_id_string_id = 0;
 void tffi_suspend(ExecutionContext* ctx)
 {
 	ctx->current_opcode++;
-#ifdef _WIN32
 	SuspendedProc* proc = Suspend(ctx, 0);
-#else
-	SuspendedProc* proc = Suspend(ctx);
-#endif
 	proc->time_to_resume = 0x7FFFFF;
 	StartTiming(proc);
 	float promise_id = ctx->constants->args[1].valuef;

@@ -38,7 +38,7 @@ typedef void(*SendMapsPtr)(void);
 typedef SuspendedProc* (*SuspendPtr)(ExecutionContext* ctx, int unknown);
 typedef void(*StartTimingPtr)(SuspendedProc*);
 #else
-typedef SuspendedProc* (*SuspendPtr)(ExecutionContext* ctx) __attribute__((regparm(3)));
+typedef SuspendedProc* (*SuspendPtr)(ExecutionContext* ctx, int unknown) __attribute__((regparm(3)));
 typedef void(*StartTimingPtr)(SuspendedProc*) __attribute__((regparm(3)));
 #endif
 typedef ProfileInfo* (*GetProfileInfoPtr)(unsigned int proc_id);

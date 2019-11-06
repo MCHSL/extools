@@ -58,7 +58,7 @@ unsigned int Core::GetString(const char* str) {
 		case 512:
 			return GetStringTableIndex(str, 0, 1);
 		case 513:
-			return GetStringTableIndexUTF8(str, 1, 0, 1);
+			return GetStringTableIndexUTF8(str, 0, 0, 1);
 		default: break;
 	}
 	return 0;
@@ -161,6 +161,7 @@ extern "C" EXPORT const char* run_tests(int n_args, const char** args)
 	return good;
 }
 
+// TODO: make this work on Linux. -steamport
 extern "C" EXPORT const char* extended_profiling_initialize(int n_args, const char** args)
 {
 	if (!(Core::initialize() && actual_extended_profiling_initialize()))

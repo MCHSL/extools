@@ -27,7 +27,11 @@ trvh hCallGlobalProc(char unk1, int unk2, int proc_type, unsigned int proc_id, i
 		trvh result = proc_hooks[proc_id](argList, argListLen);
 		return result;
 	}
+#ifdef _WIN32
 	trvh result = oCallGlobalProc(unk1, unk2, proc_type, proc_id, const_0, unk3, unk4, argList, argListLen, const_0_2, const_0_3);
+#else
+	trvh result = CallGlobalProcDetour.call<urmem::calling_convention::cdeclcall, trvh>(unk1, unk2, proc_type, proc_id, const_0, unk3, unk4, argList, argListLen, const_0_2, const_0_3);
+#endif
 	Core::extended_profiling_insanely_hacky_check_if_its_a_new_call_or_resume = -1;
 	return result;
 }
@@ -39,7 +43,11 @@ void hCrashProc(char *error, int argument)
 		Core::opcode_handlers[argument](*Core::current_execution_context_ptr);
 		return;
 	}
+#ifdef _WIN32
 	oCrashProc(error, argument);
+#else
+	CrashProcDetour.call(error, argument);
+#endif
 }
 
 #ifdef _WIN32
@@ -74,6 +82,7 @@ bool Core::hook_custom_opcodes() {
 #else // casting to void* for install_hook and using urmem causes weird byond bug errors and i don't feel like debugging why
 	CrashProcDetour.install(urmem::get_func_addr(CrashProc), urmem::get_func_addr(hCrashProc));
 	oCrashProc = (CrashProcPtr)CrashProcDetour.get_original_addr();
+	oCallGlobalProc = CallGlobalProc;
 	/*CallGlobalProcDetour.install(urmem::get_func_addr(CallGlobalProc), urmem::get_func_addr(hCallGlobalProc));
 	oCallGlobalProc = (CallGlobalProcPtr)CallGlobalProcDetour.get_original_addr();
 	return oCrashProc && CallGlobalProc;*/

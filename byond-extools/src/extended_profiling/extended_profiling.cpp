@@ -3,6 +3,9 @@
 #include <unordered_map>
 #include <fstream>
 #include <algorithm>
+#ifndef _WIN32
+#include <sys/stat.h>
+#endif
 
 #define STUPID_READOUTS_LIMIT 10000000
 
@@ -79,7 +82,11 @@ void dump_extended_profile(ExtendedProfile* profile)
 {
 	std::string procname = Core::get_proc(profile->proc_id);
 	std::replace(procname.begin(), procname.end(), '/', '.');
+#ifdef _WIN32
 	CreateDirectoryA("profiling", NULL);
+#else
+	mkdir("profiling", 777);
+#endif
 	std::string filename = "./profiling/extended_profile" + procname + "." + std::to_string(profile->id) + ".txt";
 	std::ofstream output(filename, std::fstream::app);
 	if (!output.is_open())
@@ -238,7 +245,11 @@ void hProcCleanup(ExecutionContext* ctx)
 			ep->call_stack.pop_back();
 		}
 	}
+#ifdef _WIN32
 	oProcCleanup(ctx);
+#else
+	ProcCleanupDetour.call(ctx);
+#endif
 }
 
 SuspendedProc* hSuspend(ExecutionContext* ctx, int unknown)
@@ -256,7 +267,11 @@ SuspendedProc* hSuspend(ExecutionContext* ctx, int unknown)
 		dump_extended_profile(profile);
 		profiles.erase(proc_id);
 	}
+#ifdef _WIN32
 	return oSuspend(ctx, unknown);
+#else
+	return SuspendDetour.call<urmem::calling_convention::cdeclcall, SuspendedProc*>(ctx, unknown);
+#endif
 }
 
 bool actual_extended_profiling_initialize()
