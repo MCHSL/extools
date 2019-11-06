@@ -21,12 +21,14 @@ CallGlobalProcPtr oCallGlobalProc;
 
 trvh hCallGlobalProc(char unk1, int unk2, int proc_type, unsigned int proc_id, int const_0, char unk3, int unk4, Value *argList, unsigned int argListLen, int const_0_2, int const_0_3)
 {
+	Core::extended_profiling_insanely_hacky_check_if_its_a_new_call_or_resume = proc_id;
 	if (proc_hooks.find(proc_id) != proc_hooks.end())
 	{
 		trvh result = proc_hooks[proc_id](argList, argListLen);
 		return result;
 	}
 	trvh result = oCallGlobalProc(unk1, unk2, proc_type, proc_id, const_0, unk3, unk4, argList, argListLen, const_0_2, const_0_3);
+	Core::extended_profiling_insanely_hacky_check_if_its_a_new_call_or_resume = -1;
 	return result;
 }
 

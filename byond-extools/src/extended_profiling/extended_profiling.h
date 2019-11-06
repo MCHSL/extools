@@ -9,6 +9,8 @@ struct ExtendedProfile
 {
 	unsigned int proc_id;
 	int hash;
+	unsigned int id;
+	unsigned long long total;
 	std::vector<ExtendedProfile*> subcalls;
 	std::vector<ExtendedProfile*> call_stack;
 	std::chrono::time_point<std::chrono::steady_clock> start_time;
@@ -20,4 +22,4 @@ struct ExtendedProfile
 };
 
 extern std::unordered_map<unsigned int, bool> procs_to_profile;
-bool extended_profiling_initialize();
+bool actual_extended_profiling_initialize();

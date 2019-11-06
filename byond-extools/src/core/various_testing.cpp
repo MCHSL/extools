@@ -54,7 +54,7 @@ trvh update_light_objects;
 void init_testing()
 {
 	Core::enable_profiling();
-	Core::get_proc("/datum/explosion/New").extended_profile();
+	//Core::get_proc("/datum/explosion/New").extended_profile();
 	//Core::get_proc("/client/verb/test_reentry").extended_profile();
 	//Core::get_proc("/client/verb/test_extended_profiling").extended_profile();
 	//extended_profiling_procs[.id] = true;
