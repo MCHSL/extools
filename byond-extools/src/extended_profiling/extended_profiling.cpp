@@ -8,14 +8,6 @@ ProcCleanupPtr oProcCleanup;
 CreateContextPtr oCreateContext;
 SuspendPtr oSuspend;
 
-#ifdef _WIN32
-static PLH::CapstoneDisassembler *disassembler;
-PLH::x86Detour *CreateContextDetour;
-PLH::x86Detour *ProcCleanupDetour;
-#else
-urmem::hook CreateContextDetour;
-urmem::hook ProcCleanupDetour;
-#endif
 
 std::unordered_map<unsigned int, bool> procs_to_profile;
 
@@ -142,17 +134,8 @@ void hProcCleanup(ExecutionContext* ctx)
 bool extended_profiling_initialize()
 {
 #ifdef _WIN32
-	Hook* createContext = Core::install_hook(CreateContext, hCreateContext);
-	if(!createContext)
-		return false;
-	oCreateContext = (CreateContextPtr)createContext->trampoline;
-	CreateContextDetour = createContext->hook;
-	Hook* procCleanup = Core::install_hook(ProcCleanup, hProcCleanup);
-	if(!procCleanup)
-		return false;
-	oProcCleanup = (ProcCleanupPtr)procCleanup->trampoline;
-	ProcCleanupDetour = procCleanup->hook;
-	//oSuspend = (SuspendPtr)Core::install_hook(Suspend, hSuspend);
+	oCreateContext = (CreateContextPtr)Core::install_hook(CreateContext, hCreateContext);
+	oProcCleanup = (ProcCleanupPtr)Core::install_hook(ProcCleanup, hProcCleanup);
 #else
 	CreateContextDetour.install(urmem::get_func_addr(CreateContext), urmem::get_func_addr(hCreateContext));
 	oCreateContext = (CreateContextPtr)CreateContextDetour.get_original_addr();

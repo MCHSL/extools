@@ -57,7 +57,7 @@ unsigned int Core::GetString(const char* str) {
 		case 512:
 			return GetStringTableIndex(str, 0, 1);
 		case 513:
-			return GetStringTableIndexUTF8(str, 0, 0, 1);
+			return GetStringTableIndexUTF8(str, 1, 0, 1);
 		default: break;
 	}
 	return 0;

@@ -41,19 +41,15 @@ void hCrashProc(char *error, int argument)
 }
 
 #ifdef _WIN32
-Hook* Core::install_hook(void *original, void *hook)
+void* Core::install_hook(void* original, void* hook)
 {
-
 	disassembler = new PLH::CapstoneDisassembler(PLH::Mode::x86);
 	if (!disassembler)
 	{
 		return nullptr;
 	}
 	std::uint64_t trampoline;
-	PLH::x86Detour *detour = new PLH::x86Detour((char *)original, (char *)hook, &trampoline, *disassembler);
-	Hook *hook_struct = new Hook;
-	hook_struct->hook = detour;
-	hook_struct->trampoline = (void *)trampoline;
+	PLH::x86Detour* detour = new PLH::x86Detour((char*)original, (char*)hook, &trampoline, *disassembler);
 	if (!detour)
 	{
 		Core::Alert("No detour");
@@ -64,25 +60,15 @@ Hook* Core::install_hook(void *original, void *hook)
 		Core::Alert("hook failed");
 		return nullptr;
 	}
-	return hook_struct;
+	return (void*)trampoline;
 }
 #endif
 
-bool Core::hook_custom_opcodes()
-{
+bool Core::hook_custom_opcodes() {
 #ifdef _WIN32
-	Hook* crashProc = install_hook(CrashProc, hCrashProc);
-	if (!crashProc)
-		return false;
-	oCrashProc = (CrashProcPtr)crashProc->trampoline;
-	CrashProcDetour = crashProc->hook;
-	Hook* callGlobalProc = install_hook(CallGlobalProc, hCallGlobalProc);
-	if (!callGlobalProc)
-		return false;
-	oCallGlobalProc = (CallGlobalProcPtr)callGlobalProc->trampoline;
-	CallGlobalProcDetour = callGlobalProc->hook;
+	oCrashProc = (CrashProcPtr)install_hook(CrashProc, hCrashProc);
+	oCallGlobalProc = (CallGlobalProcPtr)install_hook(CallGlobalProc, hCallGlobalProc);
 	return oCrashProc && oCallGlobalProc;
-	return true;
 #else // casting to void* for install_hook and using urmem causes weird byond bug errors and i don't feel like debugging why
 	CrashProcDetour.install(urmem::get_func_addr(CrashProc), urmem::get_func_addr(hCrashProc));
 	oCrashProc = (CrashProcPtr)CrashProcDetour.get_original_addr();
