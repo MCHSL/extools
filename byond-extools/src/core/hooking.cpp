@@ -6,14 +6,14 @@
 #include <stack>
 #include "../extended_profiling/extended_profiling.h"
 
-#ifdef _WIN32
+/*#ifdef _WIN32
 static PLH::CapstoneDisassembler *disassembler;
 PLH::x86Detour *CrashProcDetour;
 PLH::x86Detour *CallGlobalProcDetour;
-#else
+#else*/
 urmem::hook CrashProcDetour;
 urmem::hook CallGlobalProcDetour;
-#endif
+//#endif
 CrashProcPtr oCrashProc;
 CallGlobalProcPtr oCallGlobalProc;
 
@@ -27,11 +27,11 @@ trvh hCallGlobalProc(char unk1, int unk2, int proc_type, unsigned int proc_id, i
 		trvh result = proc_hooks[proc_id](argList, argListLen);
 		return result;
 	}
-#ifdef _WIN32
+/*#ifdef _WIN32
 	trvh result = oCallGlobalProc(unk1, unk2, proc_type, proc_id, const_0, unk3, unk4, argList, argListLen, const_0_2, const_0_3);
-#else
+#else*/
 	trvh result = CallGlobalProcDetour.call<urmem::calling_convention::cdeclcall, trvh>(unk1, unk2, proc_type, proc_id, const_0, unk3, unk4, argList, argListLen, const_0_2, const_0_3);
-#endif
+//#endif
 	Core::extended_profiling_insanely_hacky_check_if_its_a_new_call_or_resume = -1;
 	return result;
 }
@@ -43,14 +43,14 @@ void hCrashProc(char *error, int argument)
 		Core::opcode_handlers[argument](*Core::current_execution_context_ptr);
 		return;
 	}
-#ifdef _WIN32
+/*#ifdef _WIN32
 	oCrashProc(error, argument);
-#else
+#else*/
 	CrashProcDetour.call(error, argument);
-#endif
+//#endif
 }
 
-#ifdef _WIN32
+/*#ifdef _WIN32
 void* Core::install_hook(void* original, void* hook)
 {
 	disassembler = new PLH::CapstoneDisassembler(PLH::Mode::x86);
@@ -72,20 +72,20 @@ void* Core::install_hook(void* original, void* hook)
 	}
 	return (void*)trampoline;
 }
-#endif
+#endif*/
 
 bool Core::hook_custom_opcodes() {
-#ifdef _WIN32
+/*#ifdef _WIN32
 	oCrashProc = (CrashProcPtr)install_hook(CrashProc, hCrashProc);
 	oCallGlobalProc = (CallGlobalProcPtr)install_hook(CallGlobalProc, hCallGlobalProc);
 	return oCrashProc && oCallGlobalProc;
-#else // casting to void* for install_hook and using urmem causes weird byond bug errors and i don't feel like debugging why
+#else // casting to void* for install_hook and using urmem causes weird byond bug errors and i don't feel like debugging why*/
 	CrashProcDetour.install(urmem::get_func_addr(CrashProc), urmem::get_func_addr(hCrashProc));
 	oCrashProc = (CrashProcPtr)CrashProcDetour.get_original_addr();
 	oCallGlobalProc = CallGlobalProc;
-	/*CallGlobalProcDetour.install(urmem::get_func_addr(CallGlobalProc), urmem::get_func_addr(hCallGlobalProc));
+	CallGlobalProcDetour.install(urmem::get_func_addr(CallGlobalProc), urmem::get_func_addr(hCallGlobalProc));
 	oCallGlobalProc = (CallGlobalProcPtr)CallGlobalProcDetour.get_original_addr();
-	return oCrashProc && CallGlobalProc;*/
+	return oCrashProc && CallGlobalProc;
 	return oCrashProc;
-#endif
+//#endif
 }

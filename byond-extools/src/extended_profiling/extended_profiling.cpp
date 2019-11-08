@@ -13,11 +13,11 @@ ProcCleanupPtr oProcCleanup;
 CreateContextPtr oCreateContext;
 SuspendPtr oSuspend;
 
-#ifndef _WIN32
+//#ifndef _WIN32
 urmem::hook CreateContextDetour;
 urmem::hook ProcCleanupDetour;
 urmem::hook SuspendDetour;
-#endif
+//#endif
 
 std::unordered_map<unsigned int, bool> procs_to_profile;
 
@@ -112,7 +112,7 @@ void recursive_start(ExtendedProfile* profile)
 void hCreateContext(ProcConstants* constants, ExecutionContext* new_context)
 {
 	//Core::Alert("HELLO?");
-	oCreateContext(constants, new_context);
+	CreateContextDetour.call(constants, new_context);
 	new_context = Core::get_context();
 	if (profiles.find(constants->proc_id) != profiles.end() || (Core::extended_profiling_insanely_hacky_check_if_its_a_new_call_or_resume == constants->proc_id && sleeping_profiles.find(constants->proc_id) != sleeping_profiles.end()))
 	{
@@ -245,11 +245,11 @@ void hProcCleanup(ExecutionContext* ctx)
 			ep->call_stack.pop_back();
 		}
 	}
-#ifdef _WIN32
+/*#ifdef _WIN32
 	oProcCleanup(ctx);
-#else
+#else*/
 	ProcCleanupDetour.call(ctx);
-#endif
+//#endif
 }
 
 SuspendedProc* hSuspend(ExecutionContext* ctx, int unknown)
@@ -267,27 +267,27 @@ SuspendedProc* hSuspend(ExecutionContext* ctx, int unknown)
 		dump_extended_profile(profile);
 		profiles.erase(proc_id);
 	}
-#ifdef _WIN32
+/*#ifdef _WIN32
 	return oSuspend(ctx, unknown);
-#else
+#else*/
 	return SuspendDetour.call<urmem::calling_convention::cdeclcall, SuspendedProc*>(ctx, unknown);
-#endif
+//#endif
 }
 
 bool actual_extended_profiling_initialize()
 {
-#ifdef _WIN32
+/*#ifdef _WIN32
 	oCreateContext = (CreateContextPtr)Core::install_hook(CreateContext, hCreateContext);
 	oProcCleanup = (ProcCleanupPtr)Core::install_hook(ProcCleanup, hProcCleanup);
 	oSuspend = (SuspendPtr)Core::install_hook(Suspend, hSuspend);
-#else
+#else*/
 	CreateContextDetour.install(urmem::get_func_addr(CreateContext), urmem::get_func_addr(hCreateContext));
 	oCreateContext = (CreateContextPtr)CreateContextDetour.get_original_addr();
 	ProcCleanupDetour.install(urmem::get_func_addr(ProcCleanup), urmem::get_func_addr(hProcCleanup));
 	oProcCleanup = (ProcCleanupPtr)ProcCleanupDetour.get_original_addr();
 	SuspendDetour.install(urmem::get_func_addr(Suspend), urmem::get_func_addr(hSuspend));
 	oSuspend = (SuspendPtr)SuspendDetour.get_original_addr();
-#endif
+//#endif
 	return oCreateContext && oProcCleanup && oSuspend;
 }
 

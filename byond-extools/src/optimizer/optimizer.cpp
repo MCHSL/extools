@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include "optimizer.h"
 #include "../dmdism/disassembly.h"
 #include <fstream>
