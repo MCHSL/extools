@@ -1,6 +1,10 @@
 #pragma once
 
+#ifdef _WIN32
+#define REGPARM3
+#else
 #define REGPARM3 __attribute__((regparm(3)))
+#endif
 #define FLAG_PROFILE 0x10000
 
 struct String
