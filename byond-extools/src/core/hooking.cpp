@@ -85,10 +85,10 @@ bool Core::hook_custom_opcodes() {
 #ifdef _WIN32
 	CallGlobalProcDetour.install(urmem::get_func_addr(CallGlobalProc), urmem::get_func_addr(hCallGlobalProc));
 	oCallGlobalProc = (CallGlobalProcPtr)CallGlobalProcDetour.get_original_addr();
+	return oCrashProc && oCallGlobalProc;
 #else
 	oCallGlobalProc = CallGlobalProc;
-#endif
-	return oCrashProc && CallGlobalProc;
 	return oCrashProc;
+#endif
 //#endif
 }
