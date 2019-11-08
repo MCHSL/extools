@@ -82,9 +82,12 @@ bool Core::hook_custom_opcodes() {
 #else // casting to void* for install_hook and using urmem causes weird byond bug errors and i don't feel like debugging why*/
 	CrashProcDetour.install(urmem::get_func_addr(CrashProc), urmem::get_func_addr(hCrashProc));
 	oCrashProc = (CrashProcPtr)CrashProcDetour.get_original_addr();
-	oCallGlobalProc = CallGlobalProc;
+#ifdef _WIN32
 	CallGlobalProcDetour.install(urmem::get_func_addr(CallGlobalProc), urmem::get_func_addr(hCallGlobalProc));
 	oCallGlobalProc = (CallGlobalProcPtr)CallGlobalProcDetour.get_original_addr();
+#else
+	oCallGlobalProc = CallGlobalProc;
+#endif
 	return oCrashProc && CallGlobalProc;
 	return oCrashProc;
 //#endif
