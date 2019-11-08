@@ -19,7 +19,7 @@ CallGlobalProcPtr oCallGlobalProc;
 
 //ExecutionContext* last_suspended_ec;
 
-trvh hCallGlobalProc(char unk1, int unk2, int proc_type, unsigned int proc_id, int const_0, char unk3, int unk4, Value *argList, unsigned int argListLen, int const_0_2, int const_0_3)
+trvh REGPARM3 hCallGlobalProc(char unk1, int unk2, int proc_type, unsigned int proc_id, int const_0, char unk3, int unk4, Value *argList, unsigned int argListLen, int const_0_2, int const_0_3)
 {
 	Core::extended_profiling_insanely_hacky_check_if_its_a_new_call_or_resume = proc_id;
 	if (proc_hooks.find(proc_id) != proc_hooks.end())
