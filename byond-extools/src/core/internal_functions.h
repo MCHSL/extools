@@ -8,8 +8,8 @@ typedef Value(*Text2PathPtr)(unsigned int text);
 typedef unsigned int(*GetStringTableIndexPtr)(const char* string, int handleEscapes, int duplicateString);
 typedef unsigned int(*GetStringTableIndexUTF8Ptr)(const char* string, int utf8, int handleEscapes, int duplicateString);
 #else
-typedef unsigned int(*GetStringTableIndexPtr)(const char* string, int handleEscapes, int duplicateString) __attribute__((regparm(3)));
-typedef unsigned int(*GetStringTableIndexUTF8Ptr)(const char* string, int utf8, int handleEscapes, int duplicateString) __attribute__((regparm(3)));
+typedef unsigned int(REGPARM3 *GetStringTableIndexPtr)(const char* string, int handleEscapes, int duplicateString);
+typedef unsigned int(REGPARM3 *GetStringTableIndexUTF8Ptr)(const char* string, int utf8, int handleEscapes, int duplicateString);
 #endif
 typedef int(*GetByondVersionPtr)();
 typedef int(*GetByondBuildPtr)();
@@ -38,16 +38,16 @@ typedef void(*SendMapsPtr)(void);
 typedef SuspendedProc* (*SuspendPtr)(ExecutionContext* ctx, int unknown);
 typedef void(*StartTimingPtr)(SuspendedProc*);
 #else
-typedef SuspendedProc* (*SuspendPtr)(ExecutionContext* ctx, int unknown) __attribute__((regparm(3)));
-typedef void(*StartTimingPtr)(SuspendedProc*) __attribute__((regparm(3)));
+typedef SuspendedProc* (REGPARM3 *SuspendPtr)(ExecutionContext* ctx, int unknown);
+typedef void(REGPARM3 *StartTimingPtr)(SuspendedProc*);
 #endif
 typedef ProfileInfo* (*GetProfileInfoPtr)(unsigned int proc_id);
 #ifdef _WIN32
 typedef void(*CreateContextPtr)(void* unknown, ExecutionContext* new_ctx);
 typedef void(*ProcCleanupPtr)(ExecutionContext* thing_that_just_executed); //this one is hooked to help with extended profiling
 #else
-typedef void(*CreateContextPtr)(void* unknown, ExecutionContext* new_ctx) __attribute__((regparm(3)));
-typedef void(*ProcCleanupPtr)(ExecutionContext* thing_that_just_executed) __attribute__((regparm(3)));
+typedef void(REGPARM3 *CreateContextPtr)(void* unknown, ExecutionContext* new_ctx);
+typedef void(REGPARM3 *ProcCleanupPtr)(ExecutionContext* thing_that_just_executed);
 #endif
 
 extern CrashProcPtr CrashProc;

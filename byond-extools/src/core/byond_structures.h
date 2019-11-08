@@ -1,5 +1,6 @@
 #pragma once
 
+#define REGPARM3 __attribute__((regparm(3)))
 #define FLAG_PROFILE 0x10000
 
 struct String
