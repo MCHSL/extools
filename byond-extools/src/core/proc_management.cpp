@@ -137,11 +137,5 @@ bool Core::populate_proc_list()
 		procs_by_bytecode[p.get_bytecode()] = p;
 		i++;
 	}
-	//Temporary - fake proc used by profiler
-	Proc sleep = Proc();
-	sleep.id = i;
-	sleep.name = "SLEEP";
-	procs_by_id.push_back(sleep);
-	procs_by_name["SLEEP"] = sleep;
 	return true;
 }

@@ -50,6 +50,10 @@ void cheap_hypotenuse_opcode(ExecutionContext* ctx) //for testing purposes, remo
 
 trvh update_light_objects;
 
+LONG WINAPI DumpThingy(_EXCEPTION_POINTERS* ExceptionInfo)
+{
+	return EXCEPTION_CONTINUE_SEARCH;
+}
 
 void init_testing()
 {

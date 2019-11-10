@@ -4,7 +4,7 @@
 #include <fstream>
 #include <algorithm>
 
-#define STUPID_READOUTS_LIMIT 10000000
+#define STUPID_READOUTS_LIMIT 40000000
 
 ProcCleanupPtr oProcCleanup;
 CreateContextPtr oCreateContext;
@@ -264,12 +264,12 @@ bool actual_extended_profiling_initialize()
 
 void ExtendedProfile::start_timer()
 {
-	start_time = std::chrono::steady_clock::now();
+	start_time = std::chrono::high_resolution_clock::now();
 }
 
 void ExtendedProfile::stop_timer()
 {
-	end_time = std::chrono::steady_clock::now();
+	end_time = std::chrono::high_resolution_clock::now();
 }
 
 unsigned long long ExtendedProfile::total_time()
