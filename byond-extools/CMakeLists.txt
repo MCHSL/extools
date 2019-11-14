@@ -1,4 +1,10 @@
-cmake_minimum_required(VERSION 3.10.0)
+if (WIN32)
+    # Needed for MSVC_RUNTIME_LIBRARY
+    cmake_minimum_required(VERSION 3.15.0)
+else()
+    cmake_minimum_required(VERSION 3.10.0)
+endif()
+
 project(byond-extools)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
