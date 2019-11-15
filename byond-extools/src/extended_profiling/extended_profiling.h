@@ -13,8 +13,8 @@ struct ExtendedProfile
 	unsigned long long total;
 	std::vector<ExtendedProfile*> subcalls;
 	std::vector<ExtendedProfile*> call_stack;
-	std::chrono::time_point<std::chrono::steady_clock> start_time;
-	std::chrono::time_point<std::chrono::steady_clock> end_time;
+	std::chrono::time_point<std::chrono::high_resolution_clock> start_time;
+	std::chrono::time_point<std::chrono::high_resolution_clock> end_time;
 
 	void start_timer();
 	void stop_timer();

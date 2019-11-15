@@ -1,5 +1,6 @@
 #include "core.h"
 #include "../dmdism/disassembly.h"
+#include "../debug_server/debug_server.h"
 
 trvh cheap_hypotenuse(Value* args, unsigned int argcount)
 {
@@ -50,10 +51,16 @@ void cheap_hypotenuse_opcode(ExecutionContext* ctx) //for testing purposes, remo
 
 trvh update_light_objects;
 
+LONG WINAPI DumpThingy(_EXCEPTION_POINTERS* ExceptionInfo)
+{
+	return EXCEPTION_CONTINUE_SEARCH;
+}
 
 void init_testing()
 {
 	Core::enable_profiling();
+	debugger_initialize();
+	debugger_connect();
 	//Core::get_proc("/datum/explosion/New").extended_profile();
 	//Core::get_proc("/client/verb/test_reentry").extended_profile();
 	//Core::get_proc("/client/verb/test_extended_profiling").extended_profile();
