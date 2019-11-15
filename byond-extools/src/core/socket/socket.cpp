@@ -63,3 +63,63 @@ bool SocketServer::listen(std::string iface, unsigned short port)
 
 	return true;
 }
+
+bool SocketServer::accept()
+{
+	client_socket = ::accept(server_socket, NULL, NULL);
+	return client_socket != INVALID_SOCKET;
+}
+
+bool SocketServer::listen_for_client()
+{
+	if (server_socket != INVALID_SOCKET)
+	{
+		return accept();
+	}
+	return listen() && accept();
+}
+
+bool SocketServer::sendall(std::string type, nlohmann::json content)
+{
+	nlohmann::json j = {
+		{"type", type},
+		{"content", content},
+	};
+	std::string data = j.dump();
+	//Core::Alert(data);
+	while (!data.empty())
+	{
+		int sent_bytes = ::send(client_socket, data.c_str(), data.size(), NULL);
+		if (sent_bytes == SOCKET_ERROR)
+		{
+			return false;
+		}
+		data.erase(data.begin(), data.begin() + sent_bytes);
+	}
+	return true;
+}
+
+nlohmann::json SocketServer::recv_message()
+{
+	std::vector<char> data(1024);
+	while (true)
+	{
+		int received_bytes = ::recv(client_socket, data.data(), data.size(), NULL);
+		if (received_bytes > 0)
+		{
+			data.resize(received_bytes);
+			recv_buffer += std::string(data.begin(), data.end());
+			if (recv_buffer.back() == 0)
+			{
+				recv_buffer.pop_back();
+				nlohmann::json json = nlohmann::json::parse(recv_buffer);
+				recv_buffer.clear();
+				return json;
+			}
+		}
+		else
+		{
+			return nlohmann::json();
+		}
+	}
+}

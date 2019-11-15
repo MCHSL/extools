@@ -1,11 +1,7 @@
 #include "../core/core.h"
 #include "../dmdism/instruction.h"
-
-#include <Windows.h>
-#include <winsock2.h>
-#include <ws2tcpip.h>
-
-#pragma comment (lib, "Ws2_32.lib")
+#include "../core/socket/socket.h"
+#include "protocol.h"
 
 struct Breakpoint
 {
@@ -19,9 +15,13 @@ struct Breakpoint
 
 class DebugServer
 {
-	SOCKET debugger;
+	SocketServer debugger;
 
+public:
+	bool connect();
+	void debug_loop();
 };
 
 
 bool debugger_initialize();
+bool debugger_connect();
