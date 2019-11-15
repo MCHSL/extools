@@ -46,6 +46,7 @@ std::string Instruction::bytes_str()
 		result.append(tohex(b));
 		result.append(" ");
 	}
+	result.pop_back();
 
 	return result;
 }

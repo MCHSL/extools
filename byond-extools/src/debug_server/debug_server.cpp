@@ -42,6 +42,28 @@ void DebugServer::debug_loop()
 			}
 			debugger.sendall(MESSAGE_PROC_LIST, procs);
 		}
+		else if (type == MESSAGE_PROC_DISASSEMBLY)
+		{
+			const std::string& proc_name = data.at("content");
+			Core::Proc proc = Core::get_proc(proc_name);
+			Disassembly disassembly = proc.disassemble();
+			nlohmann::json disassembled_proc;
+			disassembled_proc["name"] = proc_name;
+
+			std::vector<nlohmann::json> instructions;
+			for (Instruction& instr : disassembly.instructions)
+			{
+				nlohmann::json d_instr = {
+					{ "offset", instr.offset() },
+					{ "bytes", instr.bytes_str() },
+					{ "mnemonic", instr.opcode().mnemonic() },
+					{ "comment", instr.comment() }
+				};
+				instructions.push_back(d_instr);
+			}
+			disassembled_proc["instructions"] = instructions;
+			debugger.sendall(MESSAGE_PROC_DISASSEMBLY, disassembled_proc);
+		}
 	}
 
 }
