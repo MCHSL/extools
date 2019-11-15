@@ -2,18 +2,21 @@
 
 #include "../core.h"
 #include "../json.hpp"
-
-#include <Windows.h>
-#include <winsock2.h>
-#include <ws2tcpip.h>
 #include <string>
 
-#pragma comment (lib, "Ws2_32.lib")
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <Windows.h>
+#pragma comment (lib, "Ws2_32")
+#endif
 
 class SocketServer
 {
+#ifdef _WIN32
 	SOCKET server_socket = INVALID_SOCKET;
 	SOCKET client_socket = INVALID_SOCKET; //only supports one client at a time
+#endif
 
 	std::string recv_buffer;
 

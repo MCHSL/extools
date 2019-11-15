@@ -1,5 +1,31 @@
 #include "socket.h"
 
+#ifndef _WIN32 // TODO: linux
+bool SocketServer::listen(std::string iface, unsigned short port)
+{
+	return false;
+}
+
+bool SocketServer::accept()
+{
+	return false;
+}
+
+bool SocketServer::listen_for_client()
+{
+	return false;
+}
+
+bool SocketServer::sendall(std::string type, nlohmann::json content)
+{
+	return false;
+}
+
+nlohmann::json SocketServer::recv_message()
+{
+	return nlohmann::json();
+}
+#else
 bool SocketServer::listen(std::string iface, unsigned short port)
 {
 	struct addrinfo* result = NULL;
@@ -123,3 +149,4 @@ nlohmann::json SocketServer::recv_message()
 		}
 	}
 }
+#endif
