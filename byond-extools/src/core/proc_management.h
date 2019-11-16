@@ -14,6 +14,7 @@ namespace Core
 	{
 		Proc() {};
 		Proc(std::string name);
+		Proc(unsigned int id);
 		std::string name;
 		short id;
 

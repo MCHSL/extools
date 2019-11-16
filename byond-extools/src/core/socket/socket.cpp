@@ -79,15 +79,19 @@ bool SocketServer::listen_for_client()
 	return listen() && accept();
 }
 
-bool SocketServer::sendall(std::string type, nlohmann::json content)
+bool SocketServer::send(std::string type, nlohmann::json content)
 {
 	nlohmann::json j = {
 		{"type", type},
 		{"content", content},
 	};
+	return send(j);
+}
+
+bool SocketServer::send(nlohmann::json j)
+{
 	std::string data = j.dump();
 	data.push_back(0);
-	//Core::Alert(data);
 	while (!data.empty())
 	{
 		int sent_bytes = ::send(client_socket, data.c_str(), data.size(), NULL);

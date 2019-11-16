@@ -18,6 +18,20 @@ Instruction& Disassembly::at(unsigned int i)
 	return instructions.at(i);
 }
 
+Instruction* Disassembly::next_from_offset(unsigned int offset)
+{
+	auto it = std::lower_bound(instructions.begin(), instructions.end(), offset, [](Instruction const& instr, int offset) { return instr.offset() < offset; });
+
+	if (it == instructions.end() || ++it == instructions.end())
+	{
+		Core::Alert("Could not find next instruction for offset"); //Ummm...
+		return nullptr; //There. Sorry.
+	}
+
+	return &*it; //yes
+
+}
+
 std::vector<Instruction>::iterator Disassembly::begin() noexcept
 {
 	return instructions.begin();

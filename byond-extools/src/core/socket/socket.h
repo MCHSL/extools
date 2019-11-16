@@ -22,6 +22,7 @@ public:
 	bool accept();
 	bool listen_for_client();
 
-	bool sendall(std::string type, nlohmann::json content);
+	bool send(std::string type, nlohmann::json content);
+	bool SocketServer::send(nlohmann::json j);
 	nlohmann::json recv_message();
 };

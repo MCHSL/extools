@@ -14,6 +14,11 @@ Core::Proc::Proc(std::string name)
 	*this = procs_by_name[name];
 }
 
+Core::Proc::Proc(unsigned int id)
+{
+	*this = procs_by_id[id];
+}
+
 void Core::Proc::set_bytecode(std::vector<int>* new_bytecode)
 {
 	if (original_bytecode_ptr)
