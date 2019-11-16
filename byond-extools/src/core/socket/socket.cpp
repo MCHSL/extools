@@ -86,6 +86,7 @@ bool SocketServer::sendall(std::string type, nlohmann::json content)
 		{"content", content},
 	};
 	std::string data = j.dump();
+	data.push_back(0);
 	//Core::Alert(data);
 	while (!data.empty())
 	{

@@ -2,6 +2,8 @@
 
 /*
 
+All communication happens over a TCP socket using a JSON-based protocol. A null byte signifies the end of a message.
+
 struct Message
 {
 	std::string type;
@@ -27,6 +29,8 @@ struct BreakpointHit
 	std::string proc;
 	int offset;
 };
+
+struct BreakpointSet
 
 */
 
