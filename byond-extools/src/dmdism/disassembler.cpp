@@ -29,23 +29,13 @@ Disassembly Disassembler::disassemble()
 
 Instruction Disassembler::disassemble_next()
 {
-	Instruction* instr;
+	Instruction* instr = nullptr;
 
 	auto root = context_->eat();
-	std::function<Instruction*()> callback = nullptr;
 
-	try
+	if (callbacks.find(static_cast<Bytecode>(root)) != callbacks.end())
 	{
-		callback = callbacks.at(static_cast<Bytecode>(root));
-	}
-	catch (std::exception&)
-	{
-		
-	}
-
-	if (callback != nullptr)
-	{
-		instr = callback();
+		instr = callbacks.at(static_cast<Bytecode>(root))();
 	}
 	else
 	{
@@ -92,8 +82,14 @@ void Disassembler::disassemble_var(Instruction& instr)
 		std::uint32_t type = context_->eat();
 		std::uint32_t localno = context_->eat();
 
-		instr.opcode().add_info(" " + modifier_names.at(static_cast<AccessModifier>(type)) + std::to_string(localno));
-		instr.add_comment(modifier_names.at(static_cast<AccessModifier>(type)) + std::to_string(localno));
+		std::string modifier_name = "UNKNOWN_MODIFIER";
+		if (modifier_names.find(static_cast<AccessModifier>(type)) != modifier_names.end())
+		{
+			modifier_name = modifier_names.at(static_cast<AccessModifier>(type));
+		}
+
+		instr.opcode().add_info(" " + modifier_name + std::to_string(localno));
+		instr.add_comment(modifier_name + std::to_string(localno));
 		break;
 	}
 	case WORLD:
@@ -103,8 +99,14 @@ void Disassembler::disassemble_var(Instruction& instr)
 	{
 		std::uint32_t type = context_->eat();
 
-		instr.opcode().add_info(" " + modifier_names.at(static_cast<AccessModifier>(type)));
-		instr.add_comment(modifier_names.at(static_cast<AccessModifier>(type)));
+		std::string modifier_name = "UNKNOWN_MODIFIER";
+		if (modifier_names.find(static_cast<AccessModifier>(type)) != modifier_names.end())
+		{
+			modifier_name = modifier_names.at(static_cast<AccessModifier>(type));
+		}
+
+		instr.opcode().add_info(" " + modifier_name);
+		instr.add_comment(modifier_name);
 		break;
 	}
 	default:
