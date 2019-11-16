@@ -6,11 +6,11 @@
 struct Breakpoint
 {
 	Core::Proc proc;
-	Instruction replaced_instruction;
-	bool one_shot;
-	int instruction_index;
+
+	int replaced_opcode;
 	int offset;
-	int nop_count;
+
+	bool one_shot;
 };
 
 class DebugServer

@@ -90,25 +90,25 @@ void on_nop(ExecutionContext* ctx)
 
 }
 
-Breakpoint set_breakpoint(Core::Proc proc, int instruction_index, bool one_shot = false)
+Breakpoint set_breakpoint(Core::Proc proc, int offset, bool one_shot = false)
 {
-	Breakpoint bp;
-	bp.replaced_instruction = Instruction::create(breakpoint_opcode);
-	bp.proc = proc;
-	bp.instruction_index = instruction_index;
-	bp.one_shot = false;
-	Disassembly disassembly = proc.disassemble();
-	std::swap(disassembly.at(instruction_index), bp.replaced_instruction);
-	proc.assemble(disassembly);
+	Breakpoint bp = {
+		proc, breakpoint_opcode, offset, one_shot
+	};
+	int* bytecode = proc.get_bytecode();
+	std::swap(bytecode[offset], bp.replaced_opcode);
+	proc.set_bytecode(bytecode);
 	breakpoints[proc.id].push_back(bp);
 	return bp;
 }
 
-bool remove_breapoint(Breakpoint bp)
+bool remove_breakpoint(Breakpoint bp)
 {
-	Disassembly disassembly = bp.proc.disassemble();
-	std::swap(disassembly.at(bp.instruction_index), bp.replaced_instruction);
-	bp.proc.assemble(disassembly);
+	int* bytecode = bp.proc.get_bytecode();
+	std::swap(bytecode[bp.offset], bp.replaced_opcode);
+	bp.proc.set_bytecode(bytecode);
+	auto bps = breakpoints[bp.proc.id];
+	bps.erase(std::remove(bps.begin(), bps.end(), bp), bps.end());
 	return true;
 }
 

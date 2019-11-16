@@ -7,9 +7,7 @@ enum Bytecode
 	UNK = -1,
 	END = 0x00,
 	NEW = 0x01,
-
 	FORMAT = 0x02,
-
 	OUTPUT = 0x03,
 	OUTPUT_FORMAT = 0x04,
 	TEST = 0x0D,
@@ -195,6 +193,7 @@ const std::unordered_map<Bytecode, std::string> mnemonics = {
 	{UNK, "???"},
 	{END, "END"},
 	{NEW, "NEW"},
+	{FORMAT, "FORMAT"},
 	{OUTPUT, "OUTPUT"},
 	{OUTPUT_FORMAT, "FOUTPUT"},
 	{TEST, "TEST"},

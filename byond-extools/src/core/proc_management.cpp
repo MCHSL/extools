@@ -27,6 +27,11 @@ void Core::Proc::set_bytecode(std::vector<int>* new_bytecode)
 	setup_entry_bytecode->bytecode = new_bytecode->data();
 }
 
+void Core::Proc::set_bytecode(int* new_bytecode)
+{
+	setup_entry_bytecode->bytecode = new_bytecode;
+}
+
 void Core::Proc::reset_bytecode()
 {
 	if (!original_bytecode_ptr)
