@@ -27,5 +27,5 @@ private:
 	std::uint32_t current_offset_ = 0;
 	std::vector<Core::Proc>& procs_;
 	std::vector<Instruction> instructions_;
-	Instruction* instr_;
+	Instruction* instr_ = nullptr;
 };
