@@ -7,6 +7,9 @@ Most of development of [Lunar-Dreamland](https://github.com/goonstation/Lunar-Dr
 ## What can I do with it?
 Here are the modules currently available (not counting the core). Scroll to the bottom to see install instructions.
 
+#### Debug server
+Interfaces with debugger frontends. Currently the recommended (and only) frontend is steamport's [Somnium](https://github.com/steamp0rt/somnium). [SpacemanDMM](https://github.com/SpaceManiac/SpacemanDMM) VSCode extension may also include a GUI in the future.
+
 #### TFFI
 Threaded FFI for BYOND. Automagically threads off all DLL calls and prevents them from locking up the game until they return. You may use a Promise datum, pass a callback (global or an object) or simply sleep until the call returns.
 
