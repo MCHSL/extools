@@ -13,6 +13,8 @@ public:
 
 	std::vector<int>* assemble();
 	Instruction& at(unsigned int i);
+	Instruction& at_offset(unsigned int offset);
+	Instruction* Disassembly::next_from_offset(unsigned int offset);
 	int op_at(unsigned int i);
 	std::vector<Instruction>::iterator begin() noexcept;
 	std::vector<Instruction>::iterator end() noexcept;

@@ -14,6 +14,7 @@ namespace Core
 	{
 		Proc() {};
 		Proc(std::string name);
+		Proc(unsigned int id);
 		std::string name;
 		unsigned int id;
 
@@ -27,6 +28,7 @@ namespace Core
 		int* original_bytecode_ptr = nullptr;
 
 		void set_bytecode(std::vector<int>* new_bytecode);
+		void set_bytecode(int* new_bytecode);
 		int* get_bytecode();
 		int get_bytecode_length();
 		void reset_bytecode();

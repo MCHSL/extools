@@ -19,6 +19,7 @@
 const std::map<Bytecode, std::function<Instruction*()>> callbacks = {
 	ADD_CALLBACK(END)
 	ADD_CALLBACK(NEW)
+	ADD_CALLBACK(FORMAT)
 	ADD_CALLBACK(OUTPUT)
 	ADD_CALLBACK(OUTPUT_FORMAT)
 	ADD_CALLBACK(TEST)

@@ -14,6 +14,11 @@ Core::Proc::Proc(std::string name)
 	*this = procs_by_name[name];
 }
 
+Core::Proc::Proc(unsigned int id)
+{
+	*this = procs_by_id[id];
+}
+
 void Core::Proc::set_bytecode(std::vector<int>* new_bytecode)
 {
 	if (original_bytecode_ptr)
@@ -25,6 +30,11 @@ void Core::Proc::set_bytecode(std::vector<int>* new_bytecode)
 		original_bytecode_ptr = setup_entry_bytecode->bytecode;
 	}
 	setup_entry_bytecode->bytecode = new_bytecode->data();
+}
+
+void Core::Proc::set_bytecode(int* new_bytecode)
+{
+	setup_entry_bytecode->bytecode = new_bytecode;
 }
 
 void Core::Proc::reset_bytecode()

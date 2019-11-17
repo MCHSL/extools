@@ -15,6 +15,12 @@ Disassembler::Disassembler(std::vector<std::uint32_t> bc, std::vector<Core::Proc
 	context_ = new Context(bc, ps);
 }
 
+Disassembler::Disassembler(std::uint32_t* bc, unsigned int bc_len, std::vector<Core::Proc>& ps)
+{
+	std::vector<std::uint32_t> v(bc, bc + bc_len);
+	context_ = new Context(v, ps);
+}
+
 Disassembly Disassembler::disassemble()
 {
 	std::vector<Instruction> instrs;

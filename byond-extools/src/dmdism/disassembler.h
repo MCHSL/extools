@@ -15,6 +15,7 @@ class Disassembler
 {
 public:
 	Disassembler(std::vector<std::uint32_t> bc, std::vector<Core::Proc>& ps);
+	Disassembler(std::uint32_t* bc, unsigned int bc_len, std::vector<Core::Proc>& ps);
 	Disassembly disassemble();
 
 	Context* context() const { return context_; }
