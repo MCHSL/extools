@@ -8,7 +8,6 @@
 struct ExtendedProfile
 {
 	unsigned int proc_id;
-	int hash;
 	unsigned int id;
 	unsigned long long total;
 	std::vector<ExtendedProfile*> subcalls;

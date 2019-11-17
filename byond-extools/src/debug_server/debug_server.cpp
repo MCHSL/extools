@@ -1,6 +1,7 @@
 #include "debug_server.h"
 #include "../dmdism/disassembly.h"
 #include "../dmdism/disassembler.h"
+#include "../dmdism/opcodes.h"
 #include "../core/json.hpp"
 
 #include <thread>
@@ -112,6 +113,57 @@ void DebugServer::send(std::string message_type, nlohmann::json content)
 	debugger.send({ {"type", message_type}, {"content", content } });
 }
 
+nlohmann::json value_to_text(Value val)
+{
+	std::string type_text = "UNKNOWN TYPE (" + std::to_string(val.type) + ")";
+	if (datatype_names.find((DataType)val.type) != datatype_names.end())
+	{
+		type_text = datatype_names.at((DataType)val.type);
+	}
+	std::string value_text;
+	switch (val.type)
+	{
+	case NUMBER:
+		value_text = std::to_string(val.valuef);
+		break;
+	case STRING:
+		value_text = GetStringTableEntry(val.value)->stringData;
+		break;
+	default:
+		value_text = std::to_string(val.value);
+	}
+	return { { "type", type_text }, { "value", value_text } };
+}
+
+void send_values(std::string message_type, Value* values, unsigned int count)
+{
+	std::vector<nlohmann::json> c;
+	for (int i = 0; i < count; i++)
+	{
+		c.push_back(value_to_text(values[i]));
+	}
+	debug_server.send(message_type, c);
+}
+
+std::vector<std::string> get_call_stack(ExecutionContext* ctx)
+{
+	std::vector<std::string> res;
+	do
+	{
+		res.push_back(Core::get_proc(ctx->constants->proc_id));
+		ctx = ctx->parent_context;
+	} while(ctx);
+	return res;
+}
+
+void update_readouts(ExecutionContext* ctx)
+{
+	send_values(MESSAGE_VALUES_LOCALS, ctx->local_variables, Core::get_proc(ctx->constants->proc_id).get_local_varcount());
+	send_values(MESSAGE_VALUES_ARGS, ctx->constants->args, ctx->constants->arg_count);
+	send_values(MESSAGE_VALUES_STACK, ctx->stack, ctx->stack_size);
+	debug_server.send(MESSAGE_CALL_STACK, get_call_stack(ctx));
+}
+
 bool place_restorer_on_next_instruction(ExecutionContext* ctx, unsigned int offset)
 {
 	Core::Proc p = Core::get_proc(ctx->constants->proc_id);
@@ -176,6 +228,7 @@ void on_breakpoint(ExecutionContext* ctx)
 	Breakpoint bp = get_breakpoint(ctx->constants->proc_id, ctx->current_opcode);
 	std::swap(ctx->bytecode[bp.offset], bp.replaced_opcode);
 	debug_server.send(MESSAGE_BREAKPOINT_HIT, { {"proc", bp.proc.name }, {"offset", bp.offset } });
+	update_readouts(ctx);
 	switch (debug_server.wait_for_action())
 	{
 	case DEBUG_STEP:

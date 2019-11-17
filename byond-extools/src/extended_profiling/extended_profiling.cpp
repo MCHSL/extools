@@ -110,7 +110,6 @@ void hCreateContext(ProcConstants* constants, ExecutionContext* new_context)
 	{
 
 		//Core::Alert("Creating profile for: " + Core::get_proc(constants->proc_id).name);
-		int hash = new_context->hash();
 		if (sleeping_profiles.find(constants->proc_id) != sleeping_profiles.end())
 		{
 			//Core::Alert("Reusing sleeping profile");
@@ -124,7 +123,6 @@ void hCreateContext(ProcConstants* constants, ExecutionContext* new_context)
 			ExtendedProfile* profile = new ExtendedProfile;
 			profile->proc_id = constants->proc_id;
 			profile->id = sleepy->id;
-			profile->hash = hash;
 			profile->call_stack.push_back(profile);
 			profiles[constants->proc_id] = profile;
 			delete sleepy;
@@ -135,7 +133,6 @@ void hCreateContext(ProcConstants* constants, ExecutionContext* new_context)
 		ExtendedProfile* profile = new ExtendedProfile;
 		profile->proc_id = constants->proc_id;
 		profile->id = next_profile_id++;
-		profile->hash = hash;
 		profile->call_stack.push_back(profile);
 		profiles[constants->proc_id] = profile;
 		profile->start_timer();
@@ -182,7 +179,6 @@ void recursive_suspend(ExtendedProfile* profile)
 
 void hProcCleanup(ExecutionContext* ctx)
 {
-	int hash = ctx->hash();
 	int proc_id = ctx->constants->proc_id;
 	if (sleeping_profiles.find(proc_id) == sleeping_profiles.end())
 	{
@@ -238,7 +234,6 @@ void hProcCleanup(ExecutionContext* ctx)
 SuspendedProc* hSuspend(ExecutionContext* ctx, int unknown)
 {
 	int proc_id = ctx->constants->proc_id;
-	int hash = ctx->hash();
 	if (/*procs_to_profile.find(proc_id) != procs_to_profile.end() || */profiles.find(proc_id) != profiles.end())
 	{
 		//profiles[proc_id]->stop_timer();
