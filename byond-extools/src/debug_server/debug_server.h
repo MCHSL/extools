@@ -53,6 +53,7 @@ public:
 	int wait_for_action();
 
 	void send_simple(std::string message_type);
+	void send(std::string message_type, nlohmann::json content);
 };
 
 

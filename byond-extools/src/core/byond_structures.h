@@ -45,7 +45,7 @@ struct Value
 			valuef = trvh.valuef;
 	}
 	inline static Value Null() {
-		return { 0 ,0 };
+		return { 0, 0 };
 	}
 };
 
@@ -145,11 +145,6 @@ struct ExecutionContext
 	char unknown7[2];
 	bool paused;
 	char unknown8[51];
-
-	int hash()
-	{
-		return constants->proc_id + (int)constants->args;
-	}
 };
 
 struct ProcSetupEntry
