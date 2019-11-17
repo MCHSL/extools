@@ -121,7 +121,7 @@ const std::vector<Core::Proc> Core::get_all_procs()
 
 Disassembly Core::disassemble_raw(std::vector<int> bytecode)
 {
-	return Disassembler::Disassembler(std::vector<std::uint32_t>(bytecode.begin(), bytecode.end()), procs_by_id).disassemble();
+	return Disassembler(std::vector<std::uint32_t>(bytecode.begin(), bytecode.end()), procs_by_id).disassemble();
 }
 
 bool Core::populate_proc_list()

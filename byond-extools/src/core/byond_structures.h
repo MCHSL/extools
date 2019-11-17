@@ -1,5 +1,10 @@
 #pragma once
 
+#ifdef _WIN32
+#define REGPARM3
+#else
+#define REGPARM3 __attribute__((regparm(3)))
+#endif
 #define FLAG_PROFILE 0x10000
 
 struct String
@@ -78,8 +83,8 @@ struct ProcArrayEntry
 	int procCategory;
 	int procFlags;
 	int unknown1;
-	int bytecode_idx; // ProcSetupEntry index
-	int local_var_count_idx; // ProcSetupEntry index 
+	unsigned short bytecode_idx; // ProcSetupEntry index
+	unsigned short local_var_count_idx; // ProcSetupEntry index 
 	int unknown2;
 };
 

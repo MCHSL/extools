@@ -87,6 +87,6 @@ Disassembly Core::get_disassembly(std::string _proc)
 {
 	Core::Proc proc = Core::get_proc(_proc);
 	int* bytecode = proc.get_bytecode();
-	return Disassembler::Disassembler(std::vector<uint32_t>(bytecode, bytecode + proc.get_bytecode_length()), procs_by_id).disassemble();
+	return Disassembler(std::vector<uint32_t>(bytecode, bytecode + proc.get_bytecode_length()), procs_by_id).disassemble();
 }
 

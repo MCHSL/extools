@@ -11,10 +11,13 @@ StartTimingPtr StartTiming;
 SetVariablePtr SetVariable;
 GetVariablePtr GetVariable;
 GetStringTableIndexPtr GetStringTableIndex;
+GetStringTableIndexUTF8Ptr GetStringTableIndexUTF8;
 GetProcArrayEntryPtr GetProcArrayEntry;
 GetStringTableEntryPtr GetStringTableEntry;
 CallGlobalProcPtr CallGlobalProc;
 GetProfileInfoPtr GetProfileInfo;
+GetByondVersionPtr GetByondVersion;
+GetByondBuildPtr GetByondBuild;
 ProcCleanupPtr ProcCleanup;
 CreateContextPtr CreateContext;
 
@@ -22,6 +25,8 @@ ExecutionContext** Core::current_execution_context_ptr;
 ExecutionContext** Core::parent_context_ptr_hack;
 ProcSetupEntry** Core::proc_setup_table;
 
+int ByondVersion;
+int ByondBuild;
 unsigned int* Core::some_flags_including_profile;
 unsigned int Core::extended_profiling_insanely_hacky_check_if_its_a_new_call_or_resume;
 
@@ -46,6 +51,17 @@ void Core::Alert(std::string what) {
 #else
 	printf("%s\n", what);
 #endif
+}
+
+unsigned int Core::GetString(const char* str) {
+	switch (ByondVersion) {
+		case 512:
+			return GetStringTableIndex(str, 0, 1);
+		case 513:
+			return GetStringTableIndexUTF8(str, 0, 0, 1);
+		default: break;
+	}
+	return 0;
 }
 
 unsigned int Core::register_opcode(std::string name, opcode_handler handler)
@@ -116,7 +132,9 @@ extern "C" EXPORT const char* core_initialize(int n_args, const char** args)
 		return bad;
 	}
 	optimizer_initialize();
+#ifdef _WIN32 // i ain't fixing this awful Linux situation anytime soon
 	//extended_profiling_initialize();
+#endif
 	return good;
 }
 
@@ -143,6 +161,7 @@ extern "C" EXPORT const char* run_tests(int n_args, const char** args)
 	return good;
 }
 
+// TODO: make this work on Linux. -steamport
 extern "C" EXPORT const char* extended_profiling_initialize(int n_args, const char** args)
 {
 	if (!(Core::initialize() && actual_extended_profiling_initialize()))

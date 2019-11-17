@@ -4,12 +4,12 @@
 
 trvh cheap_hypotenuse(Value* args, unsigned int argcount)
 {
-	return { 0x2A, (int)std::sqrtf((args[0].valuef - args[2].valuef) * (args[0].valuef - args[2].valuef) + (args[1].valuef - args[3].valuef) * (args[1].valuef - args[3].valuef)) };
+	return { 0x2A, (int)sqrt((args[0].valuef - args[2].valuef) * (args[0].valuef - args[2].valuef) + (args[1].valuef - args[3].valuef) * (args[1].valuef - args[3].valuef)) };
 }
 
 trvh measure_get_variable(Value* args, unsigned int argcount)
 {
-	int name_string_id = GetStringTableIndex("name", 0, 1);
+	int name_string_id = Core::GetString("name");
 	int type = args[0].type;
 	int value = args[0].value;
 	//long long duration = 0;
@@ -46,15 +46,17 @@ void cheap_hypotenuse_opcode(ExecutionContext* ctx) //for testing purposes, remo
 	const float Bx = Core::get_stack_value(2).valuef;
 	const float By = Core::get_stack_value(1).valuef;
 	Core::stack_pop(4);
-	Core::stack_push({ 0x2A, (int)std::sqrtf((Ax - Bx) * (Ax - Bx) + (Ay - By) * (Ay - By)) });
+	Core::stack_push({ 0x2A, (int)std::sqrt((Ax - Bx) * (Ax - Bx) + (Ay - By) * (Ay - By)) });
 }
 
 trvh update_light_objects;
 
+#ifdef _WIN32
 LONG WINAPI DumpThingy(_EXCEPTION_POINTERS* ExceptionInfo)
 {
 	return EXCEPTION_CONTINUE_SEARCH;
 }
+#endif
 
 void init_testing()
 {

@@ -4,9 +4,13 @@
 #include "internal_functions.h"
 #include "hooking.h"
 #include "proc_management.h"
+#ifndef _WIN32
+#include <dlfcn.h>
+#endif
 
 #include <map>
 #include <string>
+#include <cmath>
 
 #ifdef _WIN32
 #define EXPORT __declspec(dllexport)
@@ -16,6 +20,9 @@
 
 typedef void(*opcode_handler)(ExecutionContext* ctx);
 
+extern int ByondVersion;
+extern int ByondBuild;
+
 namespace Core
 {
 	extern std::map<unsigned int, opcode_handler> opcode_handlers;
@@ -24,6 +31,7 @@ namespace Core
 	extern ExecutionContext** parent_context_ptr_hack;
 	extern ProcSetupEntry** proc_setup_table;
 	extern unsigned int* some_flags_including_profile;
+	unsigned int GetString(const char* str);
 	extern unsigned int extended_profiling_insanely_hacky_check_if_its_a_new_call_or_resume;
 	ExecutionContext* get_context();
 	ExecutionContext* _get_parent_context();

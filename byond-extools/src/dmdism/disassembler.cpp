@@ -1,6 +1,4 @@
-
-
-
+#define NOMINMAX
 #include <iostream>
 #include <functional>
 #include <algorithm>

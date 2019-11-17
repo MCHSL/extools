@@ -2,6 +2,7 @@
 
 #include <string>
 #include <sstream>
+#include "../core/core.h"
 #include "../core/internal_functions.h"
 
 std::string byond_tostring(int idx);
