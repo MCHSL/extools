@@ -11,7 +11,7 @@ int singlestep_opcode;
 
 std::unordered_map<unsigned short, std::vector<Breakpoint>> breakpoints;
 std::unordered_map<unsigned short, std::vector<BreakpointRestorer>> singlesteps;
-std::vector<Breakpoint> breakpoints_to_restore;
+Breakpoint* breakpoint_to_restore;
 
 DebugServer debug_server;
 std::mutex notifier_mutex;
@@ -107,6 +107,11 @@ void DebugServer::send_simple(std::string message_type)
 	debugger.send({ {"type", message_type} });
 }
 
+void DebugServer::send(std::string message_type, nlohmann::json content)
+{
+	debugger.send({ {"type", message_type}, {"content", content } });
+}
+
 bool place_restorer_on_next_instruction(ExecutionContext* ctx, unsigned int offset)
 {
 	Core::Proc p = Core::get_proc(ctx->constants->proc_id);
@@ -163,12 +168,18 @@ BreakpointRestorer& get_singlestep(Core::Proc proc, int offset)
 
 void on_breakpoint(ExecutionContext* ctx)
 {
+	if (breakpoint_to_restore)
+	{
+		std::swap(ctx->bytecode[breakpoint_to_restore->offset], breakpoint_to_restore->replaced_opcode);
+		breakpoint_to_restore = nullptr;
+	}
 	Breakpoint bp = get_breakpoint(ctx->constants->proc_id, ctx->current_opcode);
 	std::swap(ctx->bytecode[bp.offset], bp.replaced_opcode);
-	debug_server.send_simple(MESSAGE_BREAKPOINT_HIT);
+	debug_server.send(MESSAGE_BREAKPOINT_HIT, { {"proc", bp.proc.name }, {"offset", bp.offset } });
 	switch (debug_server.wait_for_action())
 	{
 	case DEBUG_STEP:
+		breakpoint_to_restore = &bp;
 		place_breakpoint_on_next_instruction(ctx, ctx->current_opcode);
 		break;
 	case DEBUG_RESUME:
