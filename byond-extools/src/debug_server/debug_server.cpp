@@ -12,7 +12,7 @@ int singlestep_opcode;
 
 std::unordered_map<unsigned short, std::vector<Breakpoint>> breakpoints;
 std::unordered_map<unsigned short, std::vector<BreakpointRestorer>> singlesteps;
-Breakpoint* breakpoint_to_restore;
+std::unique_ptr<Breakpoint> breakpoint_to_restore;
 
 DebugServer debug_server;
 std::mutex notifier_mutex;
@@ -158,7 +158,7 @@ std::vector<std::string> get_call_stack(ExecutionContext* ctx)
 
 void update_readouts(ExecutionContext* ctx)
 {
-	send_values(MESSAGE_VALUES_LOCALS, ctx->local_variables, Core::get_proc(ctx->constants->proc_id).get_local_varcount());
+	send_values(MESSAGE_VALUES_LOCALS, ctx->local_variables, ctx->local_var_count);
 	send_values(MESSAGE_VALUES_ARGS, ctx->constants->args, ctx->constants->arg_count);
 	send_values(MESSAGE_VALUES_STACK, ctx->stack, ctx->stack_size);
 	debug_server.send(MESSAGE_CALL_STACK, get_call_stack(ctx));
@@ -196,13 +196,13 @@ bool place_breakpoint_on_next_instruction(ExecutionContext* ctx, unsigned int of
 	}
 }
 
-Breakpoint& get_breakpoint(Core::Proc proc, int offset)
+std::unique_ptr<Breakpoint> get_breakpoint(Core::Proc proc, int offset)
 {
 	for (Breakpoint& bp : breakpoints[proc.id])
 	{
 		if (bp.offset == offset)
 		{
-			return bp;
+			return std::make_unique<Breakpoint>(bp);
 		}
 	}
 }
@@ -225,20 +225,23 @@ void on_breakpoint(ExecutionContext* ctx)
 		std::swap(ctx->bytecode[breakpoint_to_restore->offset], breakpoint_to_restore->replaced_opcode);
 		breakpoint_to_restore = nullptr;
 	}
-	Breakpoint bp = get_breakpoint(ctx->constants->proc_id, ctx->current_opcode);
-	std::swap(ctx->bytecode[bp.offset], bp.replaced_opcode);
-	debug_server.send(MESSAGE_BREAKPOINT_HIT, { {"proc", bp.proc.name }, {"offset", bp.offset } });
+	auto bp = get_breakpoint(ctx->constants->proc_id, ctx->current_opcode);
+	std::swap(ctx->bytecode[bp->offset], bp->replaced_opcode);
+	debug_server.send(MESSAGE_BREAKPOINT_HIT, { {"proc", bp->proc.name }, {"offset", bp->offset } });
 	update_readouts(ctx);
 	switch (debug_server.wait_for_action())
 	{
 	case DEBUG_STEP:
-		breakpoint_to_restore = &bp;
+		if (!bp->one_shot)
+		{
+			breakpoint_to_restore = std::move(bp);
+		}
 		place_breakpoint_on_next_instruction(ctx, ctx->current_opcode);
 		break;
 	case DEBUG_RESUME:
-		if (!bp.one_shot)
+		if (!bp->one_shot)
 		{
-			place_restorer_on_next_instruction(ctx, bp.offset);
+			place_restorer_on_next_instruction(ctx, bp->offset);
 		}
 		break;
 	}

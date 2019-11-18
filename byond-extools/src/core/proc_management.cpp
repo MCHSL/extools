@@ -60,6 +60,9 @@ int Core::Proc::get_bytecode_length()
 
 int Core::Proc::get_local_varcount()
 {
+	Core::Alert(std::to_string(setup_entry_varcount->local_var_count));
+	Core::Alert(std::to_string((int)proc_setup_table[varcount_idx]));
+	Core::Alert(std::to_string(setup_entry_bytecode->local_var_count));
 	return setup_entry_varcount->local_var_count;
 }
 
@@ -96,7 +99,7 @@ void Core::Proc::assemble(Disassembly disasm)
 	std::vector<int>* bc = disasm.assemble();
 	set_bytecode(bc);
 	setup_entry_bytecode->bytecode_length = bc->size();
-	proc_table_entry->local_var_count_idx = Core::get_proc("/proc/twelve_locals").proc_table_entry->local_var_count_idx;
+	//proc_table_entry->local_var_count_idx = Core::get_proc("/proc/twelve_locals").proc_table_entry->local_var_count_idx;
 }
 
 Core::Proc Core::get_proc(std::string name)
@@ -138,10 +141,10 @@ bool Core::populate_proc_list()
 		p.id = i;
 		p.name = GetStringTableEntry(entry->procPath)->stringData;
 		p.proc_table_entry = entry;
-		p.setup_entry_bytecode = proc_setup_table[entry->bytecode_idx];
-		p.setup_entry_varcount = proc_setup_table[entry->local_var_count_idx];
-		p.bytecode_idx = entry->bytecode_idx;
-		p.varcount_idx = entry->local_var_count_idx;
+		p.setup_entry_bytecode = proc_setup_table[entry->bytecode_idx & 0xFFFF];
+		p.setup_entry_varcount = proc_setup_table[entry->local_var_count_idx & 0xFFFF];
+		p.bytecode_idx = entry->bytecode_idx & 0xFFFF;
+		p.varcount_idx = entry->local_var_count_idx & 0xFFFF;
 		procs_by_id.push_back(p);
 		procs_by_name[p.name] = p;
 		procs_by_bytecode[p.get_bytecode()] = p;
