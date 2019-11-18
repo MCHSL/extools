@@ -2,6 +2,8 @@
 #include "../dmdism/disassembly.h"
 #include "../debug_server/debug_server.h"
 
+#include <fstream>
+
 trvh cheap_hypotenuse(Value* args, unsigned int argcount)
 {
 	return { 0x2A, (int)sqrt((args[0].valuef - args[2].valuef) * (args[0].valuef - args[2].valuef) + (args[1].valuef - args[3].valuef) * (args[1].valuef - args[3].valuef)) };
@@ -62,24 +64,29 @@ void init_testing()
 {
 	Core::enable_profiling();
 	debugger_initialize();
-	for (Core::Proc& p : procs_by_id)
+	bool find_unknowns = false;
+	if (find_unknowns)
 	{
-		if (p.name.back() == ')' || p.name == "/datum/promise/proc/__internal_resolve")
+		std::ofstream log("unknown_opcodes.txt");
+		for (Core::Proc& p : procs_by_id)
 		{
-			continue;
-		}
-		Disassembly d = p.disassemble();
-		for (Instruction& i : d)
-		{
-			if (i == UNK)
+			if (!p.name.empty() && p.name.back() == ')')
 			{
-				Core::Alert("Unknown instruction in " + p.name);
-				goto boop;
+				continue;
+			}
+			Disassembly d = p.disassemble();
+			for (Instruction& i : d)
+			{
+				if (i == UNK)
+				{
+					log << "Unknown instruction in " + p.name + "\n";
+					break;
+				}
 			}
 		}
+		log.close();
 	}
-boop:
-	Core::Alert("farts");
+
 	debugger_connect();
 	//Core::get_proc("/datum/explosion/New").extended_profile();
 	//Core::get_proc("/client/verb/test_reentry").extended_profile();

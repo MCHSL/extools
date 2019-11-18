@@ -18,6 +18,8 @@ public:
 	Disassembler(std::uint32_t* bc, unsigned int bc_len, std::vector<Core::Proc>& ps);
 	Disassembly disassemble();
 
+	~Disassembler() { delete context_; }
+
 	Context* context() const { return context_; }
 
 	void disassemble_var(Instruction& instr);

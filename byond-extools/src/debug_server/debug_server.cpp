@@ -26,6 +26,11 @@ bool DebugServer::connect()
 
 Breakpoint set_breakpoint(Core::Proc proc, int offset, bool one_shot = false);
 
+void stripUnicode(std::string& str)
+{
+	str.erase(remove_if(str.begin(), str.end(), [](unsigned char c) {return !(c >= 0 && c < 128); }), str.end());
+}
+
 void DebugServer::debug_loop()
 {
 	while (true)
@@ -62,11 +67,13 @@ void DebugServer::debug_loop()
 			std::vector<nlohmann::json> instructions;
 			for (Instruction& instr : disassembly.instructions)
 			{
+				std::string comment = instr.comment();
+				stripUnicode(comment);
 				nlohmann::json d_instr = {
 					{ "offset", instr.offset() },
 					{ "bytes", instr.bytes_str() },
 					{ "mnemonic", instr.opcode().mnemonic() },
-					{ "comment", instr.comment() },
+					{ "comment", comment },
 					{ "possible_jumps", instr.jump_locations() }
 				};
 				instructions.push_back(d_instr);
