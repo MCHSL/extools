@@ -62,6 +62,24 @@ void init_testing()
 {
 	Core::enable_profiling();
 	debugger_initialize();
+	for (Core::Proc& p : procs_by_id)
+	{
+		if (p.name.back() == ')' || p.name == "/datum/promise/proc/__internal_resolve")
+		{
+			continue;
+		}
+		Disassembly d = p.disassemble();
+		for (Instruction& i : d)
+		{
+			if (i == UNK)
+			{
+				Core::Alert("Unknown instruction in " + p.name);
+				goto boop;
+			}
+		}
+	}
+boop:
+	Core::Alert("farts");
 	debugger_connect();
 	//Core::get_proc("/datum/explosion/New").extended_profile();
 	//Core::get_proc("/client/verb/test_reentry").extended_profile();

@@ -43,12 +43,16 @@ public:
 	bool operator==(const Bytecode rhs);
 	bool operator==(const unsigned int rhs);
 
+	std::vector<unsigned short>& jump_locations() { return jump_locations_; }
+	void add_jump(unsigned short off) { jump_locations_.push_back(off); }
 protected:
 	std::uint8_t size_;
 	std::vector<std::uint32_t> bytes_;
 	Opcode opcode_;
 	std::string comment_;
 	std::uint32_t offset_;
+
+	std::vector<unsigned short> jump_locations_; //this is probably a sin but I don't feel like making a subtype of Instruction that supports jump destinations and then having to untangle the disassembler to make them work with all the other types.
 };
 
 
@@ -87,3 +91,12 @@ public:
 	using Instruction::Instruction;																		\
 	void Disassemble(Context* context, Disassembler* dism) override { dism->disassemble_var(*this); }	\
 };
+
+#define ADD_INSTR_JUMP(op, argcount)																		\
+	class Instr_##op : public Instruction																\
+{																										\
+	using Instruction::Instruction;																		\
+	void Disassemble(Context* context, Disassembler* dism) override { add_jump(context->eat()); for (unsigned int i = 1; i < arguments(); i++) std::uint32_t val = context->eat_add(); }	\
+	unsigned int arguments() const override { return argcount; }												\
+};
+//absolutely barbaric

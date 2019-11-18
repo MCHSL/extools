@@ -151,8 +151,8 @@ struct ProcSetupEntry
 {
 	union
 	{
-		unsigned int local_var_count;
-		unsigned int bytecode_length;
+		unsigned short local_var_count;
+		unsigned short bytecode_length;
 	};
 	int* bytecode;
 	int unknown;

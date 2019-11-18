@@ -66,7 +66,8 @@ void DebugServer::debug_loop()
 					{ "offset", instr.offset() },
 					{ "bytes", instr.bytes_str() },
 					{ "mnemonic", instr.opcode().mnemonic() },
-					{ "comment", instr.comment() }
+					{ "comment", instr.comment() },
+					{ "possible_jumps", instr.jump_locations() }
 				};
 				instructions.push_back(d_instr);
 			}

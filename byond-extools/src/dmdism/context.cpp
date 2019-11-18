@@ -21,7 +21,7 @@ std::uint32_t Context::eat()
 	if (current_offset_ >= buffer_.size())
 	{
 		std::cout << "READ PAST END OF BYTECODE" << std::endl;
-		return RET;
+		return END;
 	}
 
 	last_opcode_ = buffer_[current_offset_++];

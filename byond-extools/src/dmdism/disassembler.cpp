@@ -113,6 +113,31 @@ void Disassembler::disassemble_var(Instruction& instr)
 		instr.add_comment(modifier_name);
 		break;
 	}
+	case ARGS:
+		context_->eat();
+		instr.add_comment("ARGS");
+		break;
+	case PROC_NO_RET: //WAKE ME UP INSIDE
+	case PROC_:
+	{
+		context_->eat();
+		std::uint32_t val = context_->eat();
+		//Core::Alert(std::to_string(val));
+		Core::Proc proc = Core::get_proc(val);
+		instr.add_comment(proc.name);
+		break;
+	}
+	case SRC_PROC: //CAN'T WAKE UP
+	case SRC_PROC_SPEC:
+	{
+		context_->eat();
+		std::uint32_t val = context_->eat();
+		//Core::Alert(std::to_string(val));
+		std::string name = GetStringTableEntry(val)->stringData;
+		std::replace(name.begin(), name.end(), ' ', '_');
+		instr.add_comment(name);
+		break;
+	}
 	default:
 	{
 		std::uint32_t val = context_->eat();
