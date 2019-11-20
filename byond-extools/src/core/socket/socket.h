@@ -7,7 +7,7 @@
 #ifdef _WIN32
 #include <winsock2.h>
 #include <ws2tcpip.h>
-#include <Windows.h>
+#include <windows.h>
 #pragma comment (lib, "Ws2_32")
 #endif
 
@@ -26,6 +26,6 @@ public:
 	bool listen_for_client();
 
 	bool send(std::string type, nlohmann::json content);
-	bool SocketServer::send(nlohmann::json j);
+	bool send(nlohmann::json j);
 	nlohmann::json recv_message();
 };

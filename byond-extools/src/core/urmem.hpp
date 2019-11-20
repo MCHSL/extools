@@ -17,22 +17,55 @@
 #include <memory>
 #include <mutex>
 
-class urmem {
-public:
+namespace urmem_invoker {
     using address_t = unsigned long;
-    using byte_t = unsigned char;
-    using bytearray_t = std::vector<byte_t>;
-
     enum class calling_convention {
         cdeclcall,
         stdcall,
         thiscall
     };
 
+#ifdef _WIN32
+    template<calling_convention>
+    struct invoker;
+
+    template<>
+    struct invoker<calling_convention::cdeclcall> {
+        template<typename Ret, typename ... Args>
+        static inline Ret call(address_t address, Args ... args) {
+            return (reinterpret_cast<Ret(__cdecl *)(Args...)>(address))(args...);
+        }
+    };
+
+    template<>
+    struct invoker<calling_convention::stdcall> {
+        template<typename Ret, typename ... Args>
+        static inline Ret call(address_t address, Args ... args) {
+            return (reinterpret_cast<Ret(__stdcall *)(Args...)>(address))(args...);
+        }
+    };
+
+    template<>
+    struct invoker<calling_convention::thiscall> {
+        template<typename Ret, typename ... Args>
+        static inline Ret call(address_t address, Args ... args) {
+            return (reinterpret_cast<Ret(__thiscall *)(Args...)>(address))(args...);
+        }
+    };
+#endif
+}
+
+class urmem {
+public:
+    using address_t = unsigned long;
+    using byte_t = unsigned char;
+    using bytearray_t = std::vector<byte_t>;
+    using calling_convention = urmem_invoker::calling_convention;
+
     template<calling_convention CConv = calling_convention::cdeclcall, typename Ret = void, typename ... Args>
     static Ret call_function(address_t address, Args ... args) {
 #ifdef _WIN32
-        return invoker<CConv>::template call<Ret, Args...>(address, args...);
+        return urmem_invoker::invoker<CConv>::template call<Ret, Args...>(address, args...);
 #else
         return (reinterpret_cast<Ret(*)(Args...)>(address))(args...);
 #endif
@@ -320,36 +353,6 @@ public:
         address_t _original_addr{};
         std::shared_ptr<patch> _patch;
     };
-
-private:
-#ifdef _WIN32
-    template<calling_convention>
-    struct invoker;
-
-    template<>
-    struct invoker<calling_convention::cdeclcall> {
-        template<typename Ret, typename ... Args>
-        static inline Ret call(address_t address, Args ... args) {
-            return (reinterpret_cast<Ret(__cdecl *)(Args...)>(address))(args...);
-        }
-    };
-
-    template<>
-    struct invoker<calling_convention::stdcall> {
-        template<typename Ret, typename ... Args>
-        static inline Ret call(address_t address, Args ... args) {
-            return (reinterpret_cast<Ret(__stdcall *)(Args...)>(address))(args...);
-        }
-    };
-
-    template<>
-    struct invoker<calling_convention::thiscall> {
-        template<typename Ret, typename ... Args>
-        static inline Ret call(address_t address, Args ... args) {
-            return (reinterpret_cast<Ret(__thiscall *)(Args...)>(address))(args...);
-        }
-    };
-#endif
 };
 
 #endif // URMEM_H_

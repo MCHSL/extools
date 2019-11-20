@@ -1,8 +1,8 @@
 #include "sigscan.h"
 
 #ifdef _WIN32
-#include <Windows.h>
-#include <Psapi.h>
+#include <windows.h>
+#include <psapi.h>
 #else
 // lol
 #include <dlfcn.h>
