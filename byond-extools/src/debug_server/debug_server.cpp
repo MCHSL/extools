@@ -69,15 +69,13 @@ void DebugServer::debug_loop()
 			{
 				std::string& comment = instr.comment();
 				stripUnicode(comment);
-				std::string& extra = instr.extra_info();
-				stripUnicode(extra);
 				nlohmann::json d_instr = {
 					{ "offset", instr.offset() },
 					{ "bytes", instr.bytes_str() },
 					{ "mnemonic", instr.opcode().mnemonic() },
 					{ "comment", comment },
 					{ "possible_jumps", instr.jump_locations() },
-					{ "extra", extra },
+					{ "extra", instr.extra_info() },
 				};
 				instructions.push_back(d_instr);
 			}

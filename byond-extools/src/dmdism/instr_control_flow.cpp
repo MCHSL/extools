@@ -74,6 +74,7 @@ void Instr_SWITCH::Disassemble(Context* context, Disassembler* dism)
 {
 	std::uint32_t case_count = context->eat();
 	comment_ += std::to_string(case_count) + " cases, default jump to ";
+	add_info("Cases");
 	for (int i = 0; i < case_count; i++)
 	{
 		std::uint32_t type = context->take(); //TODO: Perhaps extract into a separate function to disassemble variables.
@@ -89,7 +90,7 @@ void Instr_SWITCH::Disassemble(Context* context, Disassembler* dism)
 			f.i = first_part << 16 | second_part;
 			std::uint16_t jmp = context->take();
 			add_jump(jmp);
-			add_info("NUMBER " + std::to_string(f.f) + " -> " + std::to_string(jmp) + "\n");
+			add_info("NUMBER " + std::to_string(f.f) + " -> " + std::to_string(jmp));
 			continue;
 		}
 
