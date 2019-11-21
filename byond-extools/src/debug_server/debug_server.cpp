@@ -180,12 +180,13 @@ bool place_restorer_on_next_instruction(ExecutionContext* ctx, unsigned int offs
 	if (next)
 	{
 		BreakpointRestorer sbp = {
-			(unsigned int)next->bytes().at(0), offset, next->offset()
+			(int)next->bytes().at(0), (int)offset, (int)next->offset()
 		};
 		ctx->bytecode[next->offset()] = singlestep_opcode;
 		singlesteps[p.id].push_back(sbp);
 		return true;
 	}
+	return false;
 }
 
 bool place_breakpoint_on_next_instruction(ExecutionContext* ctx, unsigned int offset) //TODO: make this and the above better
@@ -196,12 +197,13 @@ bool place_breakpoint_on_next_instruction(ExecutionContext* ctx, unsigned int of
 	if (next)
 	{
 		Breakpoint bp = {
-			p, (unsigned int)next->bytes().at(0), next->offset(), true
+			p, (int)next->bytes().at(0), (int)next->offset(), true
 		};
 		ctx->bytecode[next->offset()] = breakpoint_opcode;
 		breakpoints[p.id].push_back(bp);
 		return true;
 	}
+	return false;
 }
 
 std::unique_ptr<Breakpoint> get_breakpoint(Core::Proc proc, int offset)
@@ -213,17 +215,19 @@ std::unique_ptr<Breakpoint> get_breakpoint(Core::Proc proc, int offset)
 			return std::make_unique<Breakpoint>(bp);
 		}
 	}
+	return nullptr;
 }
 
-BreakpointRestorer& get_singlestep(Core::Proc proc, int offset)
+std::unique_ptr<BreakpointRestorer> get_restorer(Core::Proc proc, int offset)
 {
 	for (BreakpointRestorer& bp : singlesteps[proc.id])
 	{
 		if (bp.my_offset == offset)
 		{
-			return bp;
+			return std::make_unique<BreakpointRestorer>(bp);
 		}
 	}
+	return nullptr;
 }
 
 void on_breakpoint(ExecutionContext* ctx)
@@ -261,12 +265,17 @@ void on_nop(ExecutionContext* ctx)
 
 }
 
-void on_singlestep(ExecutionContext* ctx)
+void on_restorer(ExecutionContext* ctx)
 {
-	BreakpointRestorer sbp = get_singlestep(ctx->constants->proc_id, ctx->current_opcode);
-	ctx->bytecode[sbp.offset_to_replace] = sbp.replaced_opcode;
+	auto sbp = get_restorer(ctx->constants->proc_id, ctx->current_opcode);
+	if (!sbp)
+	{
+		Core::Alert("Restore opcode with no associated restorer");
+		return;
+	}
+	ctx->bytecode[sbp->offset_to_replace] = sbp->replaced_opcode;
 	auto ss = singlesteps[ctx->constants->proc_id];
-	ss.erase(std::remove(ss.begin(), ss.end(), sbp), ss.end());
+	ss.erase(std::remove(ss.begin(), ss.end(), *sbp), ss.end());
 	ctx->current_opcode--;
 }
 
@@ -296,7 +305,7 @@ bool debugger_initialize()
 {
 	breakpoint_opcode = Core::register_opcode("DEBUG_BREAKPOINT", on_breakpoint);
 	nop_opcode = Core::register_opcode("DEBUG_NOP", on_nop);
-	singlestep_opcode = Core::register_opcode("DEBUG_SINGLESTEP", on_singlestep);
+	singlestep_opcode = Core::register_opcode("DEBUG_SINGLESTEP", on_restorer);
 	return true;
 }
 

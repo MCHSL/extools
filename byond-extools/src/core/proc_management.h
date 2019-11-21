@@ -17,14 +17,14 @@ namespace Core
 		Proc(unsigned int id);
 		std::string name;
 		std::string simple_name;
-		unsigned int id;
+		unsigned int id = 0;
 
-		ProcArrayEntry* proc_table_entry;
-		ProcSetupEntry* setup_entry_bytecode;
-		ProcSetupEntry* setup_entry_varcount;
+		ProcArrayEntry* proc_table_entry = nullptr;
+		ProcSetupEntry* setup_entry_bytecode = nullptr;
+		ProcSetupEntry* setup_entry_varcount = nullptr;
 
-		unsigned short bytecode_idx;
-		unsigned short varcount_idx;
+		unsigned short bytecode_idx = 0;
+		unsigned short varcount_idx = 0;
 
 		int* original_bytecode_ptr = nullptr;
 
