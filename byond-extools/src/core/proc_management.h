@@ -66,7 +66,7 @@ namespace Core
 
 	Proc get_proc(std::string name);
 	Proc get_proc(unsigned int id);
-	const std::vector<Proc> get_all_procs();
+	const std::vector<Proc>& get_all_procs();
 
 	bool populate_proc_list();
 	Disassembly disassemble_raw(std::vector<int> bytecode);

@@ -23,6 +23,7 @@ struct DisassembledInstruction
 	std::string mnemonic;
 	std::string comment;
 	std::vector<unsigned short> possible_jumps;
+	std::string extra;
 };
 
 struct BreakpointHit

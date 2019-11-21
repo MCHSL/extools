@@ -379,5 +379,6 @@ const std::unordered_map<Bytecode, std::string> mnemonics = {
 	{ PRE_DEC, "PRE_DEC" },
 	{ POST_DEC, "POST_DEC" },
 	{LPUSH_CACHE, "LPUSH_CACHE"},
-	{ SET_CACHE, "SET_CACHE" }
+	{ SET_CACHE, "SET_CACHE" },
+	{SWITCH, "SWITCH"},
 };

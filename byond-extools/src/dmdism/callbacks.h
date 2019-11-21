@@ -142,4 +142,5 @@ const std::map<Bytecode, std::function<Instruction*()>> callbacks = {
 	ADD_CALLBACK(POST_DEC)
 	ADD_CALLBACK(LPUSH_CACHE)
 	ADD_CALLBACK(SET_CACHE)
+	ADD_CALLBACK(SWITCH)
 };

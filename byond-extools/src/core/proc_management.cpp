@@ -111,7 +111,7 @@ Core::Proc Core::get_proc(unsigned int id)
 	return procs_by_id[id];
 }
 
-const std::vector<Core::Proc> Core::get_all_procs()
+const std::vector<Core::Proc>& Core::get_all_procs()
 {
 	return procs_by_id;
 }

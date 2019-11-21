@@ -134,7 +134,7 @@ bool Disassembler::disassemble_var(Instruction& instr)
 	{
 		context_->eat();
 		//std::uint32_t val = context_->eat();
-		Core::Alert("apin");
+		//Core::Alert("apin");
 		//Core::Proc proc = Core::get_proc(val);
 		//instr.add_comment(proc.name);
 		break;
