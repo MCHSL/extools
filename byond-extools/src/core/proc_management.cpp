@@ -5,7 +5,6 @@
 
 std::vector<Core::Proc> procs_by_id;
 std::unordered_map<std::string, Core::Proc> procs_by_name;
-std::unordered_map<int*, Core::Proc> procs_by_bytecode;
 std::unordered_map<unsigned int, bool> extended_profiling_procs;
 std::unordered_map<unsigned int, ProcHook> proc_hooks;
 
@@ -14,12 +13,12 @@ Core::Proc::Proc(std::string name)
 	*this = procs_by_name[name];
 }
 
-Core::Proc::Proc(unsigned int id)
+Core::Proc::Proc(std::uint32_t id)
 {
 	*this = procs_by_id[id];
 }
 
-void Core::Proc::set_bytecode(std::vector<int>* new_bytecode)
+void Core::Proc::set_bytecode(std::vector<std::uint32_t>* new_bytecode)
 {
 	if (original_bytecode_ptr)
 	{
@@ -32,7 +31,7 @@ void Core::Proc::set_bytecode(std::vector<int>* new_bytecode)
 	setup_entry_bytecode->bytecode = new_bytecode->data();
 }
 
-void Core::Proc::set_bytecode(int* new_bytecode)
+void Core::Proc::set_bytecode(std::uint32_t* new_bytecode)
 {
 	setup_entry_bytecode->bytecode = new_bytecode;
 }
@@ -48,17 +47,17 @@ void Core::Proc::reset_bytecode()
 	original_bytecode_ptr = nullptr;
 }
 
-int* Core::Proc::get_bytecode()
+std::uint32_t* Core::Proc::get_bytecode()
 {
 	return setup_entry_bytecode->bytecode;
 }
 
-int Core::Proc::get_bytecode_length()
+std::uint16_t Core::Proc::get_bytecode_length()
 {
 	return setup_entry_bytecode->bytecode_length;
 }
 
-int Core::Proc::get_local_varcount()
+std::uint16_t Core::Proc::get_local_varcount()
 {
 	Core::Alert(std::to_string(setup_entry_varcount->local_var_count));
 	Core::Alert(std::to_string((int)proc_setup_table[varcount_idx]));
@@ -82,7 +81,7 @@ void Core::Proc::hook(ProcHook hook_func)
 }
 
 // This is not thread safe - only use when you are on the main thread, such as hooks or custom opcodes
-Value Core::Proc::call(std::vector<Value> arguments, Value usr, Value src)
+Value Core::Proc::call(std::vector<Value>& arguments, Value usr, Value src)
 {
 	return CallGlobalProc(usr.type, usr.value, 2, id, 0, src.type, src.value, arguments.data(), arguments.size(), 0, 0);
 }
@@ -96,7 +95,7 @@ Disassembly Core::Proc::disassemble()
 
 void Core::Proc::assemble(Disassembly disasm)
 {
-	std::vector<int>* bc = disasm.assemble();
+	std::vector<std::uint32_t>* bc = disasm.assemble();
 	set_bytecode(bc);
 	setup_entry_bytecode->bytecode_length = bc->size();
 	//proc_table_entry->local_var_count_idx = Core::get_proc("/proc/twelve_locals").proc_table_entry->local_var_count_idx;
@@ -110,11 +109,6 @@ Core::Proc Core::get_proc(std::string name)
 Core::Proc Core::get_proc(unsigned int id)
 {
 	return procs_by_id[id];
-}
-
-Core::Proc Core::get_proc(int* bytecode)
-{
-	return procs_by_bytecode[bytecode];
 }
 
 const std::vector<Core::Proc> Core::get_all_procs()
@@ -148,7 +142,6 @@ bool Core::populate_proc_list()
 		p.varcount_idx = entry->local_var_count_idx;
 		procs_by_id.push_back(p);
 		procs_by_name[p.name] = p;
-		procs_by_bytecode[p.get_bytecode()] = p;
 		i++;
 	}
 	return true;

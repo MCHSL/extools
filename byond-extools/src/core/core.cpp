@@ -64,9 +64,9 @@ unsigned int Core::GetString(const char* str) {
 	return 0;
 }
 
-unsigned int Core::register_opcode(std::string name, opcode_handler handler)
+std::uint32_t Core::register_opcode(std::string name, opcode_handler handler)
 {
-	unsigned int next_opcode = next_opcode_id++;
+	std::uint32_t next_opcode = next_opcode_id++;
 	opcode_handlers[next_opcode] = handler;
 	name_to_opcode[name] = next_opcode;
 	return next_opcode;

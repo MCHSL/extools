@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 #ifdef _WIN32
 #define REGPARM3
 #else
@@ -118,30 +120,30 @@ struct ExecutionContext
 {
 	ProcConstants* constants;
 	ExecutionContext* parent_context;
-	int dbg_proc_file;
-	int dbg_current_line;
-	int* bytecode;
-	unsigned short current_opcode;
+	std::uint32_t dbg_proc_file;
+	std::uint32_t dbg_current_line;
+	std::uint32_t* bytecode;
+	std::uint16_t current_opcode;
 	Value cached_datum;
 	char unknown2[8];
-	int test_flag;
+	std::uint32_t test_flag;
 	char unknown3[12];
 	Value* local_variables;
 	Value* stack;
-	short local_var_count;
-	short stack_size;
-	int unknown; //callback something
+	std::uint16_t local_var_count;
+	std::uint16_t stack_size;
+	std::int32_t unknown; //callback something
 	Value* current_iterator;
-	int iterator_allocated;
-	int iterator_length;
-	int iterator_index;
-	int another_unknown2;
+	std::uint32_t iterator_allocated;
+	std::uint32_t iterator_length;
+	std::uint32_t iterator_index;
+	std::int32_t another_unknown2;
 	char unknown4[3];
 	char iterator_filtered_type;
 	char unknown5;
 	char iterator_unknown;
 	char unknown6;
-	int infinite_loop_count;
+	std::uint32_t infinite_loop_count;
 	char unknown7[2];
 	bool paused;
 	char unknown8[51];
@@ -151,17 +153,17 @@ struct ProcSetupEntry
 {
 	union
 	{
-		unsigned short local_var_count;
-		unsigned short bytecode_length;
+		std::uint16_t local_var_count;
+		std::uint16_t bytecode_length;
 	};
-	int* bytecode;
-	int unknown;
+	std::uint32_t* bytecode;
+	std::int32_t unknown;
 };
 
 struct ProfileEntry
 {
-	unsigned int seconds;
-	unsigned int microseconds;
+	std::uint32_t seconds;
+	std::uint32_t microseconds;
 
 	unsigned long long as_microseconds()
 	{
@@ -175,10 +177,10 @@ struct ProfileEntry
 
 struct ProfileInfo
 {
-	unsigned int call_count;
+	std::uint32_t call_count;
 	ProfileEntry real;
 	ProfileEntry total;
 	ProfileEntry self;
 	ProfileEntry overtime;
-	unsigned int proc_id;
+	std::uint32_t proc_id;
 };

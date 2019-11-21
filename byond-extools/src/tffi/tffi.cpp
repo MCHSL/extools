@@ -8,9 +8,9 @@ typedef const char* (byond_ffi_func)(int, const char**);
 std::map<float, SuspendedProc*> suspended_procs;
 std::map<std::string, std::map<std::string, byond_ffi_func*>> library_cache;
 
-int result_string_id = 0;
-int completed_string_id = 0;
-int internal_id_string_id = 0;
+std::uint32_t result_string_id = 0;
+std::uint32_t completed_string_id = 0;
+std::uint32_t internal_id_string_id = 0;
 
 void tffi_suspend(ExecutionContext* ctx)
 {
@@ -27,9 +27,9 @@ bool TFFI::initialize()
 {
 	// the CrashProc hook is currently super broken on Linux. It hooks but doesn't stop the crash.
 #ifdef _WIN32
-	int suspension_opcode = Core::register_opcode("TFFI_SUSPEND", tffi_suspend);
+	std::uint32_t suspension_opcode = Core::register_opcode("TFFI_SUSPEND", tffi_suspend);
 	Core::Proc internal_resolve = Core::get_proc("/datum/promise/proc/__internal_resolve");
-	internal_resolve.set_bytecode(new std::vector<int>({ suspension_opcode, 0, 0, 0 }));
+	internal_resolve.set_bytecode(new std::vector<std::uint32_t>({ suspension_opcode, 0, 0, 0 }));
 #endif
 	result_string_id = Core::GetString("result");
 	completed_string_id = Core::GetString("completed");

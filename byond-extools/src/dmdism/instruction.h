@@ -37,8 +37,8 @@ public:
 	void set_comment(std::string comment) { comment_ = comment; }
 	void add_comment(std::string comment) { comment_ += comment; }
 
-	std::uint32_t offset() const { return offset_; }
-	void set_offset(std::uint32_t offset) { offset_ = offset; }
+	std::uint16_t offset() const { return offset_; }
+	void set_offset(std::uint16_t offset) { offset_ = offset; }
 
 	bool operator==(const Bytecode rhs);
 	bool operator==(const unsigned int rhs);

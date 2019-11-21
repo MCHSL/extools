@@ -6,9 +6,9 @@
 
 #include <thread>
 
-int breakpoint_opcode;
-int nop_opcode;
-int singlestep_opcode;
+std::uint32_t breakpoint_opcode;
+std::uint32_t nop_opcode;
+std::uint32_t singlestep_opcode;
 
 std::unordered_map<unsigned short, std::vector<Breakpoint>> breakpoints;
 std::unordered_map<unsigned short, std::vector<BreakpointRestorer>> singlesteps;
@@ -24,7 +24,7 @@ bool DebugServer::connect()
 	return debugger.listen_for_client();
 }
 
-Breakpoint set_breakpoint(Core::Proc proc, int offset, bool one_shot = false);
+Breakpoint set_breakpoint(Core::Proc proc, std::uint16_t offset, bool one_shot = false);
 
 void stripUnicode(std::string& str)
 {
@@ -172,7 +172,7 @@ void update_readouts(ExecutionContext* ctx)
 	debug_server.send(MESSAGE_CALL_STACK, get_call_stack(ctx));
 }
 
-bool place_restorer_on_next_instruction(ExecutionContext* ctx, unsigned int offset)
+bool place_restorer_on_next_instruction(ExecutionContext* ctx, std::uint16_t offset)
 {
 	Core::Proc p = Core::get_proc(ctx->constants->proc_id);
 	Disassembly current_dis = Disassembler(reinterpret_cast<std::uint32_t*>(ctx->bytecode), p.get_bytecode_length(), procs_by_id).disassemble();
@@ -180,7 +180,7 @@ bool place_restorer_on_next_instruction(ExecutionContext* ctx, unsigned int offs
 	if (next)
 	{
 		BreakpointRestorer sbp = {
-			(int)next->bytes().at(0), (int)offset, (int)next->offset()
+			next->bytes().at(0), offset, next->offset()
 		};
 		ctx->bytecode[next->offset()] = singlestep_opcode;
 		singlesteps[p.id].push_back(sbp);
@@ -197,7 +197,7 @@ bool place_breakpoint_on_next_instruction(ExecutionContext* ctx, unsigned int of
 	if (next)
 	{
 		Breakpoint bp = {
-			p, (int)next->bytes().at(0), (int)next->offset(), true
+			p, next->bytes().at(0), next->offset(), true
 		};
 		ctx->bytecode[next->offset()] = breakpoint_opcode;
 		breakpoints[p.id].push_back(bp);
@@ -279,12 +279,12 @@ void on_restorer(ExecutionContext* ctx)
 	ctx->current_opcode--;
 }
 
-Breakpoint set_breakpoint(Core::Proc proc, int offset, bool one_shot)
+Breakpoint set_breakpoint(Core::Proc proc, std::uint16_t offset, bool one_shot)
 {
 	Breakpoint bp = {
 		proc, breakpoint_opcode, offset, one_shot
 	};
-	int* bytecode = proc.get_bytecode();
+	std::uint32_t* bytecode = proc.get_bytecode();
 	std::swap(bytecode[offset], bp.replaced_opcode);
 	proc.set_bytecode(bytecode);
 	breakpoints[proc.id].push_back(bp);
@@ -293,7 +293,7 @@ Breakpoint set_breakpoint(Core::Proc proc, int offset, bool one_shot)
 
 bool remove_breakpoint(Breakpoint bp)
 {
-	int* bytecode = bp.proc.get_bytecode();
+	std::uint32_t* bytecode = bp.proc.get_bytecode();
 	std::swap(bytecode[bp.offset], bp.replaced_opcode);
 	bp.proc.set_bytecode(bytecode);
 	auto bps = breakpoints[bp.proc.id];

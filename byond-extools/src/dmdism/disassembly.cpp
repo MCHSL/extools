@@ -1,8 +1,8 @@
 #include "disassembly.h"
 #include "disassembler.h"
 
-std::vector<int>* Disassembly::assemble()	{
-	std::vector<int>* ret = new std::vector<int>();
+std::vector<std::uint32_t>* Disassembly::assemble()	{
+	std::vector<std::uint32_t>* ret = new std::vector<std::uint32_t>();
 	for (Instruction i : instructions)
 	{
 		for (int op : i.bytes())
@@ -13,12 +13,12 @@ std::vector<int>* Disassembly::assemble()	{
 	return ret;
 }
 
-Instruction& Disassembly::at(unsigned int i)
+Instruction& Disassembly::at(std::size_t i)
 {
 	return instructions.at(i);
 }
 
-Instruction* Disassembly::next_from_offset(unsigned int offset)
+Instruction* Disassembly::next_from_offset(std::uint16_t offset)
 {
 	auto it = std::lower_bound(instructions.begin(), instructions.end(), offset, [](Instruction const& instr, int offset) { return instr.offset() < offset; });
 
@@ -42,12 +42,12 @@ std::vector<Instruction>::iterator Disassembly::end() noexcept
 	return instructions.end();
 }
 
-int Disassembly::op_at(unsigned int i)
+std::uint32_t Disassembly::op_at(std::size_t i)
 {
 	return instructions.at(i).bytes().at(0);
 }
 
-void Disassembly::insert_at(unsigned int at, Instruction instr)
+void Disassembly::insert_at(std::size_t at, Instruction instr)
 {
 	instructions.insert(instructions.begin() + at, instr);
 }
@@ -62,7 +62,7 @@ std::size_t Disassembly::size()
 	return instructions.size();
 }
 
-int Disassembly::bytecount()
+std::size_t Disassembly::bytecount()
 {
 	int sum = 0;
 	for (Instruction i : instructions)
@@ -86,7 +86,7 @@ void Disassembly::recalculate_offsets()
 Disassembly Core::get_disassembly(std::string _proc)
 {
 	Core::Proc proc = Core::get_proc(_proc);
-	int* bytecode = proc.get_bytecode();
+	std::uint32_t* bytecode = proc.get_bytecode();
 	return Disassembler(std::vector<uint32_t>(bytecode, bytecode + proc.get_bytecode_length()), procs_by_id).disassemble();
 }
 

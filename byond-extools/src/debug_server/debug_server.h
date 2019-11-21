@@ -14,8 +14,8 @@ struct Breakpoint
 {
 	Core::Proc proc;
 
-	int replaced_opcode;
-	int offset;
+	std::uint32_t replaced_opcode;
+	std::uint16_t offset;
 
 	bool one_shot;
 
@@ -30,9 +30,9 @@ struct Breakpoint
 
 struct BreakpointRestorer
 {
-	int replaced_opcode;
-	int offset_to_replace;
-	int my_offset;
+	std::uint32_t replaced_opcode;
+	std::uint16_t offset_to_replace;
+	std::uint16_t my_offset;
 
 	bool operator==(const BreakpointRestorer& rhs)
 	{
