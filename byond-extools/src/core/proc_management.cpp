@@ -140,6 +140,7 @@ bool Core::populate_proc_list()
 		Proc p = Proc();
 		p.id = i;
 		p.name = GetStringTableEntry(entry->procPath)->stringData;
+		p.simple_name = p.name.substr(p.name.rfind("/") + 1);
 		p.proc_table_entry = entry;
 		p.setup_entry_bytecode = proc_setup_table[entry->bytecode_idx];
 		p.setup_entry_varcount = proc_setup_table[entry->local_var_count_idx];

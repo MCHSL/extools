@@ -22,7 +22,7 @@ public:
 
 	Context* context() const { return context_; }
 
-	void disassemble_var(Instruction& instr);
+	bool disassemble_var(Instruction& instr);
 	void add_call_args(Instruction& instr, unsigned int num_args);
 
 private:

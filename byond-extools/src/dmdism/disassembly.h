@@ -8,6 +8,7 @@ class Disassembly
 {
 public:
 	Disassembly(std::vector<Instruction> i) : instructions(i) {}
+	//~Disassembly() { for (auto i : instructions) delete& i; } //heap corruption woo
 	std::vector<Instruction> instructions;
 	Core::Proc proc;
 

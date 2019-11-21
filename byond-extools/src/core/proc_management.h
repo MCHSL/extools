@@ -16,6 +16,7 @@ namespace Core
 		Proc(std::string name);
 		Proc(unsigned int id);
 		std::string name;
+		std::string simple_name;
 		unsigned int id;
 
 		ProcArrayEntry* proc_table_entry;

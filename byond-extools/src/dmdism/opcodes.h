@@ -20,18 +20,18 @@ enum Bytecode
 	JNZ = 0x10,
 	JZ = 0x11,
 	RET = 0x12,
-	ISLOC = 0x13,
-	ISMOB = 0x14,
-	ISOBJ = 0x15,
-	ISAREA = 0x16,
-	ISTURF = 0x17,
-	EMPTYLIST = 0x19,
+	ISLOC = 0x13, //TODO
+	ISMOB = 0x14, //TODO
+	ISOBJ = 0x15, //TODO
+	ISAREA = 0x16, //TODO
+	ISTURF = 0x17, //TODO
+	EMPTYLIST = 0x19, //TODO
 	NEWLIST = 0x1A,
-	VIEW = 0x1B,
-	OVIEW = 0x1C,
-	VIEW_TARGET = 0x1D,
-	OVIEW_TARGET = 0x1E,
-	BLOCK = 0x1F,
+	VIEW = 0x1B, //TODO
+	OVIEW = 0x1C, //TODO
+	VIEW_TARGET = 0x1D, //TODO
+	OVIEW_TARGET = 0x1E, //TODO
+	BLOCK = 0x1F, //TODO
 
 	PROB = 0x21,
 	RAND = 0x22,
@@ -49,7 +49,7 @@ enum Bytecode
 	LOG = 0x32,
 	GETVAR = 0x33,
 	SETVAR = 0x34,
-
+	SETVAR_COPY = 0x35, //TODO
 	GETFLAG = 0x36,
 	TEQ = 0x37,
 	TNE = 0x38,
@@ -169,6 +169,9 @@ enum Bytecode
 	REPLACETEXT = 0x130,
 	REGEX_NEW = 0x13A,
 
+	LPUSH_CACHE = 0x142,
+	SET_CACHE = 0x143,
+
 	//DBG_BREAK = 0x1337,
 };
 
@@ -184,7 +187,7 @@ enum AccessModifier
 	SUBVAR = 0xFFDC,
 
 	SRC_PROC_SPEC = 0xFFDD,
-	SRC_PROC= 0xFFDE,
+	SRC_PROC = 0xFFDE,
 	PROC_ = 0xFFDF,
 	PROC_NO_RET = 0xFFE0,
 
@@ -198,8 +201,9 @@ const std::unordered_map<AccessModifier, std::string> modifier_names = {
 	{ARG, "ARG" },
 	{ARGS, "ARGS"},
 	{LOCAL, "LOCAL"},
-	{GLOBAL, "GLOBAL" },
+	{GLOBAL, "GLOBAL"},
 	{SUBVAR, "SUBVAR"},
+	{CACHE, "CACHE"},
 
 	{SRC_PROC_SPEC, "SRC_PROC_SPEC"},
 	{SRC_PROC, "SRC_PROC"},
@@ -373,5 +377,7 @@ const std::unordered_map<Bytecode, std::string> mnemonics = {
 	{ PRE_INC, "PRE_INC" },
 	{ POST_INC, "POST_INC" },
 	{ PRE_DEC, "PRE_DEC" },
-	{ POST_DEC, "POST_DEC" }
+	{ POST_DEC, "POST_DEC" },
+	{LPUSH_CACHE, "LPUSH_CACHE"},
+	{ SET_CACHE, "SET_CACHE" }
 };

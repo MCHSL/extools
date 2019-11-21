@@ -54,7 +54,7 @@ Instruction Disassembler::disassemble_next()
 	return *instr;
 }
 
-void Disassembler::disassemble_var(Instruction& instr)
+bool Disassembler::disassemble_var(Instruction& instr)
 {
 	switch (context_->peek())
 	{
@@ -69,6 +69,12 @@ void Disassembler::disassemble_var(Instruction& instr)
 		{
 			disassemble_var(instr);
 		}
+		else if (val == PROC_)
+		{
+			instr.add_comment("." + Core::get_proc(context_->eat()).simple_name);
+			add_call_args(instr, context_->eat());
+			return true;
+		}
 		else
 		{
 			instr.opcode().add_info(" " + std::to_string(val));
@@ -80,7 +86,7 @@ void Disassembler::disassemble_var(Instruction& instr)
 
 	case LOCAL:
 	case GLOBAL:
-	case CACHE:
+	//case CACHE:
 	case ARG:
 	{
 		std::uint32_t type = context_->eat();
@@ -94,6 +100,12 @@ void Disassembler::disassemble_var(Instruction& instr)
 
 		instr.opcode().add_info(" " + modifier_name + std::to_string(localno));
 		instr.add_comment(modifier_name + std::to_string(localno));
+		break;
+	}
+	case CACHE:
+	{
+		context_->eat();
+		instr.add_comment("CACHE");
 		break;
 	}
 	case WORLD:
@@ -121,30 +133,31 @@ void Disassembler::disassemble_var(Instruction& instr)
 	case PROC_:
 	{
 		context_->eat();
-		std::uint32_t val = context_->eat();
-		//Core::Alert(std::to_string(val));
-		Core::Proc proc = Core::get_proc(val);
-		instr.add_comment(proc.name);
+		//std::uint32_t val = context_->eat();
+		Core::Alert("apin");
+		//Core::Proc proc = Core::get_proc(val);
+		//instr.add_comment(proc.name);
 		break;
 	}
 	case SRC_PROC: //CAN'T WAKE UP
 	case SRC_PROC_SPEC:
 	{
 		context_->eat();
-		std::uint32_t val = context_->eat();
+		/*std::uint32_t val = context_->eat();
 		//Core::Alert(std::to_string(val));
 		std::string name = GetStringTableEntry(val)->stringData;
-		std::replace(name.begin(), name.end(), ' ', '_');
-		instr.add_comment(name);
+		std::replace(name.begin(), name.end(), ' ', '_');*/
+		instr.add_comment("CACHE.");
 		break;
 	}
 	default:
 	{
 		std::uint32_t val = context_->eat();
-		instr.add_comment("SRC."+byond_tostring(val));
+		instr.add_comment("CACHE."+byond_tostring(val));
 		break;
 	}
 	}
+	return false;
 }
 
 void Disassembler::add_call_args(Instruction& instr, unsigned int num_args)

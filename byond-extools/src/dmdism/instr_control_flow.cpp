@@ -12,7 +12,10 @@
 void Instr_CALL::Disassemble(Context* context, Disassembler* dism)
 {
 	comment_ = "";
-	dism->disassemble_var(*this);
+	if (dism->disassemble_var(*this))
+	{
+		return;
+	}
 
 	std::uint32_t procid = context->eat();
 	std::string name = byond_tostring(procid);
