@@ -135,23 +135,19 @@ nlohmann::json SocketServer::recv_message()
 	std::vector<char> data(1024);
 	while (true)
 	{
-		int received_bytes = ::recv(client_socket, data.data(), data.size(), NULL);
-		if (received_bytes > 0)
-		{
-			data.resize(received_bytes);
-			recv_buffer += std::string(data.begin(), data.end());
-			if (recv_buffer.back() == 0)
-			{
-				recv_buffer.pop_back();
-				nlohmann::json json = nlohmann::json::parse(recv_buffer);
-				recv_buffer.clear();
-				return json;
-			}
+		size_t zero = recv_buffer.find('\0');
+		if (zero != std::string::npos) {
+			nlohmann::json json = nlohmann::json::parse({ recv_buffer.data(), recv_buffer.data() + zero });
+			recv_buffer.erase(0, zero + 1);
+			return json;
 		}
-		else
-		{
+
+		int received_bytes = ::recv(client_socket, data.data(), data.size(), NULL);
+		if (received_bytes == 0) {
 			return nlohmann::json();
 		}
+
+		recv_buffer.append(data.begin(), data.begin() + received_bytes);
 	}
 }
 #endif

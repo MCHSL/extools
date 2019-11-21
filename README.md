@@ -1,3 +1,4 @@
+Windows: ![](https://ci.appveyor.com/api/projects/status/github/MCHSL/extools?svg=true) Linux (cross-compile to win): [![Build Status](https://travis-ci.org/MCHSL/extools.svg?branch=master)](https://travis-ci.org/MCHSL/extools)
 # BYOND extools
 External tools for BYOND. Used to fiddle with the game engine's internals.
 
