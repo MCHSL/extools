@@ -1,0 +1,9 @@
+dist: bionic
+branches:
+  only:
+    - master
+script:
+  - mkdir build
+  - cd build
+  - cmake ../byond-extools -DCMAKE_TOOLCHAIN_FILE=../byond-extools/cmake/i686-w64-mingw32.cmake
+  - cmake --build .

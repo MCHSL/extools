@@ -1,0 +1,13 @@
+pull_requests:
+  do_not_increment_build_number: true
+version: '{build}'
+branches:
+  only:
+  - master
+shallow_clone: true
+image: Visual Studio 2017
+build_script:
+  - mkdir build
+  - cd build
+  - cmake ../byond-extools
+  - cmake --build .
