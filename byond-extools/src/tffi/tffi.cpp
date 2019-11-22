@@ -3,14 +3,11 @@
 #include "../dmdism/disassembly.h"
 #include "../dmdism/opcodes.h"
 
-typedef const char* (byond_ffi_func)(int, const char**);
-
-std::map<float, SuspendedProc*> suspended_procs;
-std::map<std::string, std::map<std::string, byond_ffi_func*>> library_cache;
-
-std::uint32_t result_string_id = 0;
-std::uint32_t completed_string_id = 0;
-std::uint32_t internal_id_string_id = 0;
+std::map<float, SuspendedProc*> TFFI::suspended_procs;
+std::map<std::string, std::map<std::string, byond_ffi_func*>> TFFI::library_cache;
+std::uint32_t TFFI::result_string_id = 0;
+std::uint32_t TFFI::completed_string_id = 0;
+std::uint32_t TFFI::internal_id_string_id = 0;
 
 void tffi_suspend(ExecutionContext* ctx)
 {
@@ -19,7 +16,7 @@ void tffi_suspend(ExecutionContext* ctx)
 	proc->time_to_resume = 0x7FFFFF;
 	StartTiming(proc);
 	float promise_id = ctx->constants->args[1].valuef;
-	suspended_procs[promise_id] = proc;
+	TFFI::suspended_procs[promise_id] = proc;
 	ctx->current_opcode--;
 }
 
@@ -45,12 +42,12 @@ void ffi_thread(byond_ffi_func* proc, int promise_id, int n_args, std::vector<st
 		a.push_back(args[i].c_str());
 	}
 	const char* res = proc(n_args, a.data());
-	SetVariable( 0x21, promise_id , result_string_id, { 0x06, (int)Core::GetString(res) });
-	SetVariable( 0x21, promise_id , completed_string_id, { 0x2A, 1 });
-	float internal_id = GetVariable( 0x21, promise_id , internal_id_string_id).valuef;
+	SetVariable( 0x21, promise_id , TFFI::result_string_id, { 0x06, (int)Core::GetString(res) });
+	SetVariable( 0x21, promise_id , TFFI::completed_string_id, { 0x2A, 1 });
+	float internal_id = GetVariable( 0x21, promise_id , TFFI::internal_id_string_id).valuef;
 	while (true)
 	{
-		if (suspended_procs.find(internal_id) != suspended_procs.end())
+		if (TFFI::suspended_procs.find(internal_id) != TFFI::suspended_procs.end())
 		{
 			break;
 		}
@@ -61,8 +58,8 @@ void ffi_thread(byond_ffi_func* proc, int promise_id, int n_args, std::vector<st
 #endif
 		//TODO: some kind of conditional variable or WaitForObject?
 	}
-	suspended_procs[internal_id]->time_to_resume = 1;
-	suspended_procs.erase(internal_id);
+	TFFI::suspended_procs[internal_id]->time_to_resume = 1;
+	TFFI::suspended_procs.erase(internal_id);
 }
 
 inline void do_it(byond_ffi_func* proc, std::string promise_datum_ref, int n_args, const char** args)
@@ -82,11 +79,11 @@ extern "C" EXPORT const char* call_async(int n_args, const char** args)
 {
 	const char* dllname = args[1];
 	const char* funcname = args[2];
-	if (library_cache.find(dllname) != library_cache.end())
+	if (TFFI::library_cache.find(dllname) != TFFI::library_cache.end())
 	{
-		if (library_cache[dllname].find(funcname) != library_cache[dllname].end())
+		if (TFFI::library_cache[dllname].find(funcname) != TFFI::library_cache[dllname].end())
 		{
-			do_it(library_cache[dllname][funcname], args[0], n_args, args);
+			do_it(TFFI::library_cache[dllname][funcname], args[0], n_args, args);
 			return "";
 		}
 	}
@@ -109,7 +106,7 @@ extern "C" EXPORT const char* call_async(int n_args, const char** args)
 		return "ERROR: Could not locate function in library!";
 	}
 
-	library_cache[dllname][funcname] = proc;
+	TFFI::library_cache[dllname][funcname] = proc;
 	do_it(proc, args[0], n_args, args);
 	return "";
 }

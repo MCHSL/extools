@@ -24,8 +24,6 @@ bool DebugServer::connect()
 	return debugger.listen_for_client();
 }
 
-Breakpoint set_breakpoint(Core::Proc proc, std::uint16_t offset, bool one_shot = false);
-
 void stripUnicode(std::string& str)
 {
 	str.erase(remove_if(str.begin(), str.end(), [](unsigned char c) {return !(c >= 0 && c < 128); }), str.end());

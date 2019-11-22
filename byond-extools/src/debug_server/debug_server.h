@@ -59,3 +59,5 @@ public:
 
 bool debugger_initialize();
 bool debugger_connect();
+Breakpoint set_breakpoint(Core::Proc proc, std::uint16_t offset, bool one_shot = false);
+std::unique_ptr<Breakpoint> get_breakpoint(Core::Proc proc, int offset);

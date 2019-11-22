@@ -4,6 +4,7 @@
 #include "../proxy/proxy_object.h"
 #include "../optimizer/optimizer.h"
 #include "../extended_profiling/extended_profiling.h"
+#include "../tests/testing.h"
 
 CrashProcPtr CrashProc;
 SuspendPtr Suspend;
@@ -179,5 +180,17 @@ extern "C" EXPORT const char* enable_extended_profiling(int n_args, const char**
 extern "C" EXPORT const char* disable_extended_profiling(int n_args, const char** args)
 {
 	procs_to_profile.erase(Core::get_proc(args[0]).id); //TODO: improve consistency and reconsider how initialization works
+	return good;
+}
+
+extern "C" EXPORT const char* unit_tests(int n_args, const char** args)
+{
+	if (n_args != 1)
+		return bad;
+	std::string promise_datum_ref = args[0];
+	promise_datum_ref.erase(promise_datum_ref.begin(), promise_datum_ref.begin() + 3);
+	int promise_id = std::stoi(promise_datum_ref.substr(promise_datum_ref.find("0"), promise_datum_ref.length() - 2), nullptr, 16);
+	std::thread t(Tests::Thread, promise_id);
+	t.detach();
 	return good;
 }

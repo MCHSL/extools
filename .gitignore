@@ -368,3 +368,11 @@ MigrationBackup/
 build-linux
 
 .vscode
+
+#Ignore compiled files and other files generated during compilation.
+*.mdme
+*.dmb
+*.rsc
+*.lk
+*.int
+*.dll
