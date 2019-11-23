@@ -56,6 +56,13 @@ public:
 	void send(std::string message_type, nlohmann::json content);
 };
 
+extern std::uint32_t breakpoint_opcode;
+extern std::uint32_t nop_opcode;
+extern std::uint32_t singlestep_opcode;
+
+extern std::unordered_map<unsigned short, std::vector<Breakpoint>> breakpoints;
+extern std::unordered_map<unsigned short, std::vector<BreakpointRestorer>> singlesteps;
+extern std::unique_ptr<Breakpoint> breakpoint_to_restore;
 
 bool debugger_initialize();
 bool debugger_connect();

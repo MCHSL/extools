@@ -63,7 +63,6 @@ LONG WINAPI DumpThingy(_EXCEPTION_POINTERS* ExceptionInfo)
 void init_testing()
 {
 	Core::enable_profiling();
-	debugger_initialize();
 	bool find_unknowns = false;
 	if (find_unknowns)
 	{
