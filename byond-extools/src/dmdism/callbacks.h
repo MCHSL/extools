@@ -1,6 +1,7 @@
 #pragma once
 
 #include <map>
+#include <typeindex>
 
 #include "opcodes.h"
 
@@ -15,6 +16,10 @@
 #include "instr_debug.h"
 
 #define ADD_CALLBACK(op) { op, []() -> Instruction* { return new Instr_##op(op); } },
+
+const std::map<Bytecode, std::type_index> type_callbacks = {
+
+};
 
 const std::map<Bytecode, std::function<Instruction*()>> callbacks = {
 	ADD_CALLBACK(END)

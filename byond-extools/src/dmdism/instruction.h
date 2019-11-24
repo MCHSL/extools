@@ -33,7 +33,7 @@ public:
 
 	Opcode& opcode() { return opcode_; }
 
-	std::string comment() const { return comment_; }
+	std::string comment() { return comment_; }
 	void set_comment(std::string comment) { comment_ = comment; }
 	void add_comment(std::string comment) { comment_ += comment; }
 

@@ -24,11 +24,12 @@ Disassembler::Disassembler(std::uint32_t* bc, unsigned int bc_len, std::vector<C
 Disassembly Disassembler::disassemble()
 {
 	std::vector<Instruction> instrs;
+	instrs.reserve(512);
 	while (context_->more()) {
 		instrs.push_back(disassemble_next());
 	}
 
-	return Disassembly(instrs);
+	return Disassembly(std::move(instrs));
 }
 
 Instruction Disassembler::disassemble_next()
@@ -37,9 +38,10 @@ Instruction Disassembler::disassemble_next()
 
 	auto root = context_->eat();
 
-	if (callbacks.find(static_cast<Bytecode>(root)) != callbacks.end())
+	auto cb = callbacks.find(static_cast<Bytecode>(root));
+	if (cb != callbacks.end())
 	{
-		instr = callbacks.at(static_cast<Bytecode>(root))();
+		instr = cb->second();
 	}
 	else
 	{
