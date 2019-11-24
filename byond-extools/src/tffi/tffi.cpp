@@ -3,6 +3,9 @@
 #include "../dmdism/disassembly.h"
 #include "../dmdism/opcodes.h"
 
+#include <condition_variable>
+#include <mutex>
+
 typedef const char* (byond_ffi_func)(int, const char**);
 
 std::map<float, SuspendedProc*> suspended_procs;
@@ -12,6 +15,9 @@ std::uint32_t result_string_id = 0;
 std::uint32_t completed_string_id = 0;
 std::uint32_t internal_id_string_id = 0;
 
+std::condition_variable unsuspend_ready_cv;
+std::mutex unsuspend_ready_mutex;
+
 void tffi_suspend(ExecutionContext* ctx)
 {
 	ctx->current_opcode++;
@@ -19,7 +25,9 @@ void tffi_suspend(ExecutionContext* ctx)
 	proc->time_to_resume = 0x7FFFFF;
 	StartTiming(proc);
 	float promise_id = ctx->constants->args[1].valuef;
+	std::lock_guard<std::mutex> lk(unsuspend_ready_mutex);
 	suspended_procs[promise_id] = proc;
+	unsuspend_ready_cv.notify_all();
 	ctx->current_opcode--;
 }
 
@@ -48,19 +56,8 @@ void ffi_thread(byond_ffi_func* proc, int promise_id, int n_args, std::vector<st
 	SetVariable( 0x21, promise_id , result_string_id, { 0x06, (int)Core::GetString(res) });
 	SetVariable( 0x21, promise_id , completed_string_id, { 0x2A, 1 });
 	float internal_id = GetVariable( 0x21, promise_id , internal_id_string_id).valuef;
-	while (true)
-	{
-		if (suspended_procs.find(internal_id) != suspended_procs.end())
-		{
-			break;
-		}
-#ifdef _WIN32
-		Sleep(1);
-#else
-		usleep(1000);
-#endif
-		//TODO: some kind of conditional variable or WaitForObject?
-	}
+	std::unique_lock<std::mutex> lk(unsuspend_ready_mutex);
+	unsuspend_ready_cv.wait(lk, [internal_id] { return suspended_procs.find(internal_id) != suspended_procs.end();  });
 	suspended_procs[internal_id]->time_to_resume = 1;
 	suspended_procs.erase(internal_id);
 }

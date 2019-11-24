@@ -64,7 +64,7 @@ void init_testing()
 {
 	Core::enable_profiling();
 	debugger_initialize();
-	bool find_unknowns = true;
+	bool find_unknowns = false;
 	if (find_unknowns)
 	{
 		std::ofstream log("unknown_opcodes.txt");
