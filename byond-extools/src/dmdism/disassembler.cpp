@@ -34,11 +34,9 @@ Disassembly Disassembler::disassemble()
 
 Instruction Disassembler::disassemble_next()
 {
-	Instruction* instr = nullptr;
-
 	auto root = context_->eat();
-
-	auto cb = callbacks.find(static_cast<Bytecode>(root));
+	Instruction* instr = get_instr(root);
+	/*auto cb = callbacks.find(static_cast<Bytecode>(root));
 	if (cb != callbacks.end())
 	{
 		instr = cb->second();
@@ -46,7 +44,7 @@ Instruction Disassembler::disassemble_next()
 	else
 	{
 		instr = new Instr_UNK;
-	}
+	}*/
 
 	context_->set_instr(instr);
 	instr->add_byte(root);
