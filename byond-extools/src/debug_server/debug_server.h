@@ -30,13 +30,14 @@ struct Breakpoint
 
 struct BreakpointRestorer
 {
-	std::uint32_t replaced_opcode;
+	std::uint32_t breakpoint_replaced_opcode;
+	std::uint32_t my_replaced_opcode;
 	std::uint16_t offset_to_replace;
 	std::uint16_t my_offset;
 
 	bool operator==(const BreakpointRestorer& rhs)
 	{
-		return replaced_opcode == rhs.replaced_opcode &&
+		return breakpoint_replaced_opcode == rhs.breakpoint_replaced_opcode &&
 			offset_to_replace == rhs.offset_to_replace &&
 			my_offset == rhs.my_offset;
 	}

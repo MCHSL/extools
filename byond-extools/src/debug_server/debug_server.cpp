@@ -176,12 +176,12 @@ void update_readouts(ExecutionContext* ctx)
 bool place_restorer_on_next_instruction(ExecutionContext* ctx, std::uint16_t offset)
 {
 	Core::Proc p = Core::get_proc(ctx->constants->proc_id);
-	Disassembly current_dis = Disassembler(reinterpret_cast<std::uint32_t*>(ctx->bytecode), p.get_bytecode_length(), procs_by_id).disassemble();
+	Disassembly current_dis = Disassembler(ctx->bytecode, p.get_bytecode_length(), procs_by_id).disassemble();
 	Instruction* next = current_dis.next_from_offset(offset);
 	if (next)
 	{
 		BreakpointRestorer sbp = {
-			next->bytes().at(0), offset, next->offset()
+			current_dis.at(offset).bytes().at(0), next->bytes().at(0), offset, next->offset()
 		};
 		ctx->bytecode[next->offset()] = singlestep_opcode;
 		singlesteps[p.id].push_back(sbp);
@@ -274,7 +274,9 @@ void on_restorer(ExecutionContext* ctx)
 		Core::Alert("Restore opcode with no associated restorer");
 		return;
 	}
-	ctx->bytecode[sbp->offset_to_replace] = sbp->replaced_opcode;
+	//Core::Alert("SBP replacement opcode: " + std::to_string(sbp->replaced_opcode) + ", at offset: " + std::to_string(sbp->offset_to_replace));
+	ctx->bytecode[sbp->offset_to_replace] = sbp->breakpoint_replaced_opcode;
+	ctx->bytecode[sbp->my_offset] = sbp->my_replaced_opcode;
 	auto& ss = singlesteps[ctx->constants->proc_id];
 	ss.erase(std::remove(ss.begin(), ss.end(), *sbp), ss.end());
 	ctx->current_opcode--;
