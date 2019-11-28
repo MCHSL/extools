@@ -47,7 +47,7 @@ bool Core::initialize()
 
 void Core::Alert(std::string what) {
 #ifdef _WIN32
-	MessageBoxA(NULL, what.c_str(), "Ouch!", NULL);
+	MessageBoxA(NULL, what.c_str(), "Ouch!", MB_OK);
 #else
 	printf("%s\n", what);
 #endif
