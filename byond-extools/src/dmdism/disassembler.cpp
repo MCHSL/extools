@@ -54,6 +54,26 @@ Instruction Disassembler::disassemble_next()
 	return *instr;
 }
 
+bool Disassembler::disassemble_var_alt(Instruction& instr)
+{
+	std::uint32_t accessor = context_->eat();
+	switch (accessor)
+	{
+	case LOCAL:
+	case GLOBAL:
+	case ARG:
+	{
+		std::uint32_t id = context_->eat();
+		std::string modifier_name = modifier_names.at(static_cast<AccessModifier>(accessor));
+
+		instr.opcode().add_info(" " + modifier_name + std::to_string(id));
+		instr.add_comment(modifier_name + std::to_string(id));
+		break;
+	}
+	}
+	return false;
+}
+
 bool Disassembler::disassemble_var(Instruction& instr)
 {
 	switch (context_->peek())
@@ -62,12 +82,18 @@ bool Disassembler::disassemble_var(Instruction& instr)
 	{
 		std::uint32_t val = context_->eat();
 		instr.opcode().add_info(" SUBVAR");
-		disassemble_var(instr);
+		if (disassemble_var(instr))
+		{
+			return true;
+		}
 
 		val = context_->eat();
 		if (val == SUBVAR)
 		{
-			disassemble_var(instr);
+			if (disassemble_var(instr))
+			{
+				return true;
+			}
 		}
 		else if (val == PROC_)
 		{
@@ -133,11 +159,9 @@ bool Disassembler::disassemble_var(Instruction& instr)
 	case PROC_:
 	{
 		context_->eat();
-		//std::uint32_t val = context_->eat();
-		//Core::Alert("apin");
-		//Core::Proc proc = Core::get_proc(val);
-		//instr.add_comment(proc.name);
-		break;
+		instr.add_comment("CACHE." + Core::get_proc(context_->eat()).simple_name);
+		add_call_args(instr, context_->eat());
+		return true;
 	}
 	case SRC_PROC: //CAN'T WAKE UP
 	case SRC_PROC_SPEC:

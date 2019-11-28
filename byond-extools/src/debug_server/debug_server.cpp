@@ -275,7 +275,7 @@ void on_restorer(ExecutionContext* ctx)
 		return;
 	}
 	ctx->bytecode[sbp->offset_to_replace] = sbp->replaced_opcode;
-	auto ss = singlesteps[ctx->constants->proc_id];
+	auto& ss = singlesteps[ctx->constants->proc_id];
 	ss.erase(std::remove(ss.begin(), ss.end(), *sbp), ss.end());
 	ctx->current_opcode--;
 }
@@ -297,7 +297,7 @@ bool remove_breakpoint(Breakpoint bp)
 	std::uint32_t* bytecode = bp.proc.get_bytecode();
 	std::swap(bytecode[bp.offset], bp.replaced_opcode);
 	bp.proc.set_bytecode(bytecode);
-	auto bps = breakpoints[bp.proc.id];
+	auto& bps = breakpoints[bp.proc.id];
 	bps.erase(std::remove(bps.begin(), bps.end(), bp), bps.end());
 	return true;
 }

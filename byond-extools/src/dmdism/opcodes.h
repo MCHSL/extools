@@ -20,11 +20,11 @@ enum Bytecode
 	JNZ = 0x10,
 	JZ = 0x11,
 	RET = 0x12,
-	ISLOC = 0x13, //TODO
-	ISMOB = 0x14, //TODO
-	ISOBJ = 0x15, //TODO
-	ISAREA = 0x16, //TODO
-	ISTURF = 0x17, //TODO
+	ISLOC = 0x13, 
+	ISMOB = 0x14, 
+	ISOBJ = 0x15, 
+	ISAREA = 0x16, 
+	ISTURF = 0x17, 
 	EMPTYLIST = 0x19, //TODO
 	NEWLIST = 0x1A,
 	VIEW = 0x1B, //TODO
@@ -116,14 +116,19 @@ enum Bytecode
 	DBG_FILE = 0x84,
 	DBG_LINENO = 0x85,
 
+	GET_STEP = 0x90,
+
 	LOCATE_TYPE = 0x97,
 
 	ISNULL = 0x9E,
 	ISNUM = 0x9F,
 
+	ISTEXT = 0xA0,
+
 	MIN = 0xA5,
 	MAX = 0xA6,
 	TYPESOF = 0xA7,
+	CKEY = 0xA8,
 
 	ISINLIST = 0xA9,
 
@@ -381,4 +386,12 @@ const std::unordered_map<Bytecode, std::string> mnemonics = {
 	{LPUSH_CACHE, "LPUSH_CACHE"},
 	{ SET_CACHE, "SET_CACHE" },
 	{SWITCH, "SWITCH"},
+	{GET_STEP, "GET_STEP"},
+	{ ISLOC, "ISLOC" },
+	{ ISMOB, "ISMOB" },
+	{ ISAREA, "ISAREA" },
+	{ ISTURF, "ISTURF" },
+	{ISOBJ, "ISOBJ"},
+	{ISTEXT, "ISTEXT"},
+	{CKEY, "CKEY"}
 };
