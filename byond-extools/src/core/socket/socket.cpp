@@ -120,7 +120,7 @@ bool SocketServer::send(nlohmann::json j)
 	data.push_back(0);
 	while (!data.empty())
 	{
-		int sent_bytes = ::send(client_socket, data.c_str(), data.size(), NULL);
+		int sent_bytes = ::send(client_socket, data.c_str(), data.size(), 0);
 		if (sent_bytes == SOCKET_ERROR)
 		{
 			return false;
@@ -142,7 +142,7 @@ nlohmann::json SocketServer::recv_message()
 			return json;
 		}
 
-		int received_bytes = ::recv(client_socket, data.data(), data.size(), NULL);
+		int received_bytes = ::recv(client_socket, data.data(), data.size(), 0);
 		if (received_bytes == 0) {
 			return nlohmann::json();
 		}

@@ -67,7 +67,7 @@ void DebugServer::debug_loop()
 			std::vector<nlohmann::json> instructions;
 			for (Instruction& instr : disassembly.instructions)
 			{
-				std::string& comment = instr.comment();
+				std::string comment = instr.comment();
 				stripUnicode(comment);
 				nlohmann::json d_instr = {
 					{ "offset", instr.offset() },
@@ -193,7 +193,7 @@ bool place_restorer_on_next_instruction(ExecutionContext* ctx, std::uint16_t off
 bool place_breakpoint_on_next_instruction(ExecutionContext* ctx, unsigned int offset) //TODO: make this and the above better
 {
 	Core::Proc p = Core::get_proc(ctx->constants->proc_id);
-	Disassembly current_dis = Disassembler(reinterpret_cast<std::uint32_t*>(ctx->bytecode), p.get_bytecode_length(), procs_by_id).disassemble();
+	Disassembly current_dis = Disassembler(ctx->bytecode, p.get_bytecode_length(), procs_by_id).disassemble();
 	Instruction* next = current_dis.next_from_offset(offset);
 	if (next)
 	{
