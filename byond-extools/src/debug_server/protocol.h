@@ -93,3 +93,4 @@ struct FieldRequest
 #define MESSAGE_VALUES_STACK "stack" //^
 #define MESSAGE_CALL_STACK "call stack" //Content is a vector of StackFrames
 #define MESSAGE_GET_FIELD "get field" //Request content is FieldRequest, response content is ValueText
+#define MESSAGE_GET_GLOBAL "get global" //Request content is a string with the global name, response is a ValueText

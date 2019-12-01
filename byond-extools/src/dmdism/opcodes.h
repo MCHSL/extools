@@ -237,7 +237,8 @@ enum DataType
 	FILE_ = 0x27,
 	PATH_LIST = 0x28,
 	NUMBER = 0x2A,
-	CLIENTTYPE = 0x3B
+	CLIENTTYPE = 0x3B,
+	VARS_LIST = 0x52, //maybe?
 };
 
 const std::unordered_map<DataType, std::string> datatype_names = {

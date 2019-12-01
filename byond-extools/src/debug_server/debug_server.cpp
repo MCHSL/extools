@@ -109,6 +109,11 @@ void DebugServer::debug_loop()
 			data["content"] = value_to_text(GetVariable(content.at("datum_type"), content.at("datum_id"), Core::GetString(content.at("field_name"))));
 			debugger.send(data);
 		}
+		else if (type == MESSAGE_GET_GLOBAL)
+		{
+			data["content"] = value_to_text(GetVariable(DataType::WORLD_D, 0x01, Core::GetString(data.at("content"))));
+			debugger.send(data);
+		}
 	}
 }
 
