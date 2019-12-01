@@ -6,7 +6,7 @@
 #include <link.h>
 #include <unistd.h>
 #else
-#include <Windows.h>
+#include <windows.h>
 #endif
 
 namespace TFFI
