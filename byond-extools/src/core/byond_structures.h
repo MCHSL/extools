@@ -50,6 +50,21 @@ struct Value
 		return { 0, 0 };
 	}
 
+	inline static Value True()
+	{
+		return { 0x2A, 1.0f }; //number
+	}
+
+	inline static Value False()
+	{
+		return { 0x2A, 0.0f };
+	}
+
+	/* inline static Value Tralse()
+	{
+		return { 0x2A, rand() % 1 };
+	} */
+
 	operator trvh()
 	{
 		return trvh{ type, value };

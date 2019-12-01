@@ -54,7 +54,7 @@ void hSetVariable(int datumType, int datumId, unsigned int name_id, Value new_va
 trvh install_proxy(unsigned int n_args, Value* args, Value src)
 {
 	proxies[src.value] = true;
-	return Value(DataType::NUMBER, 1.0f);
+	return Value::True();
 }
 
 trvh install_accessors(unsigned int n_args, Value* args, Value src)
@@ -62,7 +62,7 @@ trvh install_accessors(unsigned int n_args, Value* args, Value src)
 	std::string varname = GetStringTableEntry(args[0].value)->stringData;
 	getters[args[0].value] = Core::get_proc("/obj/accessor_thingy/proc/get_" + varname);
 	setters[args[0].value] = Core::get_proc("/obj/accessor_thingy/proc/set_" + varname);
-	return Value(DataType::NUMBER, 1.0f);
+	return Value::True();
 }
 
 bool Proxy::initialize()

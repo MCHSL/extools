@@ -60,6 +60,17 @@ struct ProcListEntry
 	int override_id;
 };
 
+struct StackFrame
+{
+	std::string name;
+	int override_id;
+	ValueText usr;
+	ValueText src;
+	std::vector<ValueText> locals;
+	std::vector<ValueText> args;
+	int instruction_pointer;
+};
+
 */
 
 #define MESSAGE_RAW "raw message" //Content is a string, used for debugging purposes (how meta)
@@ -73,4 +84,4 @@ struct ProcListEntry
 #define MESSAGE_VALUES_LOCALS "locals" //Content is a vector of ValueTexts
 #define MESSAGE_VALUES_ARGS "args" //^
 #define MESSAGE_VALUES_STACK "stack" //^
-#define MESSAGE_CALL_STACK "call stack" //Content is a vector of proc paths
+#define MESSAGE_CALL_STACK "call stack" //Content is a vector of StackFrames

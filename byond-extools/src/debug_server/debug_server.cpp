@@ -155,15 +155,32 @@ void send_values(std::string message_type, Value* values, unsigned int count)
 	debug_server.send(message_type, c);
 }
 
-std::vector<std::string> get_call_stack(ExecutionContext* ctx)
+void send_call_stack(ExecutionContext* ctx)
 {
-	std::vector<std::string> res;
+	std::vector<nlohmann::json> res;
 	do
 	{
-		res.push_back(Core::get_proc(ctx->constants->proc_id));
-		ctx = ctx->parent_context;
-	} while(ctx);
-	return res;
+		nlohmann::json j;
+		Core::Proc p = Core::get_proc(ctx->constants->proc_id);
+		j["name"] = p.name;
+		j["override_id"] = p.override_id;
+		j["usr"] = value_to_text(ctx->constants->usr);
+		j["src"] = value_to_text(ctx->constants->src);
+
+		std::vector<nlohmann::json> locals;
+		for (int i = 0; i < ctx->local_var_count; i++)
+			locals.push_back(value_to_text(ctx->local_variables[i]));
+		j["locals"] = locals;
+
+		std::vector<nlohmann::json> args;
+		for (int i = 0; i < ctx->constants->arg_count; i++)
+			args.push_back(value_to_text(ctx->constants->args[i]));
+		j["args"] = args;
+
+		j["instruction_pointer"] = ctx->current_opcode;
+		res.push_back(j);
+	} while(ctx = ctx->parent_context);
+	debug_server.send(MESSAGE_CALL_STACK, res);
 }
 
 void update_readouts(ExecutionContext* ctx)
@@ -171,7 +188,7 @@ void update_readouts(ExecutionContext* ctx)
 	send_values(MESSAGE_VALUES_LOCALS, ctx->local_variables, ctx->local_var_count);
 	send_values(MESSAGE_VALUES_ARGS, ctx->constants->args, ctx->constants->arg_count);
 	send_values(MESSAGE_VALUES_STACK, ctx->stack, ctx->stack_size);
-	debug_server.send(MESSAGE_CALL_STACK, get_call_stack(ctx));
+	send_call_stack(ctx);
 }
 
 bool place_restorer_on_next_instruction(ExecutionContext* ctx, std::uint16_t offset)
