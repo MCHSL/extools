@@ -21,6 +21,11 @@ Disassembler::Disassembler(std::uint32_t* bc, unsigned int bc_len, std::vector<C
 	context_ = new Context(v, ps);
 }
 
+Disassembler::~Disassembler()
+{
+	delete context_;
+}
+
 Disassembly Disassembler::disassemble()
 {
 	std::vector<Instruction> instrs;
