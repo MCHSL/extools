@@ -71,6 +71,13 @@ struct StackFrame
 	int instruction_pointer;
 };
 
+struct FieldRequest
+{
+	int datum_type;
+	int datum_id;
+	std::string field_name;
+};
+
 */
 
 #define MESSAGE_RAW "raw message" //Content is a string, used for debugging purposes (how meta)
@@ -85,3 +92,4 @@ struct StackFrame
 #define MESSAGE_VALUES_ARGS "args" //^
 #define MESSAGE_VALUES_STACK "stack" //^
 #define MESSAGE_CALL_STACK "call stack" //Content is a vector of StackFrames
+#define MESSAGE_GET_FIELD "get field" //Request content is FieldRequest, response content is ValueText

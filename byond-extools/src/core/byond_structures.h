@@ -46,6 +46,7 @@ struct Value
 		else
 			valuef = trvh.valuef;
 	}
+
 	inline static Value Null() {
 		return { 0, 0 };
 	}

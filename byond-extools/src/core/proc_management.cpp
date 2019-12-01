@@ -2,7 +2,6 @@
 #include "../dmdism/disassembly.h"
 #include "../dmdism/disassembler.h"
 #include "../extended_profiling/extended_profiling.h"
-#include <fstream>
 
 std::vector<Core::Proc> procs_by_id;
 std::unordered_map<std::string, std::vector<Core::Proc>> procs_by_name;
@@ -135,7 +134,6 @@ Disassembly Core::disassemble_raw(std::vector<int> bytecode)
 bool Core::populate_proc_list()
 {
 	unsigned int i = 0;
-	//std::ofstream o("WHY.txt");
 	while (true)
 	{
 		ProcArrayEntry* entry = GetProcArrayEntry(i);
@@ -163,7 +161,6 @@ bool Core::populate_proc_list()
 			procs_by_name[p.name] = std::vector<Core::Proc>();
 		}
 		p.override_id = procs_by_name.at(p.name).size();
-		//o << p.id << " " << p.name << " " << p.override_id << "\n";
 		procs_by_name[p.name].push_back(p);
 		procs_by_id.push_back(p);
 		i++;

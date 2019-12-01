@@ -53,12 +53,12 @@ void Core::Alert(std::string what) {
 #endif
 }
 
-unsigned int Core::GetString(const char* str) {
+unsigned int Core::GetString(std::string str) {
 	switch (ByondVersion) {
 		case 512:
-			return GetStringTableIndex(str, 0, 1);
+			return GetStringTableIndex(str.c_str(), 0, 1);
 		case 513:
-			return GetStringTableIndexUTF8(str, 0, 0, 1);
+			return GetStringTableIndexUTF8(str.c_str(), 0, 0, 1);
 		default: break;
 	}
 	return 0;

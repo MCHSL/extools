@@ -31,6 +31,8 @@ void stripUnicode(std::string& str)
 	str.erase(remove_if(str.begin(), str.end(), [](unsigned char c) {return !(c >= 0 && c < 128); }), str.end());
 }
 
+nlohmann::json value_to_text(Value val);
+
 void DebugServer::debug_loop()
 {
 	while (true)
@@ -100,6 +102,12 @@ void DebugServer::debug_loop()
 		{
 			next_action = DEBUG_RESUME;
 			notifier.notify_all();
+		}
+		else if (type == MESSAGE_GET_FIELD)
+		{
+			auto content = data.at("content");
+			data["content"] = value_to_text(GetVariable(content.at("datum_type"), content.at("datum_id"), Core::GetString(content.at("field_name"))));
+			debugger.send(data);
 		}
 	}
 }
