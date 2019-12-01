@@ -4,7 +4,7 @@
 #include <vector>
 #include <unordered_map>
 
-typedef trvh(*ProcHook)(Value* args, unsigned int args_len);
+typedef trvh(*ProcHook)(unsigned int args_len, Value* args, Value src);
 
 class Disassembly;
 
@@ -13,11 +13,12 @@ namespace Core
 	struct Proc
 	{
 		Proc() {};
-		Proc(std::string name);
+		Proc(std::string name, unsigned int override_id=0);
 		Proc(std::uint32_t id);
 		std::string name;
 		std::string simple_name;
 		std::uint32_t id = 0;
+		unsigned int override_id = 0;
 
 		ProcArrayEntry* proc_table_entry = nullptr;
 		ProcSetupEntry* setup_entry_bytecode = nullptr;
@@ -41,7 +42,7 @@ namespace Core
 		ProfileInfo* profile();
 		void extended_profile();
 		void hook(ProcHook hook_func);
-		Value call(std::vector<Value>& arguments, Value usr = Value::Null(), Value src = Value::Null());
+		Value call(std::vector<Value> arguments, Value usr = Value::Null(), Value src = Value::Null());
 
 		bool operator<(const Proc& rhs) const
 		{
@@ -64,7 +65,7 @@ namespace Core
 		}
 	};
 
-	Proc get_proc(std::string name);
+	Proc get_proc(std::string name, unsigned int override_id=0);
 	Proc get_proc(unsigned int id);
 	const std::vector<Proc>& get_all_procs();
 

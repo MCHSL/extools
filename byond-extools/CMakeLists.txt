@@ -15,6 +15,7 @@ file(GLOB_RECURSE SRC_FILES
     "${SRC_DIR}/*.h"
     "${SRC_DIR}/*.hpp"
 )
+set(SRC_FILES ${SRC_FILES} "${SRC_DIR}/core/subhook/subhook.c")
 
 add_library(byond-extools SHARED ${SRC_FILES})
 source_group(TREE ${SRC_DIR} FILES ${SRC_FILES})
@@ -25,7 +26,7 @@ if (WIN32)
     else()
         target_link_libraries(byond-extools PRIVATE "ws2_32" "psapi" "-static-libgcc" "-static-libstdc++" "-static")
     endif()
-    target_compile_definitions(byond-extools PRIVATE WIN32_LEAN_AND_MEAN)
+    target_compile_definitions(byond-extools PRIVATE WIN32_LEAN_AND_MEAN SUBHOOK_IMPLEMENTATION)
 else()
     set_target_properties(byond-extools PROPERTIES COMPILE_OPTIONS "-m32" LINK_FLAGS "-m32")
 endif()

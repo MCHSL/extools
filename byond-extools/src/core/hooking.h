@@ -7,13 +7,12 @@
 #include <headers/CapstoneDisassembler.hpp>
 #include <headers/Detour/x86Detour.hpp>
 #else*/
-#include "urmem.hpp"
+#include "subhook/subhook.h"
 //#endif
 
 namespace Core
 {
-/*#ifdef _WIN32
 	void* install_hook(void* original, void* hook);
-#endif*/
+	void remove_hook(void* func);
 	bool hook_custom_opcodes();
 }

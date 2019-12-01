@@ -1,6 +1,7 @@
 #include "core.h"
 #include "../dmdism/disassembly.h"
 #include "../debug_server/debug_server.h"
+#include "../proxy/proxy_object.h"
 
 #include <fstream>
 
@@ -63,8 +64,9 @@ LONG WINAPI DumpThingy(_EXCEPTION_POINTERS* ExceptionInfo)
 void init_testing()
 {
 	Core::enable_profiling();
+	//Proxy::initialize();
 	debugger_initialize();
-	bool find_unknowns = true;
+	bool find_unknowns = false;
 	if (find_unknowns)
 	{
 		std::ofstream log("unknown_opcodes.txt");
@@ -87,7 +89,7 @@ void init_testing()
 		log.close();
 	}
 
-	debugger_connect();
+	//debugger_connect();
 	//Core::get_proc("/datum/explosion/New").extended_profile();
 	//Core::get_proc("/client/verb/test_reentry").extended_profile();
 	//Core::get_proc("/client/verb/test_extended_profiling").extended_profile();

@@ -2,6 +2,7 @@
 #include "optimizer.h"
 #include "../dmdism/disassembly.h"
 #include <fstream>
+#include <algorithm>
 
 std::map<Core::Proc, bool> has_been_optimized;
 std::vector<Core::Proc> inlineable_procs;

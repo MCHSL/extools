@@ -35,7 +35,7 @@ struct Value
 		int value;
 		float valuef;
 	};
-
+	Value() { type = 0; value = 0; }
 	Value(char type, int value) : type(type), value(value) {};
 	Value(char type, float valuef) : type(type), valuef(valuef) {};
 	Value(trvh trvh)
@@ -48,6 +48,11 @@ struct Value
 	}
 	inline static Value Null() {
 		return { 0, 0 };
+	}
+
+	operator trvh()
+	{
+		return trvh{ type, value };
 	}
 };
 

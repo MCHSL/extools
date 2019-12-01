@@ -3,12 +3,17 @@
 #include <unordered_map>
 #include <fstream>
 #include <algorithm>
+#ifdef WIN32
+#include <Windows.h>
+#else
+#error dump_extended_profile() needs to be able to create a directory on linux
+#endif
 
 #define STUPID_READOUTS_LIMIT 40000000
 
-urmem::hook CreateContextDetour;
-urmem::hook ProcCleanupDetour;
-urmem::hook SuspendDetour;
+CreateContextPtr oCreateContext;
+ProcCleanupPtr oProcCleanup;
+SuspendPtr oSuspend;
 
 std::unordered_map<unsigned int, bool> procs_to_profile;
 
@@ -99,7 +104,7 @@ void recursive_start(ExtendedProfile* profile)
 void hCreateContext(ProcConstants* constants, ExecutionContext* new_context)
 {
 	//Core::Alert("HELLO?");
-	CreateContextDetour.call(constants, new_context);
+	oCreateContext(constants, new_context);
 	new_context = Core::get_context();
 	if (profiles.find(constants->proc_id) != profiles.end() || (Core::extended_profiling_insanely_hacky_check_if_its_a_new_call_or_resume == constants->proc_id && sleeping_profiles.find(constants->proc_id) != sleeping_profiles.end()))
 	{
@@ -206,7 +211,7 @@ void hProcCleanup(ExecutionContext* ctx)
 			delete profile;
 			profiles.erase(proc_id);
 			//procs_to_profile.erase(proc_id);
-			ProcCleanupDetour.call(ctx);
+			oProcCleanup(ctx);
 			procs_to_profile[proc_id] = true;
 			return;
 		}
@@ -228,7 +233,7 @@ void hProcCleanup(ExecutionContext* ctx)
 			ep->call_stack.pop_back();
 		}
 	}
-	ProcCleanupDetour.call(ctx);
+	oProcCleanup(ctx);
 }
 
 SuspendedProc* hSuspend(ExecutionContext* ctx, int unknown)
@@ -245,21 +250,15 @@ SuspendedProc* hSuspend(ExecutionContext* ctx, int unknown)
 		dump_extended_profile(profile);
 		profiles.erase(proc_id);
 	}
-	return SuspendDetour.call<urmem::calling_convention::cdeclcall, SuspendedProc*>(ctx, unknown);
+	return oSuspend(ctx, unknown);
 }
 
 bool actual_extended_profiling_initialize()
 {
-/*#ifdef _WIN32
 	oCreateContext = (CreateContextPtr)Core::install_hook(CreateContext, hCreateContext);
 	oProcCleanup = (ProcCleanupPtr)Core::install_hook(ProcCleanup, hProcCleanup);
 	oSuspend = (SuspendPtr)Core::install_hook(Suspend, hSuspend);
-#else*/
-	CreateContextDetour.install(urmem::get_func_addr(CreateContext), urmem::get_func_addr(hCreateContext));
-	ProcCleanupDetour.install(urmem::get_func_addr(ProcCleanup), urmem::get_func_addr(hProcCleanup));
-	SuspendDetour.install(urmem::get_func_addr(Suspend), urmem::get_func_addr(hSuspend));
-//#endif
-	return CreateContextDetour.is_enabled() && ProcCleanupDetour.is_enabled() && SuspendDetour.is_enabled();
+	return oCreateContext && oProcCleanup && oSuspend;
 }
 
 void ExtendedProfile::start_timer()
