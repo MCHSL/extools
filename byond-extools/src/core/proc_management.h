@@ -15,6 +15,7 @@ namespace Core
 		Proc() {};
 		Proc(std::string name, unsigned int override_id=0);
 		Proc(std::uint32_t id);
+		std::string raw_path;
 		std::string name;
 		std::string simple_name;
 		std::uint32_t id = 0;

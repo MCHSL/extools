@@ -13,6 +13,7 @@ struct Message
 struct DisassembledProc
 {
 	std::string name;
+	int override_id;
 	std::vector<DisassembledInstruction> instructions;
 };
 
@@ -29,18 +30,21 @@ struct DisassembledInstruction
 struct BreakpointHit
 {
 	std::string proc;
+	int override_id;
 	int offset;
 };
 
 struct BreakpointSet
 {
 	std::string proc;
+	int override_id;
 	int offset;
 };
 
 struct BreakpointUnset
 {
 	std::string proc;
+	int override_id;
 	int offset;
 };
 
@@ -50,10 +54,16 @@ struct ValueText
 	std::string value;
 };
 
+struct ProcListEntry
+{
+	std::string name;
+	int override_id;
+};
+
 */
 
 #define MESSAGE_RAW "raw message" //Content is a string, used for debugging purposes (how meta)
-#define MESSAGE_PROC_LIST "proc list" // Content is a vector of proc paths.
+#define MESSAGE_PROC_LIST "proc list" // Content is a vector of ProcListEntry.
 #define MESSAGE_PROC_DISASSEMBLY "proc disassembly" //Request content is the proc name, response content is DisassembledProc
 #define MESSAGE_BREAKPOINT_HIT "breakpoint hit" //Content is BreakpointHit
 #define MESSAGE_BREAKPOINT_SET "breakpoint set" //Content is BreakpointSet

@@ -69,7 +69,10 @@ bool Proxy::initialize()
 {
 	oGetVariable = (GetVariablePtr)Core::install_hook(GetVariable, hGetVariable);
 	oSetVariable = (SetVariablePtr)Core::install_hook(SetVariable, hSetVariable);
-	Core::get_proc("/datum/proxy_object/proc/__install").hook(install_proxy);
-	Core::get_proc("/obj/accessor_thingy/proc/__install_accessors").hook(install_accessors);
+	if (false)
+	{
+		Core::get_proc("/datum/proxy_object/proc/__install").hook(install_proxy);
+		Core::get_proc("/obj/accessor_thingy/proc/__install_accessors").hook(install_accessors);
+	}
 	return true;
 }

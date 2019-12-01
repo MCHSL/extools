@@ -89,7 +89,7 @@ void init_testing()
 		log.close();
 	}
 
-	//debugger_connect();
+	debugger_connect();
 	//Core::get_proc("/datum/explosion/New").extended_profile();
 	//Core::get_proc("/client/verb/test_reentry").extended_profile();
 	//Core::get_proc("/client/verb/test_extended_profiling").extended_profile();

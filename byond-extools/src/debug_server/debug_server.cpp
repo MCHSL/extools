@@ -49,10 +49,10 @@ void DebugServer::debug_loop()
 		}
 		else if (type == MESSAGE_PROC_LIST)
 		{
-			std::vector<std::string> procs;
+			std::vector<nlohmann::json> procs;
 			for (Core::Proc& proc : procs_by_id)
 			{
-				procs.push_back(proc.name);
+				procs.push_back({ {"name", proc.name}, {"override_id", proc.override_id} });
 			}
 			debugger.send(MESSAGE_PROC_LIST, procs);
 		}
@@ -86,7 +86,8 @@ void DebugServer::debug_loop()
 		{
 			auto content = data.at("content");
 			const std::string& proc = content.at("proc");
-			set_breakpoint(proc, content.at("offset"), false);
+			const int& override_id = content.at("override_id");
+			set_breakpoint(Core::get_proc(proc, override_id), content.at("offset"), false);
 			debugger.send(data);
 		}
 		else if (type == MESSAGE_BREAKPOINT_STEP)
@@ -240,7 +241,7 @@ void on_breakpoint(ExecutionContext* ctx)
 	}
 	auto bp = get_breakpoint(ctx->constants->proc_id, ctx->current_opcode);
 	std::swap(ctx->bytecode[bp->offset], bp->replaced_opcode);
-	debug_server.send(MESSAGE_BREAKPOINT_HIT, { {"proc", bp->proc.name }, {"offset", bp->offset } });
+	debug_server.send(MESSAGE_BREAKPOINT_HIT, { {"proc", bp->proc.name }, {"offset", bp->offset }, {"override_id", Core::get_proc(ctx->constants->proc_id).override_id} });
 	update_readouts(ctx);
 	switch (debug_server.wait_for_action())
 	{

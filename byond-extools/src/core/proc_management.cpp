@@ -2,6 +2,7 @@
 #include "../dmdism/disassembly.h"
 #include "../dmdism/disassembler.h"
 #include "../extended_profiling/extended_profiling.h"
+#include <fstream>
 
 std::vector<Core::Proc> procs_by_id;
 std::unordered_map<std::string, std::vector<Core::Proc>> procs_by_name;
@@ -10,6 +11,11 @@ std::unordered_map<unsigned int, ProcHook> proc_hooks;
 
 Core::Proc::Proc(std::string name, unsigned int override_id)
 {
+	size_t proc_pos = name.find("/proc");
+	if (proc_pos != std::string::npos)
+	{
+		name.erase(proc_pos, 5);
+	}
 	*this = procs_by_name.at(name).at(override_id);
 }
 
@@ -103,6 +109,11 @@ void Core::Proc::assemble(Disassembly disasm)
 
 Core::Proc Core::get_proc(std::string name, unsigned int override_id)
 {
+	size_t proc_pos = name.find("/proc");
+	if (proc_pos != std::string::npos)
+	{
+		name.erase(proc_pos, 5);
+	}
 	return procs_by_name.at(name).at(override_id);
 }
 
@@ -124,6 +135,7 @@ Disassembly Core::disassemble_raw(std::vector<int> bytecode)
 bool Core::populate_proc_list()
 {
 	unsigned int i = 0;
+	//std::ofstream o("WHY.txt");
 	while (true)
 	{
 		ProcArrayEntry* entry = GetProcArrayEntry(i);
@@ -134,19 +146,26 @@ bool Core::populate_proc_list()
 		Proc p = Proc();
 		p.id = i;
 		p.name = GetStringTableEntry(entry->procPath)->stringData;
+		p.raw_path = p.name;
+		size_t proc_pos = p.name.find("/proc");
+		if (proc_pos != std::string::npos)
+		{
+			p.name.erase(proc_pos, 5);
+		}
 		p.simple_name = p.name.substr(p.name.rfind("/") + 1);
 		p.proc_table_entry = entry;
 		p.setup_entry_bytecode = proc_setup_table[entry->bytecode_idx];
 		p.setup_entry_varcount = proc_setup_table[entry->local_var_count_idx];
 		p.bytecode_idx = entry->bytecode_idx;
 		p.varcount_idx = entry->local_var_count_idx;
-		procs_by_id.push_back(p);
 		if (procs_by_name.find(p.name) == procs_by_name.end())
 		{
 			procs_by_name[p.name] = std::vector<Core::Proc>();
 		}
 		p.override_id = procs_by_name.at(p.name).size();
+		//o << p.id << " " << p.name << " " << p.override_id << "\n";
 		procs_by_name[p.name].push_back(p);
+		procs_by_id.push_back(p);
 		i++;
 	}
 	return true;
