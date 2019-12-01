@@ -39,9 +39,9 @@ bool TFFI::initialize()
 	Core::Proc internal_resolve = Core::get_proc("/datum/promise/proc/__internal_resolve");
 	internal_resolve.set_bytecode(new std::vector<std::uint32_t>({ suspension_opcode, 0, 0, 0 }));
 #endif
-	result_string_id = Core::GetString("result");
-	completed_string_id = Core::GetString("completed");
-	internal_id_string_id = Core::GetString("__id");
+	result_string_id = Core::GetStringId("result");
+	completed_string_id = Core::GetStringId("completed");
+	internal_id_string_id = Core::GetStringId("__id");
 	return true;
 }
 
@@ -53,7 +53,7 @@ void ffi_thread(byond_ffi_func* proc, int promise_id, int n_args, std::vector<st
 		a.push_back(args[i].c_str());
 	}
 	const char* res = proc(n_args, a.data());
-	SetVariable( 0x21, promise_id , result_string_id, { 0x06, (int)Core::GetString(res) });
+	SetVariable( 0x21, promise_id , result_string_id, { 0x06, (int)Core::GetStringId(res) });
 	SetVariable( 0x21, promise_id , completed_string_id, { 0x2A, 1 });
 	float internal_id = GetVariable( 0x21, promise_id , internal_id_string_id).valuef;
 	std::unique_lock<std::mutex> lk(unsuspend_ready_mutex);

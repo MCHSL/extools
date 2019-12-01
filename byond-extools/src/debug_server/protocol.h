@@ -78,6 +78,12 @@ struct FieldRequest
 	std::string field_name;
 };
 
+struct Datum
+{
+	int datum_type;
+	int datum_id;
+};
+
 */
 
 #define MESSAGE_RAW "raw message" //Content is a string, used for debugging purposes (how meta)
@@ -94,3 +100,4 @@ struct FieldRequest
 #define MESSAGE_CALL_STACK "call stack" //Content is a vector of StackFrames
 #define MESSAGE_GET_FIELD "get field" //Request content is FieldRequest, response content is ValueText
 #define MESSAGE_GET_GLOBAL "get global" //Request content is a string with the global name, response is a ValueText
+#define MESSAGE_GET_TYPE "get type" //Request content is Datum, response content is a string

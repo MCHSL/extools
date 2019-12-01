@@ -106,12 +106,23 @@ void DebugServer::debug_loop()
 		else if (type == MESSAGE_GET_FIELD)
 		{
 			auto content = data.at("content");
-			data["content"] = value_to_text(GetVariable(content.at("datum_type"), content.at("datum_id"), Core::GetString(content.at("field_name"))));
+			data["content"] = value_to_text(GetVariable(content.at("datum_type"), content.at("datum_id"), Core::GetStringId(content.at("field_name"))));
 			debugger.send(data);
 		}
 		else if (type == MESSAGE_GET_GLOBAL)
 		{
-			data["content"] = value_to_text(GetVariable(DataType::WORLD_D, 0x01, Core::GetString(data.at("content"))));
+			data["content"] = value_to_text(GetVariable(DataType::WORLD_D, 0x01, Core::GetStringId(data.at("content"))));
+			debugger.send(data);
+		}
+		else if (type == MESSAGE_GET_TYPE)
+		{
+			auto content = data.at("content");
+			Value typeval = GetVariable(content.at("datum_type"), content.at("datum_id"), Core::GetStringId("type"));
+			if (typeval.type == DataType::MOBTYPE)
+			{
+				typeval.value = *MobTableIndexToGlobalTableIndex(typeval.value);
+			}
+			data["content"] = Core::type_to_text(typeval.value);
 			debugger.send(data);
 		}
 	}

@@ -24,7 +24,7 @@ typedef void(*AppendToContainerPtr)(unsigned char containerType, int containerVa
 typedef void(*RemoveFromContainerPtr)(unsigned char containerType, int containerValue, unsigned char valueType, int newValue);
 typedef String* (*GetStringTableEntryPtr)(int stringId);
 typedef unsigned int(*Path2TextPtr)(unsigned int pathType, unsigned int pathValue);
-typedef Type* (*GetTypeTableIndexPtr)(unsigned int typeIndex);
+typedef Type* (*GetTypeByIdPtr)(unsigned int typeIndex);
 typedef unsigned int* (*MobTableIndexToGlobalTableIndexPtr)(unsigned int mobTypeIndex);
 typedef Value(*GetAssocElementPtr)(unsigned int listType, unsigned int listId, unsigned int keyType, unsigned int keyValue);
 typedef void(*SetAssocElementPtr)(unsigned int listType, unsigned int listId, unsigned int keyType, unsigned int keyValue, unsigned int valueType, unsigned int valueValue);
@@ -65,3 +65,5 @@ extern CallGlobalProcPtr CallGlobalProc;
 extern GetProfileInfoPtr GetProfileInfo;
 extern ProcCleanupPtr ProcCleanup;
 extern CreateContextPtr CreateContext;
+extern GetTypeByIdPtr GetTypeById;
+extern MobTableIndexToGlobalTableIndexPtr MobTableIndexToGlobalTableIndex;

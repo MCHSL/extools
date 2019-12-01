@@ -31,7 +31,8 @@ namespace Core
 	extern ExecutionContext** parent_context_ptr_hack;
 	extern ProcSetupEntry** proc_setup_table;
 	extern unsigned int* some_flags_including_profile;
-	unsigned int GetString(std::string str);
+	unsigned int GetStringId(std::string str);
+	std::string GetStringFromId(unsigned int id);
 	extern unsigned int extended_profiling_insanely_hacky_check_if_its_a_new_call_or_resume;
 	ExecutionContext* get_context();
 	ExecutionContext* _get_parent_context();
@@ -44,4 +45,5 @@ namespace Core
 	void stack_push(Value val);
 	void enable_profiling();
 	void disable_profiling();
+	std::string type_to_text(unsigned int type);
 }

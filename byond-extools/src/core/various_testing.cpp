@@ -12,7 +12,7 @@ trvh cheap_hypotenuse(Value* args, unsigned int argcount)
 
 trvh measure_get_variable(Value* args, unsigned int argcount)
 {
-	int name_string_id = Core::GetString("name");
+	int name_string_id = Core::GetStringId("name");
 	int type = args[0].type;
 	int value = args[0].value;
 	//long long duration = 0;

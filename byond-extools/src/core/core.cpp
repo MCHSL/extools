@@ -20,6 +20,8 @@ GetByondVersionPtr GetByondVersion;
 GetByondBuildPtr GetByondBuild;
 ProcCleanupPtr ProcCleanup;
 CreateContextPtr CreateContext;
+GetTypeByIdPtr GetTypeById;
+MobTableIndexToGlobalTableIndexPtr MobTableIndexToGlobalTableIndex;
 
 ExecutionContext** Core::current_execution_context_ptr;
 ExecutionContext** Core::parent_context_ptr_hack;
@@ -53,7 +55,7 @@ void Core::Alert(std::string what) {
 #endif
 }
 
-unsigned int Core::GetString(std::string str) {
+unsigned int Core::GetStringId(std::string str) {
 	switch (ByondVersion) {
 		case 512:
 			return GetStringTableIndex(str.c_str(), 0, 1);
@@ -62,6 +64,11 @@ unsigned int Core::GetString(std::string str) {
 		default: break;
 	}
 	return 0;
+}
+
+std::string Core::GetStringFromId(unsigned int id)
+{
+	return GetStringTableEntry(id)->stringData;
 }
 
 std::uint32_t Core::register_opcode(std::string name, opcode_handler handler)
@@ -106,6 +113,11 @@ void Core::enable_profiling()
 void Core::disable_profiling()
 {
 	*some_flags_including_profile &= ~FLAG_PROFILE;
+}
+
+std::string Core::type_to_text(unsigned int type)
+{
+	return GetStringFromId(GetTypeById(type)->path);
 }
 
 
