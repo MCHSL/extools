@@ -54,7 +54,7 @@ void Core::remove_hook(void* func)
 
 
 bool Core::hook_custom_opcodes() {
-	oCrashProc = (CrashProcPtr)install_hook(CrashProc, hCrashProc);
-	oCallGlobalProc = (CallGlobalProcPtr)install_hook(CallGlobalProc, hCallGlobalProc);
+	oCrashProc = (CrashProcPtr)install_hook((void*)CrashProc, (void*)hCrashProc);
+	oCallGlobalProc = (CallGlobalProcPtr)install_hook((void*)CallGlobalProc, (void*)hCallGlobalProc);
 	return oCrashProc && oCallGlobalProc;
 }
