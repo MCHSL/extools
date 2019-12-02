@@ -68,11 +68,14 @@ void DebugServer::debug_loop()
 		}
 		else if (type == MESSAGE_PROC_DISASSEMBLY)
 		{
-			const std::string& proc_name = data.at("content");
-			Core::Proc proc = Core::get_proc(proc_name);
+			auto content = data.at("content");
+			const std::string& proc_name = content.at("name");
+			const int& override_id = content.at("override_id");
+			Core::Proc proc = Core::get_proc(proc_name, override_id);
 			Disassembly disassembly = proc.disassemble();
 			nlohmann::json disassembled_proc;
 			disassembled_proc["name"] = proc_name;
+			disassembled_proc["override_id"] = override_id;
 
 			std::vector<nlohmann::json> instructions;
 			for (Instruction& instr : disassembly.instructions)
