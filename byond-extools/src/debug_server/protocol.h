@@ -73,14 +73,14 @@ struct StackFrame
 
 struct FieldRequest
 {
-	int datum_type;
+	std::string datum_type; //datum_type may for example be "DATUM" or "OBJ" or "MOB"
 	int datum_id;
 	std::string field_name;
 };
 
 struct Datum
 {
-	int datum_type;
+	std::string datum_type;
 	int datum_id;
 };
 

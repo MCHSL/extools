@@ -23,9 +23,9 @@ trvh handle_proxy(int id, int name_id)
 
 trvh hGetVariable(int datumType, int datumId, unsigned int name_id)
 {
-	if (proxies.find(datumId) != proxies.end())
+	/*if (proxies.find(datumId) != proxies.end())
 	{
-		return handle_proxy(datumId, name_id);
+		return handle_proxy(datumId, name_id); 
 	} 
 	else if (getters.find(name_id) != getters.end())
 	{
@@ -34,7 +34,7 @@ trvh hGetVariable(int datumType, int datumId, unsigned int name_id)
 		auto res = tmp.call({}, Value::Null(), Value(datumType, datumId));
 		getters[name_id] = tmp;
 		return res;
-	}
+	}*/
 	return oGetVariable(datumType, datumId, name_id);
 }
 

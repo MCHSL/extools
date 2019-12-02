@@ -33,6 +33,14 @@ void stripUnicode(std::string& str)
 
 nlohmann::json value_to_text(Value val);
 
+int datatype_name_to_val(std::string name)
+{
+	for (auto it = datatype_names.begin(); it != datatype_names.end(); ++it)
+		if (it->second == name)
+			return it->first;
+	return DataType::NULL_D;
+}
+
 void DebugServer::debug_loop()
 {
 	while (true)
@@ -106,7 +114,7 @@ void DebugServer::debug_loop()
 		else if (type == MESSAGE_GET_FIELD)
 		{
 			auto content = data.at("content");
-			data["content"] = value_to_text(GetVariable(content.at("datum_type"), content.at("datum_id"), Core::GetStringId(content.at("field_name"))));
+			data["content"] = value_to_text(GetVariable(datatype_name_to_val(content.at("datum_type")), content.at("datum_id"), Core::GetStringId(content.at("field_name"))));
 			debugger.send(data);
 		}
 		else if (type == MESSAGE_GET_GLOBAL)
@@ -117,7 +125,7 @@ void DebugServer::debug_loop()
 		else if (type == MESSAGE_GET_TYPE)
 		{
 			auto content = data.at("content");
-			Value typeval = GetVariable(content.at("datum_type"), content.at("datum_id"), Core::GetStringId("type"));
+			Value typeval = GetVariable(datatype_name_to_val(content.at("datum_type")), content.at("datum_id"), Core::GetStringId("type"));
 			if (typeval.type == DataType::MOBTYPE)
 			{
 				typeval.value = *MobTableIndexToGlobalTableIndex(typeval.value);

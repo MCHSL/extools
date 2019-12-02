@@ -120,7 +120,6 @@ std::string Core::type_to_text(unsigned int type)
 	return GetStringFromId(GetTypeById(type)->path);
 }
 
-
 const char* good = "gucci";
 const char* bad = "pain";
 
