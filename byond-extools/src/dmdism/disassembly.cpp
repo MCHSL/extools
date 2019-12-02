@@ -3,11 +3,11 @@
 
 // Older GCC compilers don't have C++20 support yet.
 #if __cplusplus > 201703L
-using std::lower_bound;
+using local_lower_bound = std::lower_bound;
 #else
 // "Second version" from https://en.cppreference.com/w/cpp/algorithm/lower_bound
 template<class ForwardIt, class T, class Compare>
-ForwardIt lower_bound(ForwardIt first, ForwardIt last, const T& value, Compare comp)
+ForwardIt local_lower_bound(ForwardIt first, ForwardIt last, const T& value, Compare comp)
 {
     ForwardIt it;
     typename std::iterator_traits<ForwardIt>::difference_type count, step;
@@ -47,7 +47,7 @@ Instruction& Disassembly::at(std::size_t i)
 
 Instruction* Disassembly::next_from_offset(std::uint16_t offset)
 {
-	auto it = lower_bound(instructions.begin(), instructions.end(), offset, [](Instruction const& instr, int offset) { return instr.offset() < offset; });
+	auto it = local_lower_bound(instructions.begin(), instructions.end(), offset, [](Instruction const& instr, int offset) { return instr.offset() < offset; });
 
 	if (it == instructions.end() || ++it == instructions.end())
 	{
