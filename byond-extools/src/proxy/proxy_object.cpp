@@ -67,8 +67,8 @@ trvh install_accessors(unsigned int n_args, Value* args, Value src)
 
 bool Proxy::initialize()
 {
-	oGetVariable = (GetVariablePtr)Core::install_hook(GetVariable, hGetVariable);
-	oSetVariable = (SetVariablePtr)Core::install_hook(SetVariable, hSetVariable);
+	oGetVariable = (GetVariablePtr)Core::install_hook((void*)GetVariable, (void*)hGetVariable);
+	oSetVariable = (SetVariablePtr)Core::install_hook((void*)SetVariable, (void*)hSetVariable);
 	if (false)
 	{
 		Core::get_proc("/datum/proxy_object/proc/__install").hook(install_proxy);

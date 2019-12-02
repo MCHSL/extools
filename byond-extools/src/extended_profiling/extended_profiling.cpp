@@ -4,7 +4,7 @@
 #include <fstream>
 #include <algorithm>
 #ifdef WIN32
-#include <Windows.h>
+#include <windows.h>
 #else
 #error dump_extended_profile() needs to be able to create a directory on linux
 #endif
@@ -255,9 +255,9 @@ SuspendedProc* hSuspend(ExecutionContext* ctx, int unknown)
 
 bool actual_extended_profiling_initialize()
 {
-	oCreateContext = (CreateContextPtr)Core::install_hook(CreateContext, hCreateContext);
-	oProcCleanup = (ProcCleanupPtr)Core::install_hook(ProcCleanup, hProcCleanup);
-	oSuspend = (SuspendPtr)Core::install_hook(Suspend, hSuspend);
+	oCreateContext = (CreateContextPtr)Core::install_hook((void*)CreateContext, (void*)hCreateContext);
+	oProcCleanup = (ProcCleanupPtr)Core::install_hook((void*)ProcCleanup, (void*)hProcCleanup);
+	oSuspend = (SuspendPtr)Core::install_hook((void*)Suspend, (void*)hSuspend);
 	return oCreateContext && oProcCleanup && oSuspend;
 }
 
