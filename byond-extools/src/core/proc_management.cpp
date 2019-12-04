@@ -93,7 +93,7 @@ Value Core::Proc::call(std::vector<Value> arguments, Value usr, Value src)
 
 Disassembly Core::Proc::disassemble()
 {
-	Disassembly d = Core::get_disassembly(name);
+	Disassembly d = Core::get_disassembly(name, override_id);
 	d.proc = *this;
 	return d;
 }
