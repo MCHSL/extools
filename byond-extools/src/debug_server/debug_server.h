@@ -48,10 +48,13 @@ class DebugServer
 	SocketServer debugger;
 public:
 	int next_action = DEBUG_WAIT;
+	bool break_on_runtimes = false;
 	bool connect();
 	void debug_loop();
 
 	int wait_for_action();
+
+	void on_error(ExecutionContext* ctx, char* error);
 
 	void send_simple(std::string message_type);
 	void send(std::string message_type, nlohmann::json content);

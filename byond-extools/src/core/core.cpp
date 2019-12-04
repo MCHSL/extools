@@ -22,6 +22,13 @@ ProcCleanupPtr ProcCleanup;
 CreateContextPtr CreateContext;
 GetTypeByIdPtr GetTypeById;
 MobTableIndexToGlobalTableIndexPtr MobTableIndexToGlobalTableIndex;
+RuntimePtr Runtime;
+GetTurfPtr GetTurf;
+AppendToContainerPtr AppendToContainer;
+GetAssocElementPtr GetAssocElement;
+GetListPointerByIdPtr GetListPointerById;
+SetAssocElementPtr SetAssocElement;
+CreateListPtr CreateList;
 
 ExecutionContext** Core::current_execution_context_ptr;
 ExecutionContext** Core::parent_context_ptr_hack;
@@ -118,6 +125,22 @@ void Core::disable_profiling()
 std::string Core::type_to_text(unsigned int type)
 {
 	return GetStringFromId(GetTypeById(type)->path);
+}
+
+Value Core::get_turf(int x, int y, int z)
+{
+	return GetTurf(x-1, y-1, z-1);
+}
+
+IDList Core::get_list(int id)
+{
+	return { GetListPointerById(id), id };
+}
+
+IDList Core::create_list(unsigned int reserve)
+{
+	unsigned int id = CreateList(reserve);
+	return { GetListPointerById(id), id };
 }
 
 const char* good = "gucci";

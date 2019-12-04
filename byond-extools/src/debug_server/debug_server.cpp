@@ -3,6 +3,7 @@
 #include "../dmdism/disassembler.h"
 #include "../dmdism/opcodes.h"
 #include "../core/json.hpp"
+#include <utility>
 
 #include <thread>
 
@@ -18,6 +19,8 @@ DebugServer debug_server;
 std::mutex notifier_mutex;
 std::condition_variable notifier;
 
+RuntimePtr oRuntime;
+
 bool DebugServer::connect()
 {
 	debugger = SocketServer();
@@ -25,6 +28,8 @@ bool DebugServer::connect()
 }
 
 Breakpoint set_breakpoint(Core::Proc proc, std::uint16_t offset, bool one_shot = false);
+std::unique_ptr<Breakpoint> get_breakpoint(Core::Proc proc, int offset);
+bool remove_breakpoint(Breakpoint bp);
 
 void stripUnicode(std::string& str)
 {
@@ -41,13 +46,33 @@ int datatype_name_to_val(std::string name)
 	return DataType::NULL_D;
 }
 
+void get_variable_error(int field_name)
+{
+	Core::Alert("An error occured while trying to access field \"" + Core::GetStringFromId(field_name) + "\" of datum. ");
+}
+
+trvh safe_get_variable(int datum_type, int datum_id, int field_name)
+{
+	__try
+	{
+		return GetVariable(datum_type, datum_id, field_name);
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER)
+	{
+		//get_variable_error(field_name);
+		return {};
+	}
+}
+
 void DebugServer::debug_loop()
 {
 	while (true)
 	{
 		nlohmann::json data = debugger.recv_message();
+		//Core::Alert("Message!!");
 		if (data.is_null())
 		{
+			Core::Alert("null message, leaving");
 			break;
 		}
 		const std::string& type = data.at("type");
@@ -70,6 +95,7 @@ void DebugServer::debug_loop()
 		{
 			auto content = data.at("content");
 			const std::string& proc_name = content.at("name");
+			//Core::Alert("Disassembling " + proc_name);
 			const int& override_id = content.at("override_id");
 			Core::Proc proc = Core::get_proc(proc_name, override_id);
 			Disassembly disassembly = proc.disassemble();
@@ -97,10 +123,21 @@ void DebugServer::debug_loop()
 		}
 		else if (type == MESSAGE_BREAKPOINT_SET)
 		{
+			//Core::Alert("BREAKPOINT_SET");
 			auto content = data.at("content");
 			const std::string& proc = content.at("proc");
 			const int& override_id = content.at("override_id");
+			//Core::Alert("Setting breakpoint in " + proc);
 			set_breakpoint(Core::get_proc(proc, override_id), content.at("offset"), false);
+			debugger.send(data);
+		}
+		else if (type == MESSAGE_BREAKPOINT_UNSET)
+		{
+			auto content = data.at("content");
+			const std::string& proc = content.at("proc");
+			const int& override_id = content.at("override_id");
+			//Core::Alert("Setting breakpoint in " + proc);
+			remove_breakpoint(*get_breakpoint(Core::get_proc(proc, override_id), content.at("offset")));
 			debugger.send(data);
 		}
 		else if (type == MESSAGE_BREAKPOINT_STEP)
@@ -117,7 +154,7 @@ void DebugServer::debug_loop()
 		else if (type == MESSAGE_GET_FIELD)
 		{
 			auto content = data.at("content");
-			data["content"] = value_to_text(GetVariable(datatype_name_to_val(content.at("datum_type")), content.at("datum_id"), Core::GetStringId(content.at("field_name"))));
+			data["content"] = value_to_text(safe_get_variable(datatype_name_to_val(content.at("datum_type")), content.at("datum_id"), Core::GetStringId(content.at("field_name"))));
 			debugger.send(data);
 		}
 		else if (type == MESSAGE_GET_GLOBAL)
@@ -134,6 +171,37 @@ void DebugServer::debug_loop()
 				typeval.value = *MobTableIndexToGlobalTableIndex(typeval.value);
 			}
 			data["content"] = Core::type_to_text(typeval.value);
+			debugger.send(data);
+		}
+		else if (type == MESSAGE_TOGGLE_BREAK_ON_RUNTIME)
+		{
+			break_on_runtimes = !break_on_runtimes; //runtimes funtimes
+			data["content"] = break_on_runtimes;
+			debugger.send(data);
+		}
+		else if (type == MESSAGE_GET_LIST_CONTENTS)
+		{
+			IDList list = Core::get_list(data.at("content"));
+			std::vector<Value> elements = std::vector(list.list->vector_part, list.list->vector_part + list.list->length); //efficiency
+			std::vector<nlohmann::json> textual;
+			if (!list.is_assoc())
+			{
+				for (Value& val : elements)
+				{
+					textual.push_back(value_to_text(val));
+				}
+			}
+			else
+			{
+				for (Value& val : elements)
+				{
+					textual.push_back(std::make_pair<nlohmann::json, nlohmann::json>(value_to_text(val), value_to_text(list.at(val))));
+				}
+			}
+			data["content"] = {
+				{ "is_assoc", list.is_assoc() },
+				{ "elements", textual }
+			};
 			debugger.send(data);
 		}
 	}
@@ -357,8 +425,23 @@ bool remove_breakpoint(Breakpoint bp)
 	return true;
 }
 
+void hRuntime(char* error)
+{
+	if (debug_server.break_on_runtimes)
+	{
+		ExecutionContext* ctx = Core::get_context();
+		Core::Proc p = Core::get_proc(ctx->constants->proc_id);
+		debug_server.send(MESSAGE_RUNTIME, { {"proc", p.name }, {"offset", ctx->current_opcode }, {"override_id", p.override_id}, {"message", std::string(error)} });
+		update_readouts(ctx);
+		while (debug_server.wait_for_action() != DEBUG_RESUME);
+	}
+
+	oRuntime(error);
+}
+
 bool debugger_initialize()
 {
+	oRuntime = (RuntimePtr)Core::install_hook((void*)Runtime, (void*)hRuntime);
 	breakpoint_opcode = Core::register_opcode("DEBUG_BREAKPOINT", on_breakpoint);
 	nop_opcode = Core::register_opcode("DEBUG_NOP", on_nop);
 	singlestep_opcode = Core::register_opcode("DEBUG_SINGLESTEP", on_restorer);

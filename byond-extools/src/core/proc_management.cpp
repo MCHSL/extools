@@ -10,7 +10,8 @@ std::unordered_map<unsigned int, ProcHook> proc_hooks;
 
 Core::Proc::Proc(std::string name, unsigned int override_id)
 {
-	size_t proc_pos = name.find("/proc");
+	size_t proc_pos = name.find("/proc/");
+	proc_pos = (proc_pos == std::string::npos ? name.find("/verb/") : proc_pos);
 	if (proc_pos != std::string::npos)
 	{
 		name.erase(proc_pos, 5);
@@ -108,11 +109,13 @@ void Core::Proc::assemble(Disassembly disasm)
 
 Core::Proc Core::get_proc(std::string name, unsigned int override_id)
 {
-	size_t proc_pos = name.find("/proc");
+	size_t proc_pos = name.find("/proc/");
+	proc_pos = (proc_pos == std::string::npos ? name.find("/verb/") : proc_pos);
 	if (proc_pos != std::string::npos)
 	{
 		name.erase(proc_pos, 5);
 	}
+	//Core::Alert("Attempting to get proc " + name + ", override " + std::to_string(override_id));
 	return procs_by_name.at(name).at(override_id);
 }
 
@@ -145,7 +148,8 @@ bool Core::populate_proc_list()
 		p.id = i;
 		p.name = GetStringTableEntry(entry->procPath)->stringData;
 		p.raw_path = p.name;
-		size_t proc_pos = p.name.find("/proc");
+		size_t proc_pos = p.name.find("/proc/");
+		proc_pos = (proc_pos == std::string::npos ? p.name.find("/verb/") : proc_pos);
 		if (proc_pos != std::string::npos)
 		{
 			p.name.erase(proc_pos, 5);

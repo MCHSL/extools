@@ -65,6 +65,13 @@ trvh install_accessors(unsigned int n_args, Value* args, Value src)
 	return Value::True();
 }
 
+trvh sunshine(unsigned int n_args, Value* args, Value src)
+{
+	Value t = Core::get_turf(50, 50, 2);
+	Core::Alert("The turf at (50, 50, 2) is called *drumroll*: " + std::string(t.get("name")));
+	return {};
+}
+
 bool Proxy::initialize()
 {
 	oGetVariable = (GetVariablePtr)Core::install_hook((void*)GetVariable, (void*)hGetVariable);
@@ -73,6 +80,8 @@ bool Proxy::initialize()
 	{
 		Core::get_proc("/datum/proxy_object/proc/__install").hook(install_proxy);
 		Core::get_proc("/obj/accessor_thingy/proc/__install_accessors").hook(install_accessors);
+		Core::get_proc("/client/verb/sacrifice_child").hook(sunshine);
 	}
+	
 	return true;
 }

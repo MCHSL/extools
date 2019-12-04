@@ -84,6 +84,20 @@ struct Datum
 	int datum_id;
 };
 
+struct Runtime //Similar to breakpoints, followed by call stack and scope messages
+{
+	std::string name;
+	int override_id;
+	int offset; //this and other groups of variables appear several times in the protocol, probably should collect them into structs at some point
+	std::string message //Just the error message and no stack trace etc. For example "Division by zero"
+};
+
+struct ListContents
+{
+	bool is_assoc;
+	std::vector<ValueText> OR std::vector<std::pair<ValueText, ValueText>> elements;
+};
+
 */
 
 #define MESSAGE_RAW "raw message" //Content is a string, used for debugging purposes (how meta)
@@ -101,3 +115,6 @@ struct Datum
 #define MESSAGE_GET_FIELD "get field" //Request content is FieldRequest, response content is ValueText
 #define MESSAGE_GET_GLOBAL "get global" //Request content is a string with the global name, response is a ValueText
 #define MESSAGE_GET_TYPE "get type" //Request content is Datum, response content is a string
+#define MESSAGE_RUNTIME "runtime" //Content is a Runtime
+#define MESSAGE_TOGGLE_BREAK_ON_RUNTIME "break on runtimes" //Response content is true or false
+#define MESSAGE_GET_LIST_CONTENTS "get list contents" //Request content is a list id, response content ListContents;

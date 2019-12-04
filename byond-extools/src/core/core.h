@@ -33,6 +33,9 @@ namespace Core
 	extern unsigned int* some_flags_including_profile;
 	unsigned int GetStringId(std::string str);
 	std::string GetStringFromId(unsigned int id);
+	Value get_turf(int x, int y, int z);
+	IDList get_list(int id);
+	IDList create_list(unsigned int reserve);
 	extern unsigned int extended_profiling_insanely_hacky_check_if_its_a_new_call_or_resume;
 	ExecutionContext* get_context();
 	ExecutionContext* _get_parent_context();

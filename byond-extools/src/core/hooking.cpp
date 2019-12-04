@@ -48,8 +48,8 @@ void* Core::install_hook(void* original, void* hook)
 void Core::remove_hook(void* func)
 {
 	hooks[func]->Remove();
-	delete hooks[func];
 	hooks.erase(func);
+	delete hooks[func];
 }
 
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
 
 #ifdef _WIN32
 #define REGPARM3
@@ -70,6 +71,11 @@ struct Value
 	{
 		return trvh{ type, value };
 	}
+
+	operator std::string();
+	operator float();
+	Value get(std::string name);
+	void set(std::string name, Value value);
 };
 
 struct IDArrayEntry
@@ -79,16 +85,44 @@ struct IDArrayEntry
 	int refcountMaybe;
 };
 
+struct AssociativeListEntry
+{
+	Value key;
+	Value value;
+	bool red_black; //0 - black
+	AssociativeListEntry* left;
+	AssociativeListEntry* right;
+};
+
 struct List
 {
-	Value* elements;
-	int unk1;
-	int unk2;
+	Value* vector_part;
+	AssociativeListEntry* map_part;
+	int allocated_size; //maybe
 	int length;
 	int refcount;
-	int unk3;
-	int unk4;
-	int unk5;
+	int unk3; //this one appears to be a pointer to a struct holding elements, a zero, and maybe the initial size? no clue.
+
+	bool is_assoc()
+	{
+		return map_part != nullptr;
+	}
+
+};
+
+struct IDList
+{
+	List* list;
+	int id;
+
+	Value at(int index);
+	Value at(Value key);
+	bool is_assoc()
+	{
+		return list->is_assoc();
+	}
+	Value* begin() { return list->vector_part; }
+	Value* end() { return list->vector_part + list->length; }
 };
 
 struct Type

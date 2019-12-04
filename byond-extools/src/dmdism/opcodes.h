@@ -232,6 +232,7 @@ enum DataType
 	OBJTYPE = 0x09,
 	IMAGE = 0x0D,
 	WORLD_D = 0x0E,
+	LIST = 0x0F,
 	DATUM = 0x21,
 	SAVEFILE = 0x23,
 	FILE_ = 0x27,
@@ -257,7 +258,8 @@ const std::unordered_map<DataType, std::string> datatype_names = {
 	{ SAVEFILE, "SAVEFILE" },
 	{ PATH_LIST, "PATH_LIST" },
 	{ NUMBER, "NUMBER" },
-	{ CLIENTTYPE, "CLIENTTYPE" }
+	{ CLIENTTYPE, "CLIENTTYPE" },
+	{ LIST, "LIST" },
 };
 
 const std::unordered_map<Bytecode, std::string> mnemonics = {
