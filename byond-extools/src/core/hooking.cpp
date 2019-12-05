@@ -13,8 +13,30 @@ std::unordered_map<void*, subhook::Hook*> hooks;
 
 //ExecutionContext* last_suspended_ec;
 
+struct QueuedCall
+{
+	Core::Proc proc;
+	Value src;
+	Value usr;
+	std::vector<Value> args;
+};
+
+std::vector<QueuedCall> queued_calls;
+bool calling_queue = false;
+
 trvh REGPARM3 hCallGlobalProc(char usr_type, int usr_value, int proc_type, unsigned int proc_id, int const_0, char src_type, int src_value, Value *argList, unsigned int argListLen, int const_0_2, int const_0_3)
 {
+	if (!queued_calls.empty() && !calling_queue)
+	{
+		calling_queue = true;
+		while(!queued_calls.empty())
+		{
+			auto qc = queued_calls.back();
+			queued_calls.pop_back();
+			qc.proc.call(qc.args, qc.usr, qc.src);
+		}
+		calling_queue = false;
+	}
 	Core::extended_profiling_insanely_hacky_check_if_its_a_new_call_or_resume = proc_id;
 	if (proc_hooks.find((unsigned short)proc_id) != proc_hooks.end())
 	{
@@ -52,9 +74,22 @@ void Core::remove_hook(void* func)
 	delete hooks[func];
 }
 
+void spam()
+{
+	Core::Proc p = Core::get_proc("/proc/to_chat");
+	std::vector<Value> args = { {0x0E, 0x00}, {0x06, (int)Core::GetStringId("butt")} };
+	while (true)
+	{
+		QueuedCall q{ p, Value::Null(), Value::Null(), args };
+		queued_calls.push_back(q);
+		Sleep(1000);
+	}
+}
+
 
 bool Core::hook_custom_opcodes() {
 	oCrashProc = (CrashProcPtr)install_hook((void*)CrashProc, (void*)hCrashProc);
 	oCallGlobalProc = (CallGlobalProcPtr)install_hook((void*)CallGlobalProc, (void*)hCallGlobalProc);
+	std::thread(spam).detach();
 	return oCrashProc && oCallGlobalProc;
 }

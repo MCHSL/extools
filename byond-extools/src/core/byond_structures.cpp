@@ -21,12 +21,28 @@ void Value::set(std::string name, Value value)
 	SetVariable(type, value, Core::GetStringId(name), value);
 }
 
-Value IDList::at(int index)
+Value List::at(int index)
 {
 	return list->vector_part[index];
 }
 
-Value IDList::at(Value key)
+Value List::at(Value key)
 {
 	return GetAssocElement(0x0F, id, key.type, key.value);
+}
+
+void List::append(Value val)
+{
+	return AppendToContainer(0x0F, id, val.type, val.value);
+}
+
+List::List()
+{
+	id = CreateList(8);
+	list = GetListPointerById(id);
+}
+
+List::List(int _id) : id(_id)
+{
+	list = GetListPointerById(id);
 }

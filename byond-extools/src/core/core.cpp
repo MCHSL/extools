@@ -132,17 +132,6 @@ Value Core::get_turf(int x, int y, int z)
 	return GetTurf(x-1, y-1, z-1);
 }
 
-IDList Core::get_list(int id)
-{
-	return { GetListPointerById(id), id };
-}
-
-IDList Core::create_list(unsigned int reserve)
-{
-	unsigned int id = CreateList(reserve);
-	return { GetListPointerById(id), id };
-}
-
 const char* good = "gucci";
 const char* bad = "pain";
 

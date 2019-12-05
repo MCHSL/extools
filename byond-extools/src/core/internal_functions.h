@@ -19,7 +19,7 @@ typedef trvh(*CallProcPtr)(int unk1, int unk2, unsigned int proc_type, unsigned 
 typedef IDArrayEntry* (*GetIDArrayEntryPtr)(unsigned int index);
 typedef int(*ThrowDMErrorPtr)(const char* msg);
 typedef ProcArrayEntry* (*GetProcArrayEntryPtr)(unsigned int index);
-typedef List* (*GetListPointerByIdPtr)(unsigned int index);
+typedef RawList* (*GetListPointerByIdPtr)(unsigned int index);
 typedef void(*AppendToContainerPtr)(unsigned char containerType, int containerValue, unsigned char valueType, int newValue);
 typedef void(*RemoveFromContainerPtr)(unsigned char containerType, int containerValue, unsigned char valueType, int newValue);
 typedef String* (*GetStringTableEntryPtr)(int stringId);

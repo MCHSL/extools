@@ -94,7 +94,7 @@ struct AssociativeListEntry
 	AssociativeListEntry* right;
 };
 
-struct List
+struct RawList
 {
 	Value* vector_part;
 	AssociativeListEntry* map_part;
@@ -110,19 +110,29 @@ struct List
 
 };
 
-struct IDList
+struct List
 {
-	List* list;
+	List();
+	List(int _id);
+	RawList* list;
 	int id;
 
 	Value at(int index);
 	Value at(Value key);
+	void append(Value val);
+
 	bool is_assoc()
 	{
 		return list->is_assoc();
 	}
+
 	Value* begin() { return list->vector_part; }
 	Value* end() { return list->vector_part + list->length; }
+
+	operator trvh()
+	{
+		return { 0x0F, id };
+	}
 };
 
 struct Type

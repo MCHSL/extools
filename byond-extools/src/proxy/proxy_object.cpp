@@ -2,7 +2,6 @@
 #include "../core/byond_structures.h"
 #include "../dmdism/opcodes.h"
 
-
 #include <fstream>
 
 GetVariablePtr oGetVariable;
@@ -72,6 +71,16 @@ trvh sunshine(unsigned int n_args, Value* args, Value src)
 	return {};
 }
 
+trvh ayy_lmao_path(unsigned int n_args, Value* args, Value src)
+{
+	List list;
+	for (int i = 0; i < 10; i++)
+	{
+		list.append(Core::get_turf(50 + i, 50, 2));
+	}
+	return list;
+}
+
 bool Proxy::initialize()
 {
 	oGetVariable = (GetVariablePtr)Core::install_hook((void*)GetVariable, (void*)hGetVariable);
@@ -82,6 +91,6 @@ bool Proxy::initialize()
 		Core::get_proc("/obj/accessor_thingy/proc/__install_accessors").hook(install_accessors);
 		Core::get_proc("/client/verb/sacrifice_child").hook(sunshine);
 	}
-	
+	Core::get_proc("/obj/item/pathfinder/proc/find_path").hook(ayy_lmao_path);
 	return true;
 }
