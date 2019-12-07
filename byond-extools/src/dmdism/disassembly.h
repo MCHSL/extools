@@ -28,5 +28,5 @@ public:
 
 namespace Core
 {
-	Disassembly get_disassembly(std::string proc);
+	Disassembly get_disassembly(std::string proc, unsigned int override_id);
 }
