@@ -4,6 +4,7 @@
 #include "../proxy/proxy_object.h"
 #include "../optimizer/optimizer.h"
 #include "../extended_profiling/extended_profiling.h"
+#include "../debug_server/debug_server.h"
 
 CrashProcPtr CrashProc;
 SuspendPtr Suspend;
@@ -29,6 +30,7 @@ GetAssocElementPtr GetAssocElement;
 GetListPointerByIdPtr GetListPointerById;
 SetAssocElementPtr SetAssocElement;
 CreateListPtr CreateList;
+LengthPtr Length;
 
 ExecutionContext** Core::current_execution_context_ptr;
 ExecutionContext** Core::parent_context_ptr_hack;
@@ -53,6 +55,8 @@ bool Core::initialize()
 	initialized = find_functions() && populate_proc_list() && hook_custom_opcodes();
 	return initialized;
 }
+
+
 
 void Core::Alert(std::string what) {
 #ifdef _WIN32
@@ -112,14 +116,16 @@ void Core::stack_push(Value val)
 	(*Core::current_execution_context_ptr)->stack[(*Core::current_execution_context_ptr)->stack_size-1] = val;
 }
 
-void Core::enable_profiling()
+bool Core::enable_profiling()
 {
 	*some_flags_including_profile |= FLAG_PROFILE;
+	return true;
 }
 
-void Core::disable_profiling()
+bool Core::disable_profiling()
 {
 	*some_flags_including_profile &= ~FLAG_PROFILE;
+	return true;
 }
 
 std::string Core::type_to_text(unsigned int type)
@@ -137,13 +143,13 @@ const char* bad = "pain";
 
 extern "C" EXPORT const char* enable_profiling(int n_args, const char** args)
 {
-	Core::enable_profiling();
+	Core::initialize() && Core::enable_profiling();
 	return good;
 }
 
 extern "C" EXPORT const char* disable_profiling(int n_args, const char** args)
 {
-	Core::disable_profiling();
+	Core::initialize() && Core::disable_profiling();
 	return good;
 }
 
@@ -172,6 +178,14 @@ extern "C" EXPORT const char* proxy_initialize(int n_args, const char** args)
 {
 	if (!(Core::initialize() && Proxy::initialize()))
 		return bad;
+	return good;
+}
+
+extern "C" EXPORT const char* debug_initialize(int n_args, const char** args)
+{
+	if (!(Core::initialize() && debugger_initialize()))
+		return bad;
+	debugger_enable();
 	return good;
 }
 

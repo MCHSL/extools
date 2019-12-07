@@ -51,6 +51,7 @@ typedef void(REGPARM3 *ProcCleanupPtr)(ExecutionContext* thing_that_just_execute
 #endif
 typedef void(*RuntimePtr)(char* error); //Do not call this, it relies on some global state
 typedef trvh(*GetTurfPtr)(int x, int y, int z);
+typedef unsigned int(*LengthPtr)(int type, int value);
 
 extern CrashProcPtr CrashProc;
 extern StartTimingPtr StartTiming;
@@ -76,3 +77,4 @@ extern GetAssocElementPtr GetAssocElement;
 extern GetListPointerByIdPtr GetListPointerById;
 extern SetAssocElementPtr SetAssocElement;
 extern CreateListPtr CreateList;
+extern LengthPtr Length;

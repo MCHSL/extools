@@ -62,4 +62,5 @@ public:
 
 
 bool debugger_initialize();
-bool debugger_connect();
+bool debugger_enable_wait();
+void debugger_enable();

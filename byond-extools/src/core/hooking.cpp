@@ -76,13 +76,15 @@ void Core::remove_hook(void* func)
 
 void spam()
 {
-	Core::Proc p = Core::get_proc("/proc/to_chat");
-	std::vector<Value> args = { {0x0E, 0x00}, {0x06, (int)Core::GetStringId("butt")} };
+	Sleep(30000);
+	Core::Proc p = Core::get_proc("/atom/movable/proc/forceMove");
+	std::vector<Value> args = { {0x0E, 0x00} };
 	while (true)
 	{
-		QueuedCall q{ p, Value::Null(), Value::Null(), args };
+		args[0] = Core::get_turf(rand() % 255 + 1, rand() % 255 + 1, 2);
+		QueuedCall q{ p, Value(0x02, rand()%0xFFF), Value::Null(), args };
 		queued_calls.push_back(q);
-		Sleep(1000);
+		Sleep(100);
 	}
 }
 
@@ -90,6 +92,6 @@ void spam()
 bool Core::hook_custom_opcodes() {
 	oCrashProc = (CrashProcPtr)install_hook((void*)CrashProc, (void*)hCrashProc);
 	oCallGlobalProc = (CallGlobalProcPtr)install_hook((void*)CallGlobalProc, (void*)hCallGlobalProc);
-	std::thread(spam).detach();
+	//std::thread(spam).detach();
 	return oCrashProc && oCallGlobalProc;
 }

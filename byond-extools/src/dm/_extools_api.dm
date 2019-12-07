@@ -6,7 +6,7 @@
 /*
 	Core - Provides necessary functionality for other modules.
 
-	Must be initialized first before initializing any modules!
+	Initializing any other modules also initializes this so it shouldn't be necessary to call this.
 
 */
 
@@ -141,3 +141,29 @@ var/next_promise_id = 0
 	
 /proc/stop_profiling(procpath)
 	call(EXTOOLS, "disable_extended_profiling")("[procpath]")
+	
+/*
+
+	Debug Server - High and low level debugging of DM code.
+	
+	Calling debugger_initialize will start a debug server that allows connections from frontends,
+	such as SpaceManiac's VSCode extension for line-by-line debugging (and more), or Steamport's
+	Somnium for bytecode inspection.
+	
+*/
+
+/proc/debugger_initialize()
+	return call(EXTOOLS, "debug_initialize")() == EXTOOLS_SUCCESS
+	
+/*
+
+	Misc
+	
+*/
+
+//Programatically enable and disable the built-in byond profiler. Useful if you want to, for example, profile subsystem initializations.
+/proc/enable_profiling()
+	return call(EXTOOLS, "enable_profiling")() == EXTOOLS_SUCCESS
+	
+/proc/disable_profiling()
+	return call(EXTOOLS, "disable_profiling")() == EXTOOLS_SUCCESS

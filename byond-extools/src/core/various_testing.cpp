@@ -63,9 +63,22 @@ LONG WINAPI DumpThingy(_EXCEPTION_POINTERS* ExceptionInfo)
 
 void init_testing()
 {
-	Core::enable_profiling();
-	//Proxy::initialize();
-	debugger_initialize();
+	//Value worl = Value(0x0E, 0);
+	//Value contents = worl.get("contents");
+	//Core::Alert(std::to_string(contents.type));
+	//Core::Alert(std::to_string(contents.id));
+	//Core::Alert("World content length: "+std::to_string(contents.list->length));
+	//for (Value& val : contents)
+	//{
+	//	Core::Alert(std::to_string(val.type) + " " + std::to_string(val.value));
+	//}
+	/*Core::Proc p = "/proc/deadcode";
+	Disassembly d = p.disassemble();
+	std::ofstream o("out.txt");
+	for (Instruction& i : d)
+	{
+		o << i.offset() << "\t\t\t" << i.bytes_str() << "\t\t\t" << i.opcode().mnemonic() << "\n";
+	}
 	bool find_unknowns = false;
 	if (find_unknowns)
 	{
@@ -87,7 +100,7 @@ void init_testing()
 			}
 		}
 		log.close();
-	}
+	}*/
 
 	//debugger_connect();
 	//Core::get_proc("/datum/explosion/New").extended_profile();

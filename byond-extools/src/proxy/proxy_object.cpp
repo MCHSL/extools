@@ -81,6 +81,22 @@ trvh ayy_lmao_path(unsigned int n_args, Value* args, Value src)
 	return list;
 }
 
+trvh typestuff(unsigned int n_args, Value* args, Value src)
+{
+	if (args[0].has_var("tick_leg"))
+	{
+		Core::Alert("Hell yeah");
+	}
+	/*Container contents = args[0].get("vars");
+	int length = contents.length();
+	for (int i = 0; i < length; i++)
+	{
+		Value v = contents[i];
+		Core::Alert(std::string(v));
+	}*/
+	return {};
+}
+
 bool Proxy::initialize()
 {
 	oGetVariable = (GetVariablePtr)Core::install_hook((void*)GetVariable, (void*)hGetVariable);
@@ -90,7 +106,9 @@ bool Proxy::initialize()
 		Core::get_proc("/datum/proxy_object/proc/__install").hook(install_proxy);
 		Core::get_proc("/obj/accessor_thingy/proc/__install_accessors").hook(install_accessors);
 		Core::get_proc("/client/verb/sacrifice_child").hook(sunshine);
+		Core::get_proc("/obj/item/pathfinder/proc/find_path").hook(ayy_lmao_path);
+		Core::get_proc("/proc/deadcode").hook(typestuff);
 	}
-	Core::get_proc("/obj/item/pathfinder/proc/find_path").hook(ayy_lmao_path);
+	
 	return true;
 }

@@ -51,7 +51,7 @@ void get_variable_error(int field_name)
 	Core::Alert("An error occured while trying to access field \"" + Core::GetStringFromId(field_name) + "\" of datum. ");
 }
 
-trvh safe_get_variable(int datum_type, int datum_id, int field_name)
+/*trvh safe_get_variable(int datum_type, int datum_id, int field_name)
 {
 	__try
 	{
@@ -62,7 +62,7 @@ trvh safe_get_variable(int datum_type, int datum_id, int field_name)
 		//get_variable_error(field_name);
 		return {};
 	}
-}
+}*/
 
 void DebugServer::debug_loop()
 {
@@ -154,7 +154,7 @@ void DebugServer::debug_loop()
 		else if (type == MESSAGE_GET_FIELD)
 		{
 			auto content = data.at("content");
-			data["content"] = value_to_text(safe_get_variable(datatype_name_to_val(content.at("datum_type")), content.at("datum_id"), Core::GetStringId(content.at("field_name"))));
+			data["content"] = value_to_text(Value(datatype_name_to_val(content.at("datum_type")), content.at("datum_id")).get_safe(content.at("field_name")));
 			debugger.send(data);
 		}
 		else if (type == MESSAGE_GET_GLOBAL)
@@ -166,7 +166,7 @@ void DebugServer::debug_loop()
 		{
 			auto content = data.at("content");
 			Value typeval = GetVariable(datatype_name_to_val(content.at("datum_type")), content.at("datum_id"), Core::GetStringId("type"));
-			if (typeval.type == DataType::MOBTYPE)
+			if (typeval.type == DataType::MOB_TYPEPATH)
 			{
 				typeval.value = *MobTableIndexToGlobalTableIndex(typeval.value);
 			}
@@ -448,7 +448,7 @@ bool debugger_initialize()
 	return true;
 }
 
-bool debugger_connect()
+bool debugger_enable_wait()
 {
 	debug_server = DebugServer();
 	if (debug_server.connect())
@@ -457,4 +457,9 @@ bool debugger_connect()
 		return true;
 	}
 	return false;
+}
+
+void debugger_enable()
+{
+	std::thread(debugger_enable_wait).detach(); //I am good code
 }

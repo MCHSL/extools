@@ -38,7 +38,6 @@ struct Value
 	};
 	Value() { type = 0; value = 0; }
 	Value(char type, int value) : type(type), value(value) {};
-	Value(char type, float valuef) : type(type), valuef(valuef) {};
 	Value(trvh trvh)
 	{
 		type = trvh.type;
@@ -47,6 +46,8 @@ struct Value
 		else
 			valuef = trvh.valuef;
 	}
+	explicit Value(float valuef) : type(0x2A), valuef(valuef) {};
+
 
 	inline static Value Null() {
 		return { 0, 0 };
@@ -54,12 +55,12 @@ struct Value
 
 	inline static Value True()
 	{
-		return { 0x2A, 1.0f }; //number
+		return Value(1.0f); //number
 	}
 
 	inline static Value False()
 	{
-		return { 0x2A, 0.0f };
+		return Value(0.0f);
 	}
 
 	/* inline static Value Tralse()
@@ -75,6 +76,8 @@ struct Value
 	operator std::string();
 	operator float();
 	Value get(std::string name);
+	Value get_safe(std::string name);
+	bool has_var(std::string name);
 	void set(std::string name, Value value);
 };
 
@@ -101,7 +104,7 @@ struct RawList
 	int allocated_size; //maybe
 	int length;
 	int refcount;
-	int unk3; //this one appears to be a pointer to a struct holding elements, a zero, and maybe the initial size? no clue.
+	int unk3; //this one appears to be a pointer to a struct holding the vector_part pointer, a zero, and maybe the initial size? no clue.
 
 	bool is_assoc()
 	{
@@ -110,11 +113,13 @@ struct RawList
 
 };
 
-struct List
+struct List //Specialization for Container with fast access by index
 {
 	List();
 	List(int _id);
+	List(Value v);
 	RawList* list;
+
 	int id;
 
 	Value at(int index);
@@ -132,6 +137,52 @@ struct List
 	operator trvh()
 	{
 		return { 0x0F, id };
+	}
+};
+
+struct Container;
+
+struct ContainerProxy
+{
+	Container& c;
+	Value key = Value::Null();
+	ContainerProxy(Container& c, Value key) : c(c), key(key) {}
+
+	operator Value();
+	void operator=(Value val);
+};
+
+struct Container //All kinds of lists, including magical snowflake lists like contents
+{ 
+
+	Container(char type, int id) : type(type), id(id) {}
+	Container(Value val) : type(val.type), id(val.value) {}
+	char type;
+	int id;
+
+	Value at(unsigned int index);
+	Value at(Value key);
+
+	unsigned int length();
+
+	operator Value()
+	{
+		return { type, id };
+	}
+
+	operator trvh()
+	{
+		return { type, id };
+	}
+
+	ContainerProxy operator[](unsigned int index)
+	{
+		return ContainerProxy(*this, Value((float)(index + 1)));
+	}
+
+	ContainerProxy operator[](Value key)
+	{
+		return ContainerProxy(*this, key);
 	}
 };
 

@@ -44,7 +44,7 @@ namespace Core
 	Value get_stack_value(unsigned int which);
 	void stack_pop(unsigned int how_many);
 	void stack_push(Value val);
-	void enable_profiling();
-	void disable_profiling();
+	bool enable_profiling();
+	bool disable_profiling();
 	std::string type_to_text(unsigned int type);
 }
