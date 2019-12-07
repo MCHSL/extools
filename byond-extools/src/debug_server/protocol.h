@@ -98,6 +98,22 @@ struct ListContents
 	std::vector<ValueText> OR std::vector<std::pair<ValueText, ValueText>> elements;
 };
 
+struct ProfileTime
+{
+	int seconds;
+	int microseconds;
+}
+
+struct ProfileEntry
+{
+	std::string name;
+	ProfileTime self;
+	ProfileTime total;
+	ProfileTime real;
+	ProfileTime overtime;
+	int call_count;
+};
+
 */
 
 #define MESSAGE_RAW "raw message" //Content is a string, used for debugging purposes (how meta)
@@ -117,4 +133,5 @@ struct ListContents
 #define MESSAGE_GET_TYPE "get type" //Request content is Datum, response content is a string
 #define MESSAGE_RUNTIME "runtime" //Content is a Runtime
 #define MESSAGE_TOGGLE_BREAK_ON_RUNTIME "break on runtimes" //Response content is true or false
-#define MESSAGE_GET_LIST_CONTENTS "get list contents" //Request content is a list id, response content ListContents;
+#define MESSAGE_GET_LIST_CONTENTS "get list contents" //Request content is a list id, response content is ListContents;
+#define MESSAGE_GET_PROFILE "get profile" //Request content is the proc name, response content is ProfileEntry

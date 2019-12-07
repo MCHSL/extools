@@ -204,6 +204,23 @@ void DebugServer::debug_loop()
 			};
 			debugger.send(data);
 		}
+		else if (type == MESSAGE_GET_PROFILE)
+		{
+			const std::string& name = data.at("content");
+			Core::Proc p = Core::get_proc(name);
+			ProfileInfo* entry = p.profile();
+
+			nlohmann::json resp;
+			resp["name"] = name;
+			resp["call_count"] = entry->call_count;
+			resp["self"] = { {"seconds", entry->self.seconds}, {"microseconds", entry->self.seconds} };
+			resp["total"] = { {"seconds", entry->total.seconds}, {"microseconds", entry->total.seconds} };
+			resp["real"] = { {"seconds", entry->real.seconds}, {"microseconds", entry->real.seconds} };
+			resp["overtime"] = { {"seconds", entry->overtime.seconds}, {"microseconds", entry->overtime.seconds} };
+
+			data["content"] = resp;
+			debugger.send(data);
+		}
 	}
 }
 
