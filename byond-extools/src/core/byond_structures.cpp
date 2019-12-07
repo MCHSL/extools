@@ -1,6 +1,12 @@
 #include "byond_structures.h"
 #include "core.h"
 
+Value::Value(std::string s)
+{
+	type = 0x06;
+	value = Core::GetStringId(s.c_str());
+}
+
 Value::operator std::string()
 {
 	return Core::GetStringFromId(value);
@@ -21,9 +27,25 @@ Value Value::get_safe(std::string name)
 	return has_var(name) ? get(name) : Value::Null();
 }
 
+std::unordered_map<std::string, Value> Value::get_all_vars()
+{
+	Container vars = get("vars");
+	int len = vars.length();
+	std::unordered_map<std::string, Value> vals;
+	for (int i = 0; i < len; i++)
+	{
+		std::string varname = vars.at(i);
+		vals[varname] = get(varname);
+	}
+	return vals;
+}
+
 bool Value::has_var(std::string name)
 {
-	int name_str_id = Core::GetStringId(name);
+	Value v = name;
+	Value vars = get("vars");
+	return IsInContainer(v.type, v.value, vars.type, vars.value);
+	/*int name_str_id = Core::GetStringId(name); //good night sweet prince
 	Container contents = get("vars");
 	int left = 0;
 	int right = contents.length() - 1;
@@ -37,7 +59,6 @@ bool Value::has_var(std::string name)
 		}
 
 		std::string midstr = midval;
-
 		if (midstr.compare(name) < 0)
 		{
 			left = mid + 1;
@@ -47,7 +68,7 @@ bool Value::has_var(std::string name)
 			right = mid - 1;
 		}
 	}
-	return false;
+	return false;*/
 }
 
 void Value::set(std::string name, Value value)

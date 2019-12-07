@@ -31,6 +31,7 @@ GetListPointerByIdPtr GetListPointerById;
 SetAssocElementPtr SetAssocElement;
 CreateListPtr CreateList;
 LengthPtr Length;
+IsInContainerPtr IsInContainer;
 
 ExecutionContext** Core::current_execution_context_ptr;
 ExecutionContext** Core::parent_context_ptr_hack;

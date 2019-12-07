@@ -137,3 +137,4 @@ struct ProfileEntry
 #define MESSAGE_GET_PROFILE "get profile" //Request content is the proc name, response content is ProfileEntry
 #define MESSAGE_ENABLE_PROFILER "enable profiler" //Request content is empty
 #define MESSAGE_DISABLE_PROFILER "disable profiler" //Request content is empty
+#define MESSAGE_GET_ALL_FIELDS "get all fields" //Request content is a Datum, response is a map<std::string, ValueText>

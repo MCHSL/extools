@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <string>
+#include <unordered_map>
 
 #ifdef _WIN32
 #define REGPARM3
@@ -47,6 +48,7 @@ struct Value
 			valuef = trvh.valuef;
 	}
 	explicit Value(float valuef) : type(0x2A), valuef(valuef) {};
+	Value(std::string s);
 
 
 	inline static Value Null() {
@@ -77,6 +79,7 @@ struct Value
 	operator float();
 	Value get(std::string name);
 	Value get_safe(std::string name);
+	std::unordered_map<std::string, Value> get_all_vars();
 	bool has_var(std::string name);
 	void set(std::string name, Value value);
 };

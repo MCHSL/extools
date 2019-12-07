@@ -83,10 +83,8 @@ trvh ayy_lmao_path(unsigned int n_args, Value* args, Value src)
 
 trvh typestuff(unsigned int n_args, Value* args, Value src)
 {
-	if (args[0].has_var("tick_leg"))
-	{
-		Core::Alert("Hell yeah");
-	}
+	std::string name = args[0].get_safe("asd");
+	Core::Alert(name);
 	/*Container contents = args[0].get("vars");
 	int length = contents.length();
 	for (int i = 0; i < length; i++)
@@ -108,7 +106,8 @@ bool Proxy::initialize()
 		Core::get_proc("/client/verb/sacrifice_child").hook(sunshine);
 		Core::get_proc("/obj/item/pathfinder/proc/find_path").hook(ayy_lmao_path);
 		Core::get_proc("/proc/deadcode").hook(typestuff);
+		
 	}
-	
+
 	return true;
 }

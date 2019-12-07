@@ -157,6 +157,18 @@ void DebugServer::debug_loop()
 			data["content"] = value_to_text(Value(datatype_name_to_val(content.at("datum_type")), content.at("datum_id")).get_safe(content.at("field_name")));
 			debugger.send(data);
 		}
+		else if (type == MESSAGE_GET_ALL_FIELDS)
+		{
+			auto content = data.at("content");
+			Value datum = Value(datatype_name_to_val(content.at("datum_type")), content.at("datum_id"));
+			nlohmann::json vals;
+			for (const std::pair<std::string, Value>& v: datum.get_all_vars())
+			{
+				vals[v.first] = value_to_text(v.second);
+			}
+			data["content"] = vals;
+			debugger.send(data);
+		}
 		else if (type == MESSAGE_GET_GLOBAL)
 		{
 			data["content"] = value_to_text(GetVariable(DataType::WORLD_D, 0x01, Core::GetStringId(data.at("content"))));

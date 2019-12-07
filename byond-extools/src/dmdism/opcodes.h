@@ -238,14 +238,17 @@ enum DataType
 	LIST = 0x0F,
 	LIST_ARGS = 0x10,
 	LIST_VERBS = 0x12,
+	LIST_CONTENTS_2 = 0x18,
 	LIST_CONTENTS = 0x1C,
+	DATUM_TYPEPATH = 0x20,
 	DATUM = 0x21,
 	SAVEFILE = 0x23,
 	FILE_ = 0x27,
 	LIST_TYPEPATH = 0x28,
 	NUMBER = 0x2A,
+	APPEARANCE = 0x3A,
 	CLIENT_TYPEPATH = 0x3B,
-	VARS_LIST = 0x52, //maybe?
+	LIST_VARS = 0x31, //maybe?
 };
 
 const std::unordered_map<DataType, std::string> datatype_names = {
@@ -271,7 +274,9 @@ const std::unordered_map<DataType, std::string> datatype_names = {
 	{ LIST, "LIST" },
 	{ LIST_ARGS, "LIST_ARGS" },
 	{ LIST_VERBS, "LIST_VERBS" },
-	{ LIST_CONTENTS, "LIST_CONTENTS" }
+	{ LIST_CONTENTS, "LIST_CONTENTS" },
+	{ DATUM_TYPEPATH, "DATUM_TYPEPATH" },
+	{ LIST_CONTENTS_2, "LIST_CONTENTS_2" },
 };
 
 const std::unordered_map<Bytecode, std::string> mnemonics = {
