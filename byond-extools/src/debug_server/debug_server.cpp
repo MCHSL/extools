@@ -182,7 +182,7 @@ void DebugServer::debug_loop()
 		else if (type == MESSAGE_GET_LIST_CONTENTS)
 		{
 			List list(data.at("content"));
-			std::vector<Value> elements = std::vector((Value*)list.list->vector_part, list.list->vector_part + list.list->length); //efficiency
+			std::vector<Value> elements = std::vector<Value>(list.list->vector_part, list.list->vector_part + list.list->length); //efficiency
 			std::vector<nlohmann::json> textual;
 			if (!list.is_assoc())
 			{
