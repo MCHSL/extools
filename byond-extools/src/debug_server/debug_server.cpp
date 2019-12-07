@@ -221,6 +221,16 @@ void DebugServer::debug_loop()
 			data["content"] = resp;
 			debugger.send(data);
 		}
+		else if (type == MESSAGE_ENABLE_PROFILER)
+		{
+			Core::enable_profiling();
+			debugger.send(data);
+		}
+		else if (type == MESSAGE_DISABLE_PROFILER)
+		{
+			Core::disable_profiling();
+			debugger.send(data);
+		}
 	}
 }
 
