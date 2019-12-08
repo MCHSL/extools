@@ -9,11 +9,6 @@
 
 std::uint32_t breakpoint_opcode;
 std::uint32_t nop_opcode;
-std::uint32_t singlestep_opcode;
-
-std::unordered_map<unsigned short, std::vector<Breakpoint>> breakpoints;
-std::unordered_map<unsigned short, std::vector<BreakpointRestorer>> singlesteps;
-std::unique_ptr<Breakpoint> breakpoint_to_restore;
 
 DebugServer debug_server;
 std::mutex notifier_mutex;
@@ -26,10 +21,6 @@ bool DebugServer::connect()
 	debugger = SocketServer();
 	return debugger.listen_for_client();
 }
-
-Breakpoint set_breakpoint(Core::Proc proc, std::uint16_t offset, bool one_shot = false);
-std::unique_ptr<Breakpoint> get_breakpoint(Core::Proc proc, int offset);
-bool remove_breakpoint(Breakpoint bp);
 
 void stripUnicode(std::string& str)
 {
@@ -44,11 +35,6 @@ int datatype_name_to_val(std::string name)
 		if (it->second == name)
 			return it->first;
 	return DataType::NULL_D;
-}
-
-void get_variable_error(int field_name)
-{
-	Core::Alert("An error occured while trying to access field \"" + Core::GetStringFromId(field_name) + "\" of datum. ");
 }
 
 void DebugServer::debug_loop()
@@ -496,7 +482,6 @@ bool debugger_initialize()
 	install_singlestep_hook();
 	breakpoint_opcode = Core::register_opcode("DEBUG_BREAKPOINT", on_breakpoint);
 	nop_opcode = Core::register_opcode("DEBUG_NOP", on_nop);
-	//singlestep_opcode = Core::register_opcode("DEBUG_SINGLESTEP", on_restorer);
 	return true;
 }
 

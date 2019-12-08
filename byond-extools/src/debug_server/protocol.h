@@ -132,7 +132,7 @@ struct ProfileEntry
 #define MESSAGE_GET_GLOBAL "get global" //Request content is a string with the global name, response is a ValueText
 #define MESSAGE_GET_TYPE "get type" //Request content is Datum, response content is a string
 #define MESSAGE_RUNTIME "runtime" //Content is a Runtime
-#define MESSAGE_TOGGLE_BREAK_ON_RUNTIME "break on runtimes" //Response content is true or false
+#define MESSAGE_TOGGLE_BREAK_ON_RUNTIME "break on runtimes" //Request content is true or false
 #define MESSAGE_GET_LIST_CONTENTS "get list contents" //Request content is a list id, response content is ListContents;
 #define MESSAGE_GET_PROFILE "get profile" //Request content is the proc name, response content is ProfileEntry
 #define MESSAGE_ENABLE_PROFILER "enable profiler" //Request content is empty

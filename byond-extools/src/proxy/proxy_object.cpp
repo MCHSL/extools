@@ -12,6 +12,8 @@ std::unordered_map<int, bool> proxies;
 std::unordered_map<int, Core::Proc> getters;
 std::unordered_map<int, Core::Proc> setters;
 
+std::unordered_map<int, std::unordered_map<int, std::unordered_map<int, bool>>>fart;
+
 trvh handle_proxy(int id, int name_id)
 {
 	std::ifstream fin("wack.txt");
@@ -56,45 +58,6 @@ trvh install_proxy(unsigned int n_args, Value* args, Value src)
 	return Value::True();
 }
 
-trvh install_accessors(unsigned int n_args, Value* args, Value src)
-{
-	std::string varname = GetStringTableEntry(args[0].value)->stringData;
-	getters[args[0].value] = Core::get_proc("/obj/accessor_thingy/proc/get_" + varname);
-	setters[args[0].value] = Core::get_proc("/obj/accessor_thingy/proc/set_" + varname);
-	return Value::True();
-}
-
-trvh sunshine(unsigned int n_args, Value* args, Value src)
-{
-	Value t = Core::get_turf(50, 50, 2);
-	Core::Alert("The turf at (50, 50, 2) is called *drumroll*: " + std::string(t.get("name")));
-	return {};
-}
-
-trvh ayy_lmao_path(unsigned int n_args, Value* args, Value src)
-{
-	List list;
-	for (int i = 0; i < 10; i++)
-	{
-		list.append(Core::get_turf(50 + i, 50, 2));
-	}
-	return list;
-}
-
-trvh typestuff(unsigned int n_args, Value* args, Value src)
-{
-	std::string name = args[0].get_safe("asd");
-	Core::Alert(name);
-	/*Container contents = args[0].get("vars");
-	int length = contents.length();
-	for (int i = 0; i < length; i++)
-	{
-		Value v = contents[i];
-		Core::Alert(std::string(v));
-	}*/
-	return {};
-}
-
 bool Proxy::initialize()
 {
 	oGetVariable = (GetVariablePtr)Core::install_hook((void*)GetVariable, (void*)hGetVariable);
@@ -102,11 +65,6 @@ bool Proxy::initialize()
 	if (false)
 	{
 		Core::get_proc("/datum/proxy_object/proc/__install").hook(install_proxy);
-		Core::get_proc("/obj/accessor_thingy/proc/__install_accessors").hook(install_accessors);
-		Core::get_proc("/client/verb/sacrifice_child").hook(sunshine);
-		Core::get_proc("/obj/item/pathfinder/proc/find_path").hook(ayy_lmao_path);
-		Core::get_proc("/proc/deadcode").hook(typestuff);
-		
 	}
 
 	return true;
