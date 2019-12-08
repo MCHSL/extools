@@ -186,7 +186,7 @@ extern "C" EXPORT const char* debug_initialize(int n_args, const char** args)
 {
 	if (!(Core::initialize() && debugger_initialize()))
 		return bad;
-	if (std::string(args[0]) == "pause")
+	if (n_args > 0 && std::string(args[0]) == "pause")
 	{
 		debugger_enable_wait(true);
 	}
