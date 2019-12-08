@@ -1,6 +1,8 @@
 .intel_syntax
 .global _singlestep_hook
 _singlestep_hook:
+
+    // If you modify this, modify the inline assembly in debug_server.cpp as well.
     push eax
     mov edx, _on_singlestep
     call edx

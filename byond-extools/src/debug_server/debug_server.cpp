@@ -441,7 +441,24 @@ void on_breakpoint(ExecutionContext* ctx)
 	debug_server.on_breakpoint(ctx);
 }
 
-extern "C" void* singlestep_hook;
+#ifdef _MSC_VER
+__declspec(naked) void singlestep_hook()
+{
+	_asm
+	{
+		// If you modify this, modify singlestep_hook.s as well.
+		push eax
+		mov edx, on_singlestep
+		call edx
+		pop eax
+		MOVZX ECX, WORD PTR DS : [EAX + 0x14]
+		MOV EDI, DWORD PTR DS : [EAX + 0x10]
+		ret
+	}
+}
+#else
+extern "C" void singlestep_hook();
+#endif
 
 /*
 MOVZX ECX, WORD PTR DS:[EAX + 0x14]
