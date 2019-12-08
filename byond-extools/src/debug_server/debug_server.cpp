@@ -364,6 +364,14 @@ bool place_breakpoint_on_next_instruction(ExecutionContext* ctx, unsigned int of
 		breakpoints[p.id].push_back(bp);
 		return true;
 	}
+	/*else if (ctx->bytecode[offset] == 0x00) //TODO: Rethink the entirety of the breakpoint system
+	{
+		if (!(ctx = ctx->parent_context))
+		{
+			return false;
+		}
+
+	}*/
 	return false;
 }
 
@@ -400,6 +408,7 @@ void on_breakpoint(ExecutionContext* ctx)
 	}
 	auto bp = get_breakpoint(ctx->constants->proc_id, ctx->current_opcode);
 	std::swap(ctx->bytecode[bp->offset], bp->replaced_opcode);
+	//Core::Alert("yello");
 	debug_server.send(MESSAGE_BREAKPOINT_HIT, { {"proc", bp->proc.name }, {"offset", bp->offset }, {"override_id", Core::get_proc(ctx->constants->proc_id).override_id} });
 	update_readouts(ctx);
 	switch (debug_server.wait_for_action())
@@ -487,12 +496,22 @@ bool debugger_initialize()
 	return true;
 }
 
-bool debugger_enable_wait()
+bool debugger_enable_wait(bool pause)
 {
 	debug_server = DebugServer();
 	if (debug_server.connect())
 	{
 		std::thread(&DebugServer::debug_loop, &debug_server).detach();
+		if (pause)
+		{
+			ExecutionContext* ctx = Core::get_context();
+			if (!ctx)
+			{
+				Core::Alert("Attempted to block with no execution context available");
+				return true;
+			}
+			place_breakpoint_on_next_instruction(ctx, ctx->current_opcode);
+		}
 		return true;
 	}
 	return false;
@@ -500,5 +519,5 @@ bool debugger_enable_wait()
 
 void debugger_enable()
 {
-	std::thread(debugger_enable_wait).detach(); //I am good code
+	std::thread(debugger_enable_wait, false).detach(); //I am good code
 }

@@ -150,10 +150,12 @@ var/next_promise_id = 0
 	such as SpaceManiac's VSCode extension for line-by-line debugging (and more), or Steamport's
 	Somnium for bytecode inspection.
 	
+	Call with pause = TRUE to wait until the debugger connected and immediately break on the next instruction after the call.
+	
 */
 
-/proc/debugger_initialize()
-	return call(EXTOOLS, "debug_initialize")() == EXTOOLS_SUCCESS
+/proc/debugger_initialize(pause = FALSE)
+	return call(EXTOOLS, "debug_initialize")(pause ? "pause" : "") == EXTOOLS_SUCCESS
 	
 /*
 

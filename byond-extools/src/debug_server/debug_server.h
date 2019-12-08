@@ -62,5 +62,5 @@ public:
 
 
 bool debugger_initialize();
-bool debugger_enable_wait();
+bool debugger_enable_wait(bool pause = false);
 void debugger_enable();
