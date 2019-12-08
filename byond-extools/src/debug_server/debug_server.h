@@ -56,7 +56,7 @@ public:
 	bool break_on_runtimes = false;
 	bool break_on_step = false;
 	bool has_stepped_after_replacing_breakpoint_opcode = false;
-	std::optional<Breakpoint> breakpoint_to_restore;
+	std::optional<Breakpoint> breakpoint_to_restore = {};
 
 	std::unordered_map<int, std::unordered_map<int, Breakpoint>> breakpoints;
 
