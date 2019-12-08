@@ -51,19 +51,6 @@ void get_variable_error(int field_name)
 	Core::Alert("An error occured while trying to access field \"" + Core::GetStringFromId(field_name) + "\" of datum. ");
 }
 
-/*trvh safe_get_variable(int datum_type, int datum_id, int field_name)
-{
-	__try
-	{
-		return GetVariable(datum_type, datum_id, field_name);
-	}
-	__except (EXCEPTION_EXECUTE_HANDLER)
-	{
-		//get_variable_error(field_name);
-		return {};
-	}
-}*/
-
 void DebugServer::debug_loop()
 {
 	while (true)
@@ -128,7 +115,7 @@ void DebugServer::debug_loop()
 			const std::string& proc = content.at("proc");
 			const int& override_id = content.at("override_id");
 			//Core::Alert("Setting breakpoint in " + proc);
-			set_breakpoint(Core::get_proc(proc, override_id), content.at("offset"), false);
+			set_breakpoint(Core::get_proc(proc, override_id), content.at("offset"));
 			debugger.send(data);
 		}
 		else if (type == MESSAGE_BREAKPOINT_UNSET)
@@ -137,18 +124,18 @@ void DebugServer::debug_loop()
 			const std::string& proc = content.at("proc");
 			const int& override_id = content.at("override_id");
 			//Core::Alert("Setting breakpoint in " + proc);
-			remove_breakpoint(*get_breakpoint(Core::get_proc(proc, override_id), content.at("offset")));
+			remove_breakpoint(Core::get_proc(proc, override_id), content.at("offset"));
 			debugger.send(data);
 		}
-		else if (type == MESSAGE_BREAKPOINT_STEP)
+		else if (type == MESSAGE_BREAKPOINT_STEP_INTO)
 		{
 			std::lock_guard<std::mutex> lk(notifier_mutex);
-			next_action = DEBUG_STEP;
+			next_action = STEP_INTO;
 			notifier.notify_all();
 		}
 		else if (type == MESSAGE_BREAKPOINT_RESUME)
 		{
-			next_action = DEBUG_RESUME;
+			next_action = RESUME;
 			notifier.notify_all();
 		}
 		else if (type == MESSAGE_GET_FIELD)
@@ -246,12 +233,12 @@ void DebugServer::debug_loop()
 	}
 }
 
-int DebugServer::wait_for_action()
+NextAction DebugServer::wait_for_action()
 {
 	std::unique_lock<std::mutex> lk(notifier_mutex);
-	notifier.wait(lk, [this] { return next_action != DEBUG_WAIT; });
-	int res = next_action;
-	next_action = DEBUG_WAIT;
+	notifier.wait(lk, [this] { return next_action != WAIT; });
+	NextAction res = next_action;
+	next_action = WAIT;
 	return res;
 }
 
@@ -263,6 +250,102 @@ void DebugServer::send_simple(std::string message_type)
 void DebugServer::send(std::string message_type, nlohmann::json content)
 {
 	debugger.send({ {"type", message_type}, {"content", content } });
+}
+
+void DebugServer::set_breakpoint(int proc_id, int offset, bool singleshot)
+{
+	if (get_breakpoint(proc_id, offset))
+	{
+		return;
+	}
+	std::uint32_t* bytecode = Core::get_proc(proc_id).get_bytecode(); 
+	Breakpoint bp = { //Directly writing to bytecode rather than using set_bytecode, 
+		Core::get_proc(proc_id), //because this will ensure any running procs will also hit this
+		bytecode[offset],
+		(unsigned short)offset,
+		singleshot
+	};
+	bytecode[offset] = breakpoint_opcode;
+	breakpoints[proc_id][offset] = bp;
+}
+
+std::optional<Breakpoint> DebugServer::get_breakpoint(int proc_id, int offset)
+{
+	if (breakpoints.find(proc_id) != breakpoints.end())
+	{
+		if (breakpoints[proc_id].find(offset) != breakpoints[proc_id].end())
+		{
+			return breakpoints[proc_id][offset];
+		}
+	}
+	return {};
+}
+
+void DebugServer::remove_breakpoint(int proc_id, int offset)
+{
+	auto bp = get_breakpoint(proc_id, offset);
+	if (!bp)
+	{
+		Core::Alert("Attempted to remove nonexistent breakpoint");
+		return;
+	}
+	std::uint32_t* bytecode = Core::get_proc(proc_id).get_bytecode();
+	bytecode[bp->offset] = bp->replaced_opcode;
+	breakpoints[proc_id].erase(offset);
+}
+
+void DebugServer::restore_breakpoint()
+{
+	if (!breakpoint_to_restore)
+	{
+		Core::Alert("Restore() called with no breakpoint to restore");
+		return;
+	}
+	std::uint32_t* bytecode = breakpoint_to_restore->proc.get_bytecode();
+	std::swap(bytecode[breakpoint_to_restore->offset], breakpoint_to_restore->replaced_opcode);
+}
+
+void DebugServer::on_breakpoint(ExecutionContext* ctx)
+{
+	auto bp = get_breakpoint(ctx->constants->proc_id, ctx->current_opcode);
+	std::swap(ctx->bytecode[bp->offset], bp->replaced_opcode);
+	if (!bp->one_shot)
+	{
+		breakpoint_to_restore = bp;
+	}
+	send(MESSAGE_BREAKPOINT_HIT, { {"proc", bp->proc.name }, {"offset", bp->offset }, {"override_id", Core::get_proc(ctx).override_id} });
+	on_break(ctx);
+	has_stepped_after_replacing_breakpoint_opcode = false;
+	ctx->current_opcode--;
+}
+
+void DebugServer::on_step(ExecutionContext* ctx)
+{
+	auto proc = Core::get_proc(ctx);
+	send(MESSAGE_BREAKPOINT_HIT, { {"proc", proc.name }, {"offset", ctx->current_opcode }, {"override_id", proc.override_id} });
+	on_break(ctx);
+}
+
+void DebugServer::on_break(ExecutionContext* ctx)
+{
+	send_call_stack(ctx);
+	switch (wait_for_action())
+	{
+	case STEP_INTO:
+		break_on_step = true;
+		break;
+	case RESUME:
+		break_on_step = false;
+		break;
+	}
+}
+
+void DebugServer::on_error(ExecutionContext* ctx, char* error)
+{
+	Core::Proc p = Core::get_proc(ctx);
+	debug_server.send(MESSAGE_RUNTIME, { {"proc", p.name }, {"offset", ctx->current_opcode }, {"override_id", p.override_id}, {"message", std::string(error)} });
+	send_call_stack(ctx);
+	while (debug_server.wait_for_action() != RESUME);
 }
 
 nlohmann::json value_to_text(Value val)
@@ -287,23 +370,13 @@ nlohmann::json value_to_text(Value val)
 	return { { "type", type_text }, { "value", value_text } };
 }
 
-void send_values(std::string message_type, Value* values, unsigned int count)
-{
-	std::vector<nlohmann::json> c;
-	for (int i = 0; i < count; i++)
-	{
-		c.push_back(value_to_text(values[i]));
-	}
-	debug_server.send(message_type, c);
-}
-
-void send_call_stack(ExecutionContext* ctx)
+void DebugServer::send_call_stack(ExecutionContext* ctx)
 {
 	std::vector<nlohmann::json> res;
 	do
 	{
 		nlohmann::json j;
-		Core::Proc p = Core::get_proc(ctx->constants->proc_id);
+		Core::Proc p = Core::get_proc(ctx);
 		j["name"] = p.name;
 		j["override_id"] = p.override_id;
 		j["usr"] = value_to_text(ctx->constants->usr);
@@ -325,174 +398,93 @@ void send_call_stack(ExecutionContext* ctx)
 	debug_server.send(MESSAGE_CALL_STACK, res);
 }
 
-void update_readouts(ExecutionContext* ctx)
-{
-	send_values(MESSAGE_VALUES_LOCALS, ctx->local_variables, ctx->local_var_count);
-	send_values(MESSAGE_VALUES_ARGS, ctx->constants->args, ctx->constants->arg_count);
-	send_values(MESSAGE_VALUES_STACK, ctx->stack, ctx->stack_size);
-	send_call_stack(ctx);
-}
-
-bool place_restorer_on_next_instruction(ExecutionContext* ctx, std::uint16_t offset)
-{
-	Core::Proc p = Core::get_proc(ctx->constants->proc_id);
-	Disassembly current_dis = Disassembler(ctx->bytecode, p.get_bytecode_length(), procs_by_id).disassemble();
-	Instruction* next = current_dis.next_from_offset(offset);
-	if (next)
-	{
-		BreakpointRestorer sbp = {
-			current_dis.at(offset).bytes().at(0), next->bytes().at(0), offset, next->offset()
-		};
-		ctx->bytecode[next->offset()] = singlestep_opcode;
-		singlesteps[p.id].push_back(sbp);
-		return true;
-	}
-	return false;
-}
-
-bool place_breakpoint_on_next_instruction(ExecutionContext* ctx, unsigned int offset) //TODO: make this and the above better
-{
-	Core::Proc p = Core::get_proc(ctx->constants->proc_id);
-	Disassembly current_dis = Disassembler(ctx->bytecode, p.get_bytecode_length(), procs_by_id).disassemble();
-	Instruction* next = current_dis.next_from_offset(offset);
-	if (next)
-	{
-		Breakpoint bp = {
-			p, next->bytes().at(0), next->offset(), true
-		};
-		ctx->bytecode[next->offset()] = breakpoint_opcode;
-		breakpoints[p.id].push_back(bp);
-		return true;
-	}
-	/*else if (ctx->bytecode[offset] == 0x00) //TODO: Rethink the entirety of the breakpoint system
-	{
-		if (!(ctx = ctx->parent_context))
-		{
-			return false;
-		}
-
-	}*/
-	return false;
-}
-
-std::unique_ptr<Breakpoint> get_breakpoint(Core::Proc proc, int offset)
-{
-	for (Breakpoint& bp : breakpoints[proc.id])
-	{
-		if (bp.offset == offset)
-		{
-			return std::make_unique<Breakpoint>(bp);
-		}
-	}
-	return nullptr;
-}
-
-std::unique_ptr<BreakpointRestorer> get_restorer(Core::Proc proc, int offset)
-{
-	for (BreakpointRestorer& bp : singlesteps[proc.id])
-	{
-		if (bp.my_offset == offset)
-		{
-			return std::make_unique<BreakpointRestorer>(bp);
-		}
-	}
-	return nullptr;
-}
-
-void on_breakpoint(ExecutionContext* ctx)
-{
-	if (breakpoint_to_restore)
-	{
-		std::swap(ctx->bytecode[breakpoint_to_restore->offset], breakpoint_to_restore->replaced_opcode);
-		breakpoint_to_restore = nullptr;
-	}
-	auto bp = get_breakpoint(ctx->constants->proc_id, ctx->current_opcode);
-	std::swap(ctx->bytecode[bp->offset], bp->replaced_opcode);
-	//Core::Alert("yello");
-	debug_server.send(MESSAGE_BREAKPOINT_HIT, { {"proc", bp->proc.name }, {"offset", bp->offset }, {"override_id", Core::get_proc(ctx->constants->proc_id).override_id} });
-	update_readouts(ctx);
-	switch (debug_server.wait_for_action())
-	{
-	case DEBUG_STEP:
-		if (!bp->one_shot)
-		{
-			breakpoint_to_restore = std::move(bp);
-		}
-		place_breakpoint_on_next_instruction(ctx, ctx->current_opcode);
-		break;
-	case DEBUG_RESUME:
-		if (!bp->one_shot)
-		{
-			place_restorer_on_next_instruction(ctx, bp->offset);
-		}
-		break;
-	}
-	ctx->current_opcode--;
-}
-
 void on_nop(ExecutionContext* ctx)
 {
 
-}
-
-void on_restorer(ExecutionContext* ctx)
-{
-	auto sbp = get_restorer(ctx->constants->proc_id, ctx->current_opcode);
-	if (!sbp)
-	{
-		Core::Alert("Restore opcode with no associated restorer");
-		return;
-	}
-	//Core::Alert("SBP replacement opcode: " + std::to_string(sbp->replaced_opcode) + ", at offset: " + std::to_string(sbp->offset_to_replace));
-	ctx->bytecode[sbp->offset_to_replace] = sbp->breakpoint_replaced_opcode;
-	ctx->bytecode[sbp->my_offset] = sbp->my_replaced_opcode;
-	auto& ss = singlesteps[ctx->constants->proc_id];
-	ss.erase(std::remove(ss.begin(), ss.end(), *sbp), ss.end());
-	ctx->current_opcode--;
-}
-
-Breakpoint set_breakpoint(Core::Proc proc, std::uint16_t offset, bool one_shot)
-{
-	Breakpoint bp = {
-		proc, breakpoint_opcode, offset, one_shot
-	};
-	std::uint32_t* bytecode = proc.get_bytecode();
-	std::swap(bytecode[offset], bp.replaced_opcode);
-	proc.set_bytecode(bytecode);
-	breakpoints[proc.id].push_back(bp);
-	return bp;
-}
-
-bool remove_breakpoint(Breakpoint bp)
-{
-	std::uint32_t* bytecode = bp.proc.get_bytecode();
-	std::swap(bytecode[bp.offset], bp.replaced_opcode);
-	bp.proc.set_bytecode(bytecode);
-	auto& bps = breakpoints[bp.proc.id];
-	bps.erase(std::remove(bps.begin(), bps.end(), bp), bps.end());
-	return true;
 }
 
 void hRuntime(char* error)
 {
 	if (debug_server.break_on_runtimes)
 	{
-		ExecutionContext* ctx = Core::get_context();
-		Core::Proc p = Core::get_proc(ctx->constants->proc_id);
-		debug_server.send(MESSAGE_RUNTIME, { {"proc", p.name }, {"offset", ctx->current_opcode }, {"override_id", p.override_id}, {"message", std::string(error)} });
-		update_readouts(ctx);
-		while (debug_server.wait_for_action() != DEBUG_RESUME);
+		debug_server.on_error(Core::get_context(), error);
 	}
-
 	oRuntime(error);
+}
+
+void on_singlestep()
+{
+	if (debug_server.breakpoint_to_restore && Core::get_context()->current_opcode != debug_server.breakpoint_to_restore->offset)
+	{
+		debug_server.restore_breakpoint();
+	}
+	if (debug_server.break_on_step)
+	{
+		if (!debug_server.has_stepped_after_replacing_breakpoint_opcode)
+		{
+			debug_server.has_stepped_after_replacing_breakpoint_opcode = true;
+		}
+		else
+		{
+			debug_server.on_step(Core::get_context());
+		}
+	}
+}
+
+void on_breakpoint(ExecutionContext* ctx)
+{
+	debug_server.on_breakpoint(ctx);
+}
+
+__declspec(naked) void singlestep_hook()
+{
+	_asm
+	{
+		push eax
+		mov edx, on_singlestep
+		call edx
+		pop eax
+		MOVZX ECX, WORD PTR DS : [EAX + 0x14]
+		MOV EDI, DWORD PTR DS : [EAX + 0x10]
+		ret
+	}
+}
+
+/*
+MOVZX ECX, WORD PTR DS:[EAX + 0x14]
+MOV EDI, DWORD PTR DS:[EAX + 0x10]
+
+Below remains after hooking
+MOV ESI, ECX
+MOV EDX, DWORD PTR DS:[EDI + ESI * 4]
+CMP EDX, 0x143
+*/
+
+#define nth(x, n) (x >> (n * 8)) & 0xFF;
+
+void install_singlestep_hook()
+{
+	char* opcode_switch = (char*)Pocket::Sigscan::FindPattern("byondcore.dll", "0F B7 48 14 8B 78 10 8B F1 8B 14 B7 81 FA");
+	std::uint32_t addr = (std::uint32_t) & singlestep_hook;
+	DWORD old_prot;
+	VirtualProtect((void*)opcode_switch, 16, PAGE_EXECUTE_READWRITE, &old_prot);
+	opcode_switch[0] = 0xBA; //MOV EDX,
+	opcode_switch[1] = nth(addr, 0);
+	opcode_switch[2] = nth(addr, 1);
+	opcode_switch[3] = nth(addr, 2);
+	opcode_switch[4] = nth(addr, 3); //address of singlestep_hook
+	opcode_switch[5] = 0xFF; //CALL
+	opcode_switch[6] = 0xD2; //EDX
+
 }
 
 bool debugger_initialize()
 {
 	oRuntime = (RuntimePtr)Core::install_hook((void*)Runtime, (void*)hRuntime);
+	install_singlestep_hook();
 	breakpoint_opcode = Core::register_opcode("DEBUG_BREAKPOINT", on_breakpoint);
 	nop_opcode = Core::register_opcode("DEBUG_NOP", on_nop);
-	singlestep_opcode = Core::register_opcode("DEBUG_SINGLESTEP", on_restorer);
+	//singlestep_opcode = Core::register_opcode("DEBUG_SINGLESTEP", on_restorer);
 	return true;
 }
 
@@ -504,13 +496,7 @@ bool debugger_enable_wait(bool pause)
 		std::thread(&DebugServer::debug_loop, &debug_server).detach();
 		if (pause)
 		{
-			ExecutionContext* ctx = Core::get_context();
-			if (!ctx)
-			{
-				Core::Alert("Attempted to block with no execution context available");
-				return true;
-			}
-			place_breakpoint_on_next_instruction(ctx, ctx->current_opcode);
+			debug_server.break_on_step = true;
 		}
 		return true;
 	}

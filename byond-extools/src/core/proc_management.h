@@ -68,6 +68,7 @@ namespace Core
 
 	Proc get_proc(std::string name, unsigned int override_id=0);
 	Proc get_proc(unsigned int id);
+	Proc get_proc(ExecutionContext* ctx);
 	const std::vector<Proc>& get_all_procs();
 
 	bool populate_proc_list();

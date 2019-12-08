@@ -5,10 +5,15 @@
 
 #include <condition_variable>
 #include <mutex>
+#include <optional>
 
-#define DEBUG_WAIT 0
-#define DEBUG_STEP 1
-#define DEBUG_RESUME 2
+enum NextAction
+{
+	WAIT,
+	STEP_INTO,
+	STEP_OVER,
+	RESUME
+};
 
 struct Breakpoint
 {
@@ -47,17 +52,32 @@ class DebugServer
 {
 	SocketServer debugger;
 public:
-	int next_action = DEBUG_WAIT;
+	NextAction next_action = WAIT;
 	bool break_on_runtimes = false;
+	bool break_on_step = false;
+	bool has_stepped_after_replacing_breakpoint_opcode = false;
+	std::optional<Breakpoint> breakpoint_to_restore;
+
+	std::unordered_map<int, std::unordered_map<int, Breakpoint>> breakpoints;
+
+	void set_breakpoint(int proc_id, int offset, bool singleshot=false);
+	std::optional<Breakpoint> get_breakpoint(int proc_id, int offset);
+	void remove_breakpoint(int proc_id, int offset);
+	void restore_breakpoint();
+
 	bool connect();
 	void debug_loop();
 
-	int wait_for_action();
+	NextAction wait_for_action();
 
 	void on_error(ExecutionContext* ctx, char* error);
+	void on_breakpoint(ExecutionContext* ctx);
+	void on_step(ExecutionContext* ctx);
+	void on_break(ExecutionContext* ctx);
 
 	void send_simple(std::string message_type);
 	void send(std::string message_type, nlohmann::json content);
+	void send_call_stack(ExecutionContext* ctx);
 };
 
 

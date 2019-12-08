@@ -124,6 +124,11 @@ Core::Proc Core::get_proc(unsigned int id)
 	return procs_by_id.at(id);
 }
 
+Core::Proc Core::get_proc(ExecutionContext* ctx)
+{
+	return get_proc(ctx->constants->proc_id);
+}
+
 const std::vector<Core::Proc>& Core::get_all_procs()
 {
 	return procs_by_id;
