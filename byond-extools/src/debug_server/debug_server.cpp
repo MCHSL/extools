@@ -289,6 +289,10 @@ void DebugServer::remove_breakpoint(int proc_id, int offset)
 		Core::Alert("Attempted to remove nonexistent breakpoint");
 		return;
 	}
+	if (bp->replaced_opcode == breakpoint_opcode)
+	{
+		Core::Alert("removed breakpoint has replaced breakpoint_opcode");
+	}
 	std::uint32_t* bytecode = Core::get_proc(proc_id).get_bytecode();
 	bytecode[bp->offset] = bp->replaced_opcode;
 	breakpoints[proc_id].erase(offset);
@@ -303,6 +307,7 @@ void DebugServer::restore_breakpoint()
 	}
 	std::uint32_t* bytecode = breakpoint_to_restore->proc.get_bytecode();
 	std::swap(bytecode[breakpoint_to_restore->offset], breakpoint_to_restore->replaced_opcode);
+	breakpoint_to_restore = {};
 }
 
 void DebugServer::on_breakpoint(ExecutionContext* ctx)
