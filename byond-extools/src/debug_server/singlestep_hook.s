@@ -4,7 +4,7 @@ _singlestep_hook:
 
     // If you modify this, modify the inline assembly in debug_server.cpp as well.
     push eax
-    mov edx, _on_singlestep
+    mov edx, offset _on_singlestep
     call edx
     pop eax
     MOVZX ECX, WORD PTR DS : [EAX + 0x14]
