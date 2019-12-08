@@ -174,8 +174,7 @@ void DebugServer::debug_loop()
 		}
 		else if (type == MESSAGE_TOGGLE_BREAK_ON_RUNTIME)
 		{
-			break_on_runtimes = !break_on_runtimes; //runtimes funtimes
-			data["content"] = break_on_runtimes;
+			break_on_runtimes = data.at("content"); //runtimes funtimes
 			debugger.send(data);
 		}
 		else if (type == MESSAGE_GET_LIST_CONTENTS)
