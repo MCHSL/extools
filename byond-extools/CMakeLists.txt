@@ -5,7 +5,7 @@ else()
     cmake_minimum_required(VERSION 3.10.0)
 endif()
 
-project(byond-extools)
+project(byond-extools CXX C ASM)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -14,6 +14,7 @@ file(GLOB_RECURSE SRC_FILES
     "${SRC_DIR}/*.cpp"
     "${SRC_DIR}/*.h"
     "${SRC_DIR}/*.hpp"
+    "${SRC_DIR}/*.s"
 )
 set(SRC_FILES ${SRC_FILES} "${SRC_DIR}/core/subhook/subhook.c")
 

@@ -417,7 +417,7 @@ void hRuntime(char* error)
 	oRuntime(error);
 }
 
-void on_singlestep()
+extern "C" void on_singlestep()
 {
 	if (debug_server.breakpoint_to_restore && Core::get_context()->current_opcode != debug_server.breakpoint_to_restore->offset)
 	{
@@ -441,19 +441,7 @@ void on_breakpoint(ExecutionContext* ctx)
 	debug_server.on_breakpoint(ctx);
 }
 
-__declspec(naked) void singlestep_hook()
-{
-	_asm
-	{
-		push eax
-		mov edx, on_singlestep
-		call edx
-		pop eax
-		MOVZX ECX, WORD PTR DS : [EAX + 0x14]
-		MOV EDI, DWORD PTR DS : [EAX + 0x10]
-		ret
-	}
-}
+extern "C" void* singlestep_hook;
 
 /*
 MOVZX ECX, WORD PTR DS:[EAX + 0x14]
