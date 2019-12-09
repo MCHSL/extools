@@ -123,6 +123,7 @@ struct ProfileEntry
 #define MESSAGE_BREAKPOINT_SET "breakpoint set" //Content is BreakpointSet
 #define MESSAGE_BREAKPOINT_UNSET "breakpoint unset" //Content is BreakpointUnset
 #define MESSAGE_BREAKPOINT_STEP_INTO "breakpoint step into" //Content is empty
+#define MESSAGE_BREAKPOINT_STEP_OVER "breakpoint step over" //Content is empty
 #define MESSAGE_BREAKPOINT_RESUME "breakpoint resume" //Content is empty
 #define MESSAGE_VALUES_LOCALS "locals" //Content is a vector of ValueTexts
 #define MESSAGE_VALUES_ARGS "args" //^

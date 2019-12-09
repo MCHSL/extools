@@ -119,8 +119,15 @@ void DebugServer::debug_loop()
 			next_action = STEP_INTO;
 			notifier.notify_all();
 		}
+		else if (type == MESSAGE_BREAKPOINT_STEP_OVER)
+		{
+			std::lock_guard<std::mutex> lk(notifier_mutex);
+			next_action = STEP_OVER;
+			notifier.notify_all();
+		}
 		else if (type == MESSAGE_BREAKPOINT_RESUME)
 		{
+			std::lock_guard<std::mutex> lk(notifier_mutex);
 			next_action = RESUME;
 			notifier.notify_all();
 		}
@@ -324,10 +331,14 @@ void DebugServer::on_break(ExecutionContext* ctx)
 	switch (wait_for_action())
 	{
 	case STEP_INTO:
-		break_on_step = true;
+		step_mode = INTO;
+		break;
+	case STEP_OVER:
+		step_mode = OVER;
+		step_over_context = ctx;
 		break;
 	case RESUME:
-		break_on_step = false;
+		step_mode = NONE;
 		break;
 	}
 }
@@ -337,7 +348,7 @@ void DebugServer::on_error(ExecutionContext* ctx, char* error)
 	Core::Proc p = Core::get_proc(ctx);
 	debug_server.send(MESSAGE_RUNTIME, { {"proc", p.name }, {"offset", ctx->current_opcode }, {"override_id", p.override_id}, {"message", std::string(error)} });
 	send_call_stack(ctx);
-	while (debug_server.wait_for_action() != RESUME);
+	debug_server.wait_for_action();
 }
 
 nlohmann::json value_to_text(Value val)
@@ -410,7 +421,7 @@ extern "C" void on_singlestep()
 	{
 		debug_server.restore_breakpoint();
 	}
-	if (debug_server.break_on_step)
+	if (debug_server.step_mode == INTO || (debug_server.step_mode == OVER && debug_server.step_over_context == Core::get_context()))
 	{
 		if (!debug_server.has_stepped_after_replacing_breakpoint_opcode)
 		{
@@ -418,6 +429,10 @@ extern "C" void on_singlestep()
 		}
 		else
 		{
+			if (debug_server.step_mode == OVER) //a few more ifs and this will turn sentient
+			{
+				debug_server.step_over_context = nullptr;
+			}
 			debug_server.on_step(Core::get_context());
 		}
 	}
@@ -472,6 +487,7 @@ void install_singlestep_hook()
 	opcode_switch[4] = nth(addr, 3); //address of singlestep_hook
 	opcode_switch[5] = 0xFF; //CALL
 	opcode_switch[6] = 0xD2; //EDX
+	VirtualProtect((void*)opcode_switch, 16, old_prot, &old_prot);
 
 }
 
@@ -493,7 +509,7 @@ bool debugger_enable_wait(bool pause)
 		if (pause)
 		{
 			debug_server.has_stepped_after_replacing_breakpoint_opcode = true;
-			debug_server.break_on_step = true;
+			debug_server.step_mode = INTO;
 		}
 		return true;
 	}
