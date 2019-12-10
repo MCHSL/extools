@@ -114,6 +114,21 @@ struct ProfileEntry
 	int call_count;
 };
 
+struct VariableRead
+{
+	std::string datum_type;
+	int datum_id;
+	std::string variable_name;
+};
+
+struct VariableWrite
+{
+	std::string datum_type;
+	int datum_id;
+	std::string variable_name;
+	ValueText new_value;
+};
+
 */
 
 #define MESSAGE_RAW "raw message" //Content is a string, used for debugging purposes (how meta)
@@ -139,3 +154,5 @@ struct ProfileEntry
 #define MESSAGE_ENABLE_PROFILER "enable profiler" //Request content is empty
 #define MESSAGE_DISABLE_PROFILER "disable profiler" //Request content is empty
 #define MESSAGE_GET_ALL_FIELDS "get all fields" //Request content is a Datum, response is a map<std::string, ValueText>
+#define MESSAGE_DATA_BREAKPOINT_READ "data breakpoint read" //Content is a VariableRead
+#define MESSAGE_DATA_BREAKPOINT_WRITE "data breakpoint write" //Content is a VariableWrite
