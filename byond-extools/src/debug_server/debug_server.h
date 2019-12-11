@@ -57,7 +57,7 @@ struct BreakpointRestorer
 
 class DebugServer
 {
-	SocketServer debugger;
+	JsonStream debugger;
 public:
 	NextAction next_action = WAIT;
 	StepMode step_mode = NONE;

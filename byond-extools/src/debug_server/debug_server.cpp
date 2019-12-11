@@ -18,8 +18,15 @@ RuntimePtr oRuntime;
 
 bool DebugServer::connect()
 {
-	debugger = SocketServer();
-	return debugger.listen_for_client();
+	TcpListener listener;
+	if (!listener.listen())
+	{
+		Core::Alert("couldn't listen");
+		return false;
+	}
+
+	debugger = listener.accept();
+	return true;
 }
 
 void stripUnicode(std::string& str)
@@ -250,8 +257,8 @@ void DebugServer::set_breakpoint(int proc_id, int offset, bool singleshot)
 	{
 		return;
 	}
-	std::uint32_t* bytecode = Core::get_proc(proc_id).get_bytecode(); 
-	Breakpoint bp = { //Directly writing to bytecode rather than using set_bytecode, 
+	std::uint32_t* bytecode = Core::get_proc(proc_id).get_bytecode();
+	Breakpoint bp = { //Directly writing to bytecode rather than using set_bytecode,
 		Core::get_proc(proc_id), //because this will ensure any running procs will also hit this
 		bytecode[offset],
 		(unsigned short)offset,

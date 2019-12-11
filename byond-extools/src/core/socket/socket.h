@@ -11,21 +11,48 @@
 #pragma comment (lib, "Ws2_32")
 #endif
 
-class SocketServer
+class Socket
 {
-#ifdef _WIN32
-	SOCKET server_socket = INVALID_SOCKET;
-	SOCKET client_socket = INVALID_SOCKET; //only supports one client at a time
-#endif
+	Socket(const Socket&) = delete;
+	Socket& operator=(const Socket&) = delete;
 
-	std::string recv_buffer;
-
+	SOCKET raw_socket = INVALID_SOCKET;
 public:
-	bool listen(std::string iface = "127.0.0.1", unsigned short port = 2448);
-	bool accept();
-	bool listen_for_client();
+	Socket() {}
+	Socket(Socket&& other);
+	Socket& operator=(Socket&& other);
+	virtual ~Socket();
 
-	bool send(std::string type, nlohmann::json content);
+	explicit Socket(int raw_socket) : raw_socket(raw_socket) {}
+
+	bool create(int family = AF_INET, int socktype = SOCK_STREAM, int protocol = IPPROTO_TCP);
+	void close();
+
+	SOCKET raw() { return raw_socket; }
+};
+
+class JsonStream
+{
+	Socket socket;
+	std::string recv_buffer;
+public:
+	JsonStream() {}
+	explicit JsonStream(Socket&& socket) : socket(std::move(socket)) {}
+
+	//bool connect(unsigned short port = 2448, const char* remote = "127.0.0.1");
+
+	bool send(const char* type, nlohmann::json content);
 	bool send(nlohmann::json j);
 	nlohmann::json recv_message();
+	void close() { socket.close(); }
+};
+
+class TcpListener
+{
+	Socket socket;
+public:
+	TcpListener() {}
+	bool listen(unsigned short port = 2448, const char* iface = "127.0.0.1");
+	JsonStream accept();
+	void close() { socket.close(); }
 };
