@@ -146,7 +146,7 @@ void init_testing()
 	//Core::Alert("Now's your time");
 	//jit();
 	//std::vector<std::uint32_t>* a = new std::vector<std::uint32_t>{ 0x1337, 0x0 };
-	Core::get_proc("/proc/add").jit();
+	//Core::get_proc("/proc/add").jit();
 	/*Core::Proc p = "/proc/bench_intrinsic_add_fields";
 	std::uint32_t* bc = p.get_bytecode();
 	bc[48] = Core::register_opcode("add_fields", add_subvars_of_locals);

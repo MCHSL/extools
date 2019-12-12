@@ -26,6 +26,8 @@ struct QueuedCall
 std::vector<QueuedCall> queued_calls;
 bool calling_queue = false;
 
+std::vector<bool> has_been_considered;
+
 trvh REGPARM3 hCallGlobalProc(char usr_type, int usr_value, int proc_type, unsigned int proc_id, int const_0, char src_type, int src_value, Value *argList, unsigned int argListLen, int const_0_2, int const_0_3)
 {
 	codecov_executed_procs[proc_id] = true;
@@ -39,6 +41,11 @@ trvh REGPARM3 hCallGlobalProc(char usr_type, int usr_value, int proc_type, unsig
 			qc.proc.call(qc.args, qc.usr, qc.src);
 		}
 		calling_queue = false;
+	}
+	if (!has_been_considered[proc_id])
+	{
+		has_been_considered[proc_id] = true;
+		consider_jit(Core::Proc(proc_id));
 	}
 	if (traced_procs.find(proc_id) != traced_procs.end())
 	{
@@ -97,6 +104,7 @@ void spam()
 
 
 bool Core::hook_custom_opcodes() {
+	has_been_considered.resize(Core::get_all_procs().size());
 	oCrashProc = (CrashProcPtr)install_hook((void*)CrashProc, (void*)hCrashProc);
 	oCallGlobalProc = (CallGlobalProcPtr)install_hook((void*)CallGlobalProc, (void*)hCallGlobalProc);
 	//std::thread(spam).detach();

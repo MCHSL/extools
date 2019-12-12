@@ -4,6 +4,7 @@
 #include "jit.h"
 #include "../core/asmjit/asmjit.h"
 #include <fstream>
+#include <thread>
 
 using namespace asmjit;
 
@@ -144,12 +145,12 @@ void record_jit(unsigned int proc_id, Value* args, unsigned int args_len)
 {
 	JitTrace& jt = traced_procs[proc_id];
 	jt.call_count++;
-	jit_out << "Recording call of " << jt.proc.name << " (" << jt.call_count << "/10)" << std::endl;
+	jit_out << "Recording call of " << jt.proc.name << " (" << jt.call_count << "/10)\n";
 	for (int i = 0; i < args_len; i++)
 	{
 		if (args[i].type != NUMBER)
 		{
-			jit_out << "Non-number arg, cannot compile" << std::endl;
+			jit_out << "Non-number arg, cannot compile\n";
 			traced_procs.erase(jt.proc.id);
 			return;
 		}
@@ -165,7 +166,7 @@ void reconsider_jit(JitTrace jt)
 	jit_out << "Considering " << jt.proc.name << " after trace" << std::endl;
 	traced_procs.erase(jt.proc.id);
 	jit_out << "Attempting compilation" << std::endl;
-	jit_compile(jt.proc);
+	std::thread(jit_compile, jt.proc).detach();
 }
 
 void jit_compile(Core::Proc p)
@@ -189,7 +190,9 @@ void jit_compile(Core::Proc p)
 	local_regs.push_back(cc.newInt32());
 	for (Instruction& i : d)
 	{
-		if (i == GETVAR)
+		switch (i.bytes()[0])
+		{
+		case GETVAR:
 		{
 			if (i.bytes().at(1) == LOCAL)
 			{
@@ -201,8 +204,9 @@ void jit_compile(Core::Proc p)
 				jit_out << "Assembling argument load\n";
 				stack.push_back(gen_get_arg(cc, args, i.bytes().at(2)));
 			}
+			break;
 		}
-		else if (i == SETVAR)
+		case SETVAR:
 		{
 			if (i.bytes().at(1) == LOCAL)
 			{
@@ -210,25 +214,39 @@ void jit_compile(Core::Proc p)
 				cc.mov(local_regs[i.bytes().at(2)], stack[0]);
 				stack.erase(stack.begin());
 			}
+			break;
 		}
-		else if (i == ADD)
+		case ADD:
 		{
 			jit_out << "Assembling addition\n";
 			stack.push_back(gen_add_numbers(cc, stack[0], stack[1]));
 			stack.erase(stack.begin(), stack.begin() + 2);
+			break;
 		}
-		else if (i == PUSHI)
+		case PUSHI:
 		{
 			jit_out << "Assembling constant push\n";
 			stack.push_back(gen_push_integer(cc, (float)i.bytes().at(1)));
+			break;
 		}
-		else
+		case RET:
 		{
-			jit_out << "Warning: Encountered unknown opcode\n";
+			jit_out << "Assembling return value\n";
+			gen_return_value(cc, 0x2A, stack[0]);
+			stack.erase(stack.begin());
+			break;
+		}
+		case DBG_LINENO:
+		case DBG_FILE:
+		case END:
+			break;
+		default:
+		{
+			jit_out << "Cannot compile: Encountered unknown opcode\n";
+			return;
+		}
 		}
 	}
-	jit_out << "Assembling return value\n";
-	gen_return_value(cc, 0x2A, stack[0]);
 	cc.endFunc();
 
 	jit_out << "Finalizing\n";
