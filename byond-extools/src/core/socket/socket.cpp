@@ -59,7 +59,7 @@ bool Socket::create(int family, int socktype, int protocol)
 }
 
 // Listening.
-bool TcpListener::listen(unsigned short port, const char* iface)
+bool TcpListener::listen(const char* port, const char* iface)
 {
 	struct addrinfo* result = NULL;
 	struct addrinfo hints;
@@ -78,7 +78,7 @@ bool TcpListener::listen(unsigned short port, const char* iface)
 	hints.ai_flags = AI_PASSIVE;
 
 	// Resolve the server address and port
-	iResult = getaddrinfo(iface, std::to_string(port).c_str(), &hints, &result);
+	iResult = getaddrinfo(iface, port, &hints, &result);
 	if (iResult != 0)
 	{
 		Core::Alert("getaddrinfo failed with error: " + std::to_string(iResult));
@@ -126,11 +126,52 @@ JsonStream TcpListener::accept()
 	return JsonStream(Socket(::accept(socket.raw(), NULL, NULL)));
 }
 
-/*
-bool JsonStream::connect(unsigned short port = 2448, const char* remote = "127.0.0.1")
+bool JsonStream::connect(const char* port, const char* remote)
 {
+	struct addrinfo* result = NULL;
+	struct addrinfo hints;
+	int iResult;
+
+	// Initialize Winsock
+	if (!InitOnce())
+	{
+		return false;
+	}
+
+	ZeroMemory(&hints, sizeof(hints));
+	hints.ai_family = AF_INET;
+	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_protocol = IPPROTO_TCP;
+	hints.ai_flags = AI_PASSIVE;
+
+	// Resolve the server address and port
+	iResult = getaddrinfo(remote, port, &hints, &result);
+	if (iResult != 0)
+	{
+		Core::Alert("getaddrinfo failed with error: " + std::to_string(iResult));
+		return false;
+	}
+
+	// Create a SOCKET for connecting to server
+	if (!socket.create(result->ai_family, result->ai_socktype, result->ai_protocol))
+	{
+		Core::Alert("socket failed with error: " + std::to_string(WSAGetLastError()));
+		freeaddrinfo(result);
+		return false;
+	}
+
+	// Setup the TCP listening socket
+	iResult = ::connect(socket.raw(), result->ai_addr, (int)result->ai_addrlen);
+	if (iResult == SOCKET_ERROR)
+	{
+		Core::Alert("connect failed with error: " + std::to_string(WSAGetLastError()));
+		freeaddrinfo(result);
+		socket.close();
+		return false;
+	}
+
+	return true;
 }
-*/
 
 bool JsonStream::send(const char* type, nlohmann::json content)
 {

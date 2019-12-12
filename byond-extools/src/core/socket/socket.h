@@ -11,6 +11,8 @@
 #pragma comment (lib, "Ws2_32")
 #endif
 
+const char* const DBG_DEFAULT_PORT = "2448";
+
 class Socket
 {
 	Socket(const Socket&) = delete;
@@ -39,7 +41,7 @@ public:
 	JsonStream() {}
 	explicit JsonStream(Socket&& socket) : socket(std::move(socket)) {}
 
-	//bool connect(unsigned short port = 2448, const char* remote = "127.0.0.1");
+	bool connect(const char* port = DBG_DEFAULT_PORT, const char* remote = "127.0.0.1");
 
 	bool send(const char* type, nlohmann::json content);
 	bool send(nlohmann::json j);
@@ -52,7 +54,7 @@ class TcpListener
 	Socket socket;
 public:
 	TcpListener() {}
-	bool listen(unsigned short port = 2448, const char* iface = "127.0.0.1");
+	bool listen(const char* port = DBG_DEFAULT_PORT, const char* iface = "127.0.0.1");
 	JsonStream accept();
 	void close() { socket.close(); }
 };
