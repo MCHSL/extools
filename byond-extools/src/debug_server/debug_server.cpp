@@ -16,10 +16,10 @@ std::condition_variable notifier;
 
 RuntimePtr oRuntime;
 
-bool DebugServer::connect()
+bool DebugServer::listen(const char* port)
 {
 	TcpListener listener;
-	if (!listener.listen())
+	if (!listener.listen(port))
 	{
 		Core::Alert("couldn't listen");
 		return false;
@@ -27,6 +27,11 @@ bool DebugServer::connect()
 
 	debugger = listener.accept();
 	return true;
+}
+
+bool DebugServer::connect(const char* port)
+{
+	return debugger.connect(port);
 }
 
 void stripUnicode(std::string& str)
@@ -44,16 +49,19 @@ int datatype_name_to_val(std::string name)
 	return DataType::NULL_D;
 }
 
-void DebugServer::debug_loop()
+const int RES_BREAK = 0;
+const int RES_CONTINUE = 1;
+const int RES_CONFIGURATION_DONE = 2;
+
+int DebugServer::handle_one_message()
 {
-	while (true)
 	{
 		nlohmann::json data = debugger.recv_message();
 		//Core::Alert("Message!!");
 		if (data.is_null())
 		{
 			Core::Alert("null message, leaving");
-			break;
+			return RES_BREAK;
 		}
 		const std::string& type = data.at("type");
 		if (type == MESSAGE_RAW)
@@ -230,6 +238,37 @@ void DebugServer::debug_loop()
 			debugger.send(data);
 		}
 	}
+	return RES_CONTINUE;
+}
+
+void DebugServer::debug_loop()
+{
+	while (true)
+	{
+		int res = debug_server.handle_one_message();
+		if (res == RES_BREAK)
+		{
+			return;
+		}
+	}
+}
+
+bool DebugServer::loop_until_configured()
+{
+	while (true)
+	{
+		int res = debug_server.handle_one_message();
+		if (res == RES_CONFIGURATION_DONE)
+		{
+			break;
+		}
+		else if (res != RES_CONTINUE)
+		{
+			return false;
+		}
+	}
+	std::thread(&DebugServer::debug_loop, &debug_server).detach();
+	return true;
 }
 
 NextAction DebugServer::wait_for_action()
@@ -515,26 +554,34 @@ bool debugger_initialize()
 
 bool debugger_enable(const char* mode, const char* port)
 {
-	// TODO
-}
-
-bool debugger_enable_wait(bool pause)
-{
-	debug_server = DebugServer();
-	if (debug_server.connect())
+	if (!strcmp(mode, DBG_MODE_LAUNCHED))
 	{
-		std::thread(&DebugServer::debug_loop, &debug_server).detach();
-		if (pause)
+		// launched mode
+		if (!debug_server.connect(port))
 		{
-			debug_server.has_stepped_after_replacing_breakpoint_opcode = true;
-			debug_server.step_mode = INTO;
+			return false;
 		}
+		return debug_server.loop_until_configured();
+	}
+	else if (!strcmp(mode, DBG_MODE_BLOCK))
+	{
+		if (!debug_server.listen(port))
+		{
+			return false;
+		}
+		return debug_server.loop_until_configured();
+	}
+	else if (!strcmp(mode, DBG_MODE_BACKGROUND))
+	{
+		std::string portbuf = port;
+		std::thread([portbuf]() {
+			debug_server.listen(portbuf.c_str());
+			debug_server.debug_loop();
+		}).detach();
 		return true;
 	}
-	return false;
-}
-
-void debugger_enable()
-{
-	std::thread(debugger_enable_wait, false).detach(); //I am good code
+	else
+	{
+		return false;
+	}
 }

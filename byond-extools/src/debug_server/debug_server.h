@@ -78,7 +78,10 @@ public:
 	void remove_breakpoint(int proc_id, int offset);
 	void restore_breakpoint();
 
-	bool connect();
+	bool connect(const char* port);
+	bool listen(const char* port);
+	int handle_one_message();
+	bool loop_until_configured();
 	void debug_loop();
 
 	NextAction wait_for_action();
