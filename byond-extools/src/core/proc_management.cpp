@@ -2,6 +2,7 @@
 #include "../dmdism/disassembly.h"
 #include "../dmdism/disassembler.h"
 #include "../extended_profiling/extended_profiling.h"
+#include "../optimizer/jit.h"
 
 std::vector<Core::Proc> procs_by_id;
 std::unordered_map<std::string, std::vector<Core::Proc>> procs_by_name;
@@ -105,6 +106,11 @@ void Core::Proc::assemble(Disassembly disasm)
 	set_bytecode(bc);
 	setup_entry_bytecode->bytecode_length = bc->size();
 	//proc_table_entry->local_var_count_idx = Core::get_proc("/proc/twelve_locals").proc_table_entry->local_var_count_idx;
+}
+
+void Core::Proc::jit()
+{
+	consider_jit(*this);
 }
 
 Core::Proc Core::get_proc(std::string name, unsigned int override_id)

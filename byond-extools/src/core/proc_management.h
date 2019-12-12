@@ -44,6 +44,7 @@ namespace Core
 		void extended_profile();
 		void hook(ProcHook hook_func);
 		Value call(std::vector<Value> arguments, Value usr = Value::Null(), Value src = Value::Null());
+		void jit();
 
 		bool operator<(const Proc& rhs) const
 		{

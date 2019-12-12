@@ -5,6 +5,8 @@
 #include "json.hpp"
 #include <stack>
 #include "../extended_profiling/extended_profiling.h"
+#include "../optimizer/jit.h"
+#include "../dmdism/opcodes.h"
 
 CrashProcPtr oCrashProc;
 CallGlobalProcPtr oCallGlobalProc;
@@ -37,6 +39,10 @@ trvh REGPARM3 hCallGlobalProc(char usr_type, int usr_value, int proc_type, unsig
 			qc.proc.call(qc.args, qc.usr, qc.src);
 		}
 		calling_queue = false;
+	}
+	if (traced_procs.find(proc_id) != traced_procs.end())
+	{
+		record_jit(proc_id, argList, argListLen);
 	}
 	Core::extended_profiling_insanely_hacky_check_if_its_a_new_call_or_resume = proc_id;
 	if (proc_hooks.find((unsigned short)proc_id) != proc_hooks.end())

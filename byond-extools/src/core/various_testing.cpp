@@ -1,7 +1,10 @@
+#include "asmjit/asmjit.h"
 #include "core.h"
 #include "../dmdism/disassembly.h"
 #include "../debug_server/debug_server.h"
 #include "../proxy/proxy_object.h"
+
+using namespace asmjit;
 
 #include <fstream>
 
@@ -102,6 +105,15 @@ extern "C" __declspec(dllexport) void add_subvars_of_locals(ExecutionContext* ct
 	ctx->local_variables[2].valuef = GetVariable(a.type, a.value, 0x33).valuef + GetVariable(b.type, b.value, 0x33).valuef;
 }
 
+/*
+MOV     EAX, DWORD PTR SS:[ESP + 0x8]
+MOVDQU  XMM1, XMMWORD PTR DS:[EAX + 0x4]
+MOVDQU  XMM0, XMMWORD PTR DS:[EAX + 0xC]
+PADDD   XMM1, XMM0
+MOV     EAX, 0x2A
+MOVD    ECX, XMM1
+*/
+
 #define ADD 0x58
 #define SUB 0x5C
 #define MUL 0x59
@@ -131,6 +143,10 @@ extern "C" __declspec(dllexport) const char* dump_codecov(int a, const char** b)
 void init_testing()
 {
 	codecov_executed_procs.resize(Core::get_all_procs().size());
+	//Core::Alert("Now's your time");
+	//jit();
+	//std::vector<std::uint32_t>* a = new std::vector<std::uint32_t>{ 0x1337, 0x0 };
+	Core::get_proc("/proc/add").jit();
 	/*Core::Proc p = "/proc/bench_intrinsic_add_fields";
 	std::uint32_t* bc = p.get_bytecode();
 	bc[48] = Core::register_opcode("add_fields", add_subvars_of_locals);
