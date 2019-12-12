@@ -139,3 +139,4 @@ struct ProfileEntry
 #define MESSAGE_ENABLE_PROFILER "enable profiler" //Request content is empty
 #define MESSAGE_DISABLE_PROFILER "disable profiler" //Request content is empty
 #define MESSAGE_GET_ALL_FIELDS "get all fields" //Request content is a Datum, response is a map<std::string, ValueText>
+#define MESSAGE_CONFIGURATION_DONE "configuration done"

@@ -237,6 +237,10 @@ int DebugServer::handle_one_message()
 			Core::disable_profiling();
 			debugger.send(data);
 		}
+		else if (type == MESSAGE_CONFIGURATION_DONE)
+		{
+			return RES_CONFIGURATION_DONE;
+		}
 	}
 	return RES_CONTINUE;
 }
