@@ -7,6 +7,11 @@
 #include <mutex>
 #include <optional>
 
+const char* const DBG_MODE_NONE = "NONE";
+const char* const DBG_MODE_LAUNCHED = "LAUNCHED";
+const char* const DBG_MODE_BACKGROUND = "BACKGROUND";
+const char* const DBG_MODE_BLOCK = "BLOCK";
+
 enum NextAction
 {
 	WAIT,
@@ -90,5 +95,4 @@ public:
 
 
 bool debugger_initialize();
-bool debugger_enable_wait(bool pause = false);
-void debugger_enable();
+bool debugger_enable(const char* mode, const char* port);

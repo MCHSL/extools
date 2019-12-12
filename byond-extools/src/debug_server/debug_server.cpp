@@ -495,16 +495,27 @@ void install_singlestep_hook()
 	opcode_switch[5] = 0xFF; //CALL
 	opcode_switch[6] = 0xD2; //EDX
 	VirtualProtect((void*)opcode_switch, 16, old_prot, &old_prot);
-
 }
 
 bool debugger_initialize()
 {
+	static bool debugger_initialized = false;
+	if (debugger_initialized)
+	{
+		return true;
+	}
+
 	oRuntime = (RuntimePtr)Core::install_hook((void*)Runtime, (void*)hRuntime);
 	install_singlestep_hook();
 	breakpoint_opcode = Core::register_opcode("DEBUG_BREAKPOINT", on_breakpoint);
 	nop_opcode = Core::register_opcode("DEBUG_NOP", on_nop);
+	debugger_initialized = true;
 	return true;
+}
+
+bool debugger_enable(const char* mode, const char* port)
+{
+	// TODO
 }
 
 bool debugger_enable_wait(bool pause)
