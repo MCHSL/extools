@@ -362,7 +362,6 @@ void DebugServer::on_breakpoint(ExecutionContext* ctx)
 	}
 	send(MESSAGE_BREAKPOINT_HIT, { {"proc", bp->proc.name }, {"offset", bp->offset }, {"override_id", Core::get_proc(ctx).override_id} });
 	on_break(ctx);
-	has_stepped_after_replacing_breakpoint_opcode = false;
 	ctx->current_opcode--;
 }
 
@@ -382,7 +381,7 @@ void DebugServer::on_break(ExecutionContext* ctx)
 		step_mode = INTO;
 		break;
 	case STEP_OVER:
-		step_mode = OVER;
+		step_mode = PRE_OVER;
 		step_over_context = ctx;
 		break;
 	case RESUME:
@@ -471,18 +470,19 @@ extern "C" void on_singlestep()
 	}
 	if (debug_server.step_mode == INTO || (debug_server.step_mode == OVER && debug_server.step_over_context == Core::get_context()))
 	{
-		if (!debug_server.has_stepped_after_replacing_breakpoint_opcode)
+		if (debug_server.step_mode == OVER) //a few more ifs and this will turn sentient
 		{
-			debug_server.has_stepped_after_replacing_breakpoint_opcode = true;
+			debug_server.step_over_context = nullptr;
 		}
-		else
-		{
-			if (debug_server.step_mode == OVER) //a few more ifs and this will turn sentient
-			{
-				debug_server.step_over_context = nullptr;
-			}
-			debug_server.on_step(Core::get_context());
-		}
+		debug_server.on_step(Core::get_context());
+	}
+	/*else if (debug_server.step_mode == PRE_INTO) // Considering whether these are necessary at all
+	{
+		debug_server.step_mode = INTO;
+	}*/
+	else if (debug_server.step_mode == PRE_OVER)
+	{
+		debug_server.step_mode = OVER;
 	}
 }
 

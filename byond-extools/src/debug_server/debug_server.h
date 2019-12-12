@@ -23,7 +23,9 @@ enum NextAction
 enum StepMode
 {
 	NONE,
+	PRE_INTO,
 	INTO,
+	PRE_OVER,
 	OVER
 };
 
@@ -67,7 +69,6 @@ public:
 	NextAction next_action = WAIT;
 	StepMode step_mode = NONE;
 	bool break_on_runtimes = false;
-	bool has_stepped_after_replacing_breakpoint_opcode = false;
 	ExecutionContext* step_over_context = nullptr;
 	std::optional<Breakpoint> breakpoint_to_restore = {};
 
