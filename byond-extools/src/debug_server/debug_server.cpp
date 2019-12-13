@@ -16,10 +16,22 @@ std::condition_variable notifier;
 
 RuntimePtr oRuntime;
 
-bool DebugServer::connect()
+bool DebugServer::listen(const char* port)
 {
-	debugger = SocketServer();
-	return debugger.listen_for_client();
+	TcpListener listener;
+	if (!listener.listen(port))
+	{
+		Core::Alert("couldn't listen");
+		return false;
+	}
+
+	debugger = listener.accept();
+	return true;
+}
+
+bool DebugServer::connect(const char* port)
+{
+	return debugger.connect(port);
 }
 
 void stripUnicode(std::string& str)
@@ -37,192 +49,228 @@ int datatype_name_to_val(std::string name)
 	return DataType::NULL_D;
 }
 
+const int RES_BREAK = 0;
+const int RES_CONTINUE = 1;
+const int RES_CONFIGURATION_DONE = 2;
+
+int DebugServer::handle_one_message()
+{
+	nlohmann::json data = debugger.recv_message();
+	//Core::Alert("Message!!");
+	if (data.is_null())
+	{
+		Core::Alert("null message, leaving");
+		return RES_BREAK;
+	}
+	const std::string& type = data.at("type");
+	if (type == MESSAGE_RAW)
+	{
+		const std::string& echoing = data.at("content");
+		Core::Alert("Echoing: " + echoing);
+		debugger.send(MESSAGE_RAW, echoing);
+	}
+	else if (type == MESSAGE_PROC_LIST)
+	{
+		std::vector<nlohmann::json> procs;
+		for (Core::Proc& proc : procs_by_id)
+		{
+			procs.push_back({ {"name", proc.name}, {"override_id", proc.override_id} });
+		}
+		debugger.send(MESSAGE_PROC_LIST, procs);
+	}
+	else if (type == MESSAGE_PROC_DISASSEMBLY)
+	{
+		auto content = data.at("content");
+		const std::string& proc_name = content.at("name");
+		//Core::Alert("Disassembling " + proc_name);
+		const int& override_id = content.at("override_id");
+		Core::Proc proc = Core::get_proc(proc_name, override_id);
+		Disassembly disassembly = proc.disassemble();
+		nlohmann::json disassembled_proc;
+		disassembled_proc["name"] = proc_name;
+		disassembled_proc["override_id"] = override_id;
+
+		std::vector<nlohmann::json> instructions;
+		for (Instruction& instr : disassembly.instructions)
+		{
+			std::string comment = instr.comment();
+			stripUnicode(comment);
+			nlohmann::json d_instr = {
+				{ "offset", instr.offset() },
+				{ "bytes", instr.bytes_str() },
+				{ "mnemonic", instr.opcode().mnemonic() },
+				{ "comment", comment },
+				{ "possible_jumps", instr.jump_locations() },
+				{ "extra", instr.extra_info() },
+			};
+			instructions.push_back(d_instr);
+		}
+		disassembled_proc["instructions"] = instructions;
+		debugger.send(MESSAGE_PROC_DISASSEMBLY, disassembled_proc);
+	}
+	else if (type == MESSAGE_BREAKPOINT_SET)
+	{
+		//Core::Alert("BREAKPOINT_SET");
+		auto content = data.at("content");
+		const std::string& proc = content.at("proc");
+		const int& override_id = content.at("override_id");
+		//Core::Alert("Setting breakpoint in " + proc);
+		set_breakpoint(Core::get_proc(proc, override_id), content.at("offset"));
+		debugger.send(data);
+	}
+	else if (type == MESSAGE_BREAKPOINT_UNSET)
+	{
+		auto content = data.at("content");
+		const std::string& proc = content.at("proc");
+		const int& override_id = content.at("override_id");
+		//Core::Alert("Setting breakpoint in " + proc);
+		remove_breakpoint(Core::get_proc(proc, override_id), content.at("offset"));
+		debugger.send(data);
+	}
+	else if (type == MESSAGE_BREAKPOINT_STEP_INTO)
+	{
+		std::lock_guard<std::mutex> lk(notifier_mutex);
+		next_action = STEP_INTO;
+		notifier.notify_all();
+	}
+	else if (type == MESSAGE_BREAKPOINT_STEP_OVER)
+	{
+		std::lock_guard<std::mutex> lk(notifier_mutex);
+		next_action = STEP_OVER;
+		notifier.notify_all();
+	}
+	else if (type == MESSAGE_BREAKPOINT_RESUME)
+	{
+		std::lock_guard<std::mutex> lk(notifier_mutex);
+		next_action = RESUME;
+		notifier.notify_all();
+	}
+	else if (type == MESSAGE_GET_FIELD)
+	{
+		auto content = data.at("content");
+		data["content"] = value_to_text(Value(datatype_name_to_val(content.at("datum_type")), content.at("datum_id")).get_safe(content.at("field_name")));
+		debugger.send(data);
+	}
+	else if (type == MESSAGE_GET_ALL_FIELDS)
+	{
+		auto content = data.at("content");
+		Value datum = Value(datatype_name_to_val(content.at("datum_type")), content.at("datum_id"));
+		nlohmann::json vals;
+		for (const std::pair<std::string, Value>& v: datum.get_all_vars())
+		{
+			vals[v.first] = value_to_text(v.second);
+		}
+		data["content"] = vals;
+		debugger.send(data);
+	}
+	else if (type == MESSAGE_GET_GLOBAL)
+	{
+		data["content"] = value_to_text(GetVariable(DataType::WORLD_D, 0x01, Core::GetStringId(data.at("content"))));
+		debugger.send(data);
+	}
+	else if (type == MESSAGE_GET_TYPE)
+	{
+		auto content = data.at("content");
+		Value typeval = GetVariable(datatype_name_to_val(content.at("datum_type")), content.at("datum_id"), Core::GetStringId("type"));
+		if (typeval.type == DataType::MOB_TYPEPATH)
+		{
+			typeval.value = *MobTableIndexToGlobalTableIndex(typeval.value);
+		}
+		data["content"] = Core::type_to_text(typeval.value);
+		debugger.send(data);
+	}
+	else if (type == MESSAGE_TOGGLE_BREAK_ON_RUNTIME)
+	{
+		break_on_runtimes = data.at("content"); //runtimes funtimes
+		debugger.send(data);
+	}
+	else if (type == MESSAGE_GET_LIST_CONTENTS)
+	{
+		List list(data.at("content"));
+		std::vector<Value> elements = std::vector<Value>(list.list->vector_part, list.list->vector_part + list.list->length); //efficiency
+		std::vector<nlohmann::json> textual;
+		if (!list.is_assoc())
+		{
+			for (Value& val : elements)
+			{
+				textual.push_back(value_to_text(val));
+			}
+		}
+		else
+		{
+			for (Value& val : elements)
+			{
+				textual.push_back(std::make_pair<nlohmann::json, nlohmann::json>(value_to_text(val), value_to_text(list.at(val))));
+			}
+		}
+		data["content"] = {
+			{ "is_assoc", list.is_assoc() },
+			{ "elements", textual }
+		};
+		debugger.send(data);
+	}
+	else if (type == MESSAGE_GET_PROFILE)
+	{
+		const std::string& name = data.at("content");
+		Core::Proc p = Core::get_proc(name);
+		ProfileInfo* entry = p.profile();
+
+		nlohmann::json resp;
+		resp["name"] = name;
+		resp["call_count"] = entry->call_count;
+		resp["self"] = { {"seconds", entry->self.seconds}, {"microseconds", entry->self.seconds} };
+		resp["total"] = { {"seconds", entry->total.seconds}, {"microseconds", entry->total.seconds} };
+		resp["real"] = { {"seconds", entry->real.seconds}, {"microseconds", entry->real.seconds} };
+		resp["overtime"] = { {"seconds", entry->overtime.seconds}, {"microseconds", entry->overtime.seconds} };
+
+		data["content"] = resp;
+		debugger.send(data);
+	}
+	else if (type == MESSAGE_ENABLE_PROFILER)
+	{
+		Core::enable_profiling();
+		debugger.send(data);
+	}
+	else if (type == MESSAGE_DISABLE_PROFILER)
+	{
+		Core::disable_profiling();
+		debugger.send(data);
+	}
+	else if (type == MESSAGE_CONFIGURATION_DONE)
+	{
+		return RES_CONFIGURATION_DONE;
+	}
+	return RES_CONTINUE;
+}
+
 void DebugServer::debug_loop()
 {
 	while (true)
 	{
-		nlohmann::json data = debugger.recv_message();
-		//Core::Alert("Message!!");
-		if (data.is_null())
+		int res = debug_server.handle_one_message();
+		if (res == RES_BREAK)
 		{
-			Core::Alert("null message, leaving");
-			break;
-		}
-		const std::string& type = data.at("type");
-		if (type == MESSAGE_RAW)
-		{
-			const std::string& echoing = data.at("content");
-			Core::Alert("Echoing: " + echoing);
-			debugger.send(MESSAGE_RAW, echoing);
-		}
-		else if (type == MESSAGE_PROC_LIST)
-		{
-			std::vector<nlohmann::json> procs;
-			for (Core::Proc& proc : procs_by_id)
-			{
-				procs.push_back({ {"name", proc.name}, {"override_id", proc.override_id} });
-			}
-			debugger.send(MESSAGE_PROC_LIST, procs);
-		}
-		else if (type == MESSAGE_PROC_DISASSEMBLY)
-		{
-			auto content = data.at("content");
-			const std::string& proc_name = content.at("name");
-			//Core::Alert("Disassembling " + proc_name);
-			const int& override_id = content.at("override_id");
-			Core::Proc proc = Core::get_proc(proc_name, override_id);
-			Disassembly disassembly = proc.disassemble();
-			nlohmann::json disassembled_proc;
-			disassembled_proc["name"] = proc_name;
-			disassembled_proc["override_id"] = override_id;
-
-			std::vector<nlohmann::json> instructions;
-			for (Instruction& instr : disassembly.instructions)
-			{
-				std::string comment = instr.comment();
-				stripUnicode(comment);
-				nlohmann::json d_instr = {
-					{ "offset", instr.offset() },
-					{ "bytes", instr.bytes_str() },
-					{ "mnemonic", instr.opcode().mnemonic() },
-					{ "comment", comment },
-					{ "possible_jumps", instr.jump_locations() },
-					{ "extra", instr.extra_info() },
-				};
-				instructions.push_back(d_instr);
-			}
-			disassembled_proc["instructions"] = instructions;
-			debugger.send(MESSAGE_PROC_DISASSEMBLY, disassembled_proc);
-		}
-		else if (type == MESSAGE_BREAKPOINT_SET)
-		{
-			//Core::Alert("BREAKPOINT_SET");
-			auto content = data.at("content");
-			const std::string& proc = content.at("proc");
-			const int& override_id = content.at("override_id");
-			//Core::Alert("Setting breakpoint in " + proc);
-			set_breakpoint(Core::get_proc(proc, override_id), content.at("offset"));
-			debugger.send(data);
-		}
-		else if (type == MESSAGE_BREAKPOINT_UNSET)
-		{
-			auto content = data.at("content");
-			const std::string& proc = content.at("proc");
-			const int& override_id = content.at("override_id");
-			//Core::Alert("Setting breakpoint in " + proc);
-			remove_breakpoint(Core::get_proc(proc, override_id), content.at("offset"));
-			debugger.send(data);
-		}
-		else if (type == MESSAGE_BREAKPOINT_STEP_INTO)
-		{
-			std::lock_guard<std::mutex> lk(notifier_mutex);
-			next_action = STEP_INTO;
-			notifier.notify_all();
-		}
-		else if (type == MESSAGE_BREAKPOINT_STEP_OVER)
-		{
-			std::lock_guard<std::mutex> lk(notifier_mutex);
-			next_action = STEP_OVER;
-			notifier.notify_all();
-		}
-		else if (type == MESSAGE_BREAKPOINT_RESUME)
-		{
-			std::lock_guard<std::mutex> lk(notifier_mutex);
-			next_action = RESUME;
-			notifier.notify_all();
-		}
-		else if (type == MESSAGE_GET_FIELD)
-		{
-			auto content = data.at("content");
-			data["content"] = value_to_text(Value(datatype_name_to_val(content.at("datum_type")), content.at("datum_id")).get_safe(content.at("field_name")));
-			debugger.send(data);
-		}
-		else if (type == MESSAGE_GET_ALL_FIELDS)
-		{
-			auto content = data.at("content");
-			Value datum = Value(datatype_name_to_val(content.at("datum_type")), content.at("datum_id"));
-			nlohmann::json vals;
-			for (const std::pair<std::string, Value>& v: datum.get_all_vars())
-			{
-				vals[v.first] = value_to_text(v.second);
-			}
-			data["content"] = vals;
-			debugger.send(data);
-		}
-		else if (type == MESSAGE_GET_GLOBAL)
-		{
-			data["content"] = value_to_text(GetVariable(DataType::WORLD_D, 0x01, Core::GetStringId(data.at("content"))));
-			debugger.send(data);
-		}
-		else if (type == MESSAGE_GET_TYPE)
-		{
-			auto content = data.at("content");
-			Value typeval = GetVariable(datatype_name_to_val(content.at("datum_type")), content.at("datum_id"), Core::GetStringId("type"));
-			if (typeval.type == DataType::MOB_TYPEPATH)
-			{
-				typeval.value = *MobTableIndexToGlobalTableIndex(typeval.value);
-			}
-			data["content"] = Core::type_to_text(typeval.value);
-			debugger.send(data);
-		}
-		else if (type == MESSAGE_TOGGLE_BREAK_ON_RUNTIME)
-		{
-			break_on_runtimes = data.at("content"); //runtimes funtimes
-			debugger.send(data);
-		}
-		else if (type == MESSAGE_GET_LIST_CONTENTS)
-		{
-			List list(data.at("content"));
-			std::vector<Value> elements = std::vector<Value>(list.list->vector_part, list.list->vector_part + list.list->length); //efficiency
-			std::vector<nlohmann::json> textual;
-			if (!list.is_assoc())
-			{
-				for (Value& val : elements)
-				{
-					textual.push_back(value_to_text(val));
-				}
-			}
-			else
-			{
-				for (Value& val : elements)
-				{
-					textual.push_back(std::make_pair<nlohmann::json, nlohmann::json>(value_to_text(val), value_to_text(list.at(val))));
-				}
-			}
-			data["content"] = {
-				{ "is_assoc", list.is_assoc() },
-				{ "elements", textual }
-			};
-			debugger.send(data);
-		}
-		else if (type == MESSAGE_GET_PROFILE)
-		{
-			const std::string& name = data.at("content");
-			Core::Proc p = Core::get_proc(name);
-			ProfileInfo* entry = p.profile();
-
-			nlohmann::json resp;
-			resp["name"] = name;
-			resp["call_count"] = entry->call_count;
-			resp["self"] = { {"seconds", entry->self.seconds}, {"microseconds", entry->self.seconds} };
-			resp["total"] = { {"seconds", entry->total.seconds}, {"microseconds", entry->total.seconds} };
-			resp["real"] = { {"seconds", entry->real.seconds}, {"microseconds", entry->real.seconds} };
-			resp["overtime"] = { {"seconds", entry->overtime.seconds}, {"microseconds", entry->overtime.seconds} };
-
-			data["content"] = resp;
-			debugger.send(data);
-		}
-		else if (type == MESSAGE_ENABLE_PROFILER)
-		{
-			Core::enable_profiling();
-			debugger.send(data);
-		}
-		else if (type == MESSAGE_DISABLE_PROFILER)
-		{
-			Core::disable_profiling();
-			debugger.send(data);
+			return;
 		}
 	}
+}
+
+bool DebugServer::loop_until_configured()
+{
+	while (true)
+	{
+		int res = debug_server.handle_one_message();
+		if (res == RES_CONFIGURATION_DONE)
+		{
+			break;
+		}
+		else if (res != RES_CONTINUE)
+		{
+			return false;
+		}
+	}
+	std::thread(&DebugServer::debug_loop, &debug_server).detach();
+	return true;
 }
 
 NextAction DebugServer::wait_for_action()
@@ -250,8 +298,8 @@ void DebugServer::set_breakpoint(int proc_id, int offset, bool singleshot)
 	{
 		return;
 	}
-	std::uint32_t* bytecode = Core::get_proc(proc_id).get_bytecode(); 
-	Breakpoint bp = { //Directly writing to bytecode rather than using set_bytecode, 
+	std::uint32_t* bytecode = Core::get_proc(proc_id).get_bytecode();
+	Breakpoint bp = { //Directly writing to bytecode rather than using set_bytecode,
 		Core::get_proc(proc_id), //because this will ensure any running procs will also hit this
 		bytecode[offset],
 		(unsigned short)offset,
@@ -488,34 +536,54 @@ void install_singlestep_hook()
 	opcode_switch[5] = 0xFF; //CALL
 	opcode_switch[6] = 0xD2; //EDX
 	VirtualProtect((void*)opcode_switch, 16, old_prot, &old_prot);
-
 }
 
 bool debugger_initialize()
 {
+	static bool debugger_initialized = false;
+	if (debugger_initialized)
+	{
+		return true;
+	}
+
 	oRuntime = (RuntimePtr)Core::install_hook((void*)Runtime, (void*)hRuntime);
 	install_singlestep_hook();
 	breakpoint_opcode = Core::register_opcode("DEBUG_BREAKPOINT", on_breakpoint);
 	nop_opcode = Core::register_opcode("DEBUG_NOP", on_nop);
+	debugger_initialized = true;
 	return true;
 }
 
-bool debugger_enable_wait(bool pause)
+bool debugger_enable(const char* mode, const char* port)
 {
-	debug_server = DebugServer();
-	if (debug_server.connect())
+	if (!strcmp(mode, DBG_MODE_LAUNCHED))
 	{
-		std::thread(&DebugServer::debug_loop, &debug_server).detach();
-		if (pause)
+		// launched mode
+		if (!debug_server.connect(port))
 		{
-			debug_server.step_mode = INTO;
+			return false;
 		}
+		return debug_server.loop_until_configured();
+	}
+	else if (!strcmp(mode, DBG_MODE_BLOCK))
+	{
+		if (!debug_server.listen(port))
+		{
+			return false;
+		}
+		return debug_server.loop_until_configured();
+	}
+	else if (!strcmp(mode, DBG_MODE_BACKGROUND))
+	{
+		std::string portbuf = port;
+		std::thread([portbuf]() {
+			debug_server.listen(portbuf.c_str());
+			debug_server.debug_loop();
+		}).detach();
 		return true;
 	}
-	return false;
-}
-
-void debugger_enable()
-{
-	std::thread(debugger_enable_wait, false).detach(); //I am good code
+	else
+	{
+		return false;
+	}
 }

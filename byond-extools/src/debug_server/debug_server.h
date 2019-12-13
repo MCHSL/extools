@@ -7,6 +7,11 @@
 #include <mutex>
 #include <optional>
 
+const char* const DBG_MODE_NONE = "NONE";
+const char* const DBG_MODE_LAUNCHED = "LAUNCHED";
+const char* const DBG_MODE_BACKGROUND = "BACKGROUND";
+const char* const DBG_MODE_BLOCK = "BLOCK";
+
 enum NextAction
 {
 	WAIT,
@@ -59,7 +64,7 @@ struct BreakpointRestorer
 
 class DebugServer
 {
-	SocketServer debugger;
+	JsonStream debugger;
 public:
 	NextAction next_action = WAIT;
 	StepMode step_mode = NONE;
@@ -74,7 +79,10 @@ public:
 	void remove_breakpoint(int proc_id, int offset);
 	void restore_breakpoint();
 
-	bool connect();
+	bool connect(const char* port);
+	bool listen(const char* port);
+	int handle_one_message();
+	bool loop_until_configured();
 	void debug_loop();
 
 	NextAction wait_for_action();
@@ -91,5 +99,4 @@ public:
 
 
 bool debugger_initialize();
-bool debugger_enable_wait(bool pause = false);
-void debugger_enable();
+bool debugger_enable(const char* mode, const char* port);
