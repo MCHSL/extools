@@ -188,6 +188,7 @@ void jit_compile(Core::Proc p)
 	local_regs.push_back(cc.newInt32());
 	local_regs.push_back(cc.newInt32());
 	local_regs.push_back(cc.newInt32());
+	std::unordered_map<unsigned int, std::vector<Label>> jumps;
 	for (Instruction& i : d)
 	{
 		switch (i.bytes()[0])
