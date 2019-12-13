@@ -409,6 +409,19 @@ nlohmann::json value_to_text(Value val)
 	case STRING:
 		literal = { { "string", GetStringTableEntry(val.value)->stringData } };
 		break;
+	case MOB_TYPEPATH:
+		literal = { { "typepath", Core::type_to_text(*MobTableIndexToGlobalTableIndex(val.value)) } };
+		break;
+	case OBJ_TYPEPATH:
+	case TURF_TYPEPATH:
+	case AREA_TYPEPATH:
+	case DATUM_TYPEPATH:
+	case LIST_TYPEPATH:
+	case CLIENT_TYPEPATH:
+		// TODO
+	case RESOURCE:
+		// TODO
+	default:
 		literal = { { "ref", (val.type << 24) | val.value } };
 	}
 	nlohmann::json result = { { "literal", literal } };
