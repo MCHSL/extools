@@ -400,24 +400,40 @@ void DebugServer::on_error(ExecutionContext* ctx, char* error)
 
 nlohmann::json value_to_text(Value val)
 {
-	std::string type_text = "UNKNOWN TYPE (" + std::to_string(val.type) + ")";
-	if (datatype_names.find((DataType)val.type) != datatype_names.end())
-	{
-		type_text = datatype_names.at((DataType)val.type);
-	}
-	std::string value_text;
+	nlohmann::json literal;
 	switch (val.type)
 	{
 	case NUMBER:
-		value_text = std::to_string(val.valuef);
+		literal = { { "number", val.valuef } };
 		break;
 	case STRING:
-		value_text = GetStringTableEntry(val.value)->stringData;
+		literal = { { "string", GetStringTableEntry(val.value)->stringData } };
 		break;
-	default:
-		value_text = std::to_string(val.value);
+		literal = { { "ref", (val.type << 24) | val.value } };
 	}
-	return { { "type", type_text }, { "value", value_text } };
+	nlohmann::json result = { { "literal", literal } };
+
+	switch (val.type)
+	{
+	case TURF:
+	case OBJ:
+	case MOB:
+	case AREA:
+	case CLIENT:
+	case IMAGE:
+	case WORLD_D:
+	case DATUM:
+	case SAVEFILE:
+		result["has_vars"] = true;
+	}
+
+	switch (val.type)
+	{
+	case LIST:
+		result["is_list"] = true;
+	}
+
+	return result;
 }
 
 void DebugServer::send_call_stack(ExecutionContext* ctx)
