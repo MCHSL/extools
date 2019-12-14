@@ -74,20 +74,19 @@ int DebugServer::handle_one_message()
 		std::vector<nlohmann::json> procs;
 		for (Core::Proc& proc : procs_by_id)
 		{
-			procs.push_back({ {"name", proc.name}, {"override_id", proc.override_id} });
+			procs.push_back({ {"proc", proc.name}, {"override_id", proc.override_id} });
 		}
 		debugger.send(MESSAGE_PROC_LIST, procs);
 	}
 	else if (type == MESSAGE_PROC_DISASSEMBLY)
 	{
 		auto content = data.at("content");
-		const std::string& proc_name = content.at("name");
-		//Core::Alert("Disassembling " + proc_name);
-		const int& override_id = content.at("override_id");
+		const std::string& proc_name = content.at("proc");
+		int override_id = content.at("override_id");
 		Core::Proc proc = Core::get_proc(proc_name, override_id);
 		Disassembly disassembly = proc.disassemble();
 		nlohmann::json disassembled_proc;
-		disassembled_proc["name"] = proc_name;
+		disassembled_proc["proc"] = proc_name;
 		disassembled_proc["override_id"] = override_id;
 
 		std::vector<nlohmann::json> instructions;
@@ -463,8 +462,11 @@ void DebugServer::send_call_stack(ExecutionContext* ctx)
 	{
 		nlohmann::json j;
 		Core::Proc p = Core::get_proc(ctx);
-		j["name"] = p.name;
+
+		j["proc"] = p.name;
 		j["override_id"] = p.override_id;
+		j["offset"] = ctx->current_opcode;
+
 		j["usr"] = value_to_text(ctx->constants->usr);
 		j["src"] = value_to_text(ctx->constants->src);
 
@@ -478,7 +480,6 @@ void DebugServer::send_call_stack(ExecutionContext* ctx)
 			args.push_back(value_to_text(ctx->constants->args[i]));
 		j["args"] = args;
 
-		j["instruction_pointer"] = ctx->current_opcode;
 		res.push_back(j);
 	} while(ctx = ctx->parent_context);
 	debug_server.send(MESSAGE_CALL_STACK, res);
