@@ -419,9 +419,15 @@ nlohmann::json value_to_text(Value val)
 	case TURF_TYPEPATH:
 	case AREA_TYPEPATH:
 	case DATUM_TYPEPATH:
-	case LIST_TYPEPATH:
-	case CLIENT_TYPEPATH:
 		literal = { { "typepath", Core::type_to_text(val.value) } };
+		break;
+	case LIST_TYPEPATH:
+		// Not subtypeable
+		literal = { { "typepath", "/list" } };
+		break;
+	case CLIENT_TYPEPATH:
+		// Not subtypeable
+		literal = { { "typepath", "/client" } };
 		break;
 	case RESOURCE:
 		// TODO
