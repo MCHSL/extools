@@ -5,6 +5,7 @@
 #include "../optimizer/optimizer.h"
 #include "../extended_profiling/extended_profiling.h"
 #include "../debug_server/debug_server.h"
+#include <fstream>
 
 CrashProcPtr CrashProc;
 SuspendPtr Suspend;
@@ -42,6 +43,8 @@ int ByondBuild;
 unsigned int* Core::some_flags_including_profile;
 unsigned int Core::extended_profiling_insanely_hacky_check_if_its_a_new_call_or_resume;
 
+std::vector<bool> Core::codecov_executed_procs;
+
 std::map<unsigned int, opcode_handler> Core::opcode_handlers;
 std::map<std::string, unsigned int> Core::name_to_opcode;
 unsigned int next_opcode_id = 0x1337;
@@ -54,10 +57,9 @@ bool Core::initialize()
 		return true;
 	}
 	initialized = find_functions() && populate_proc_list() && hook_custom_opcodes();
+	Core::codecov_executed_procs.resize(Core::get_all_procs().size());
 	return initialized;
 }
-
-
 
 void Core::Alert(std::string what) {
 #ifdef _WIN32
@@ -137,6 +139,25 @@ std::string Core::type_to_text(unsigned int type)
 Value Core::get_turf(int x, int y, int z)
 {
 	return GetTurf(x-1, y-1, z-1);
+}
+
+extern "C" __declspec(dllexport) const char* dump_codecov(int a, const char** b)
+{
+	std::ofstream o("codecov.txt");
+	unsigned int called = 0;
+	unsigned int actual_count = 0;
+	for (int i = 0; i < Core::codecov_executed_procs.size(); i++)
+	{
+		Core::Proc p = Core::get_proc(i);
+		if (!p.name.empty() && p.name.back() != ')')
+		{
+			o << p.name << ": " << Core::codecov_executed_procs[i] << "\n";
+			if (Core::codecov_executed_procs[i]) called++;
+			actual_count++;
+		}
+	}
+	o << "Coverage: " << (called / (float)actual_count) * 100.0f << "% (" << called << "/" << actual_count << ")\n";
+	return "";
 }
 
 const char* good = "gucci";
