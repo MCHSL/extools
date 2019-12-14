@@ -107,30 +107,8 @@ extern "C" __declspec(dllexport) void add_subvars_of_locals(ExecutionContext* ct
 #define MUL 0x59
 #define DIV 0x5E
 
-std::vector<bool> codecov_executed_procs;
-
-extern "C" __declspec(dllexport) const char* dump_codecov(int a, const char** b)
-{
-	std::ofstream o("codecov.txt");
-	unsigned int called = 0;
-	unsigned int actual_count = 0;
-	for (int i=0; i<codecov_executed_procs.size(); i++)
-	{
-		Core::Proc p = Core::get_proc(i);
-		if (!p.name.empty() && p.name.back() != ')')
-		{
-			o << p.name << ": " << codecov_executed_procs[i] << "\n";
-			if (codecov_executed_procs[i]) called++;
-			actual_count++;
-		}
-	}
-	o << "Coverage: " << (called / (float)actual_count) * 100.0f << "% (" << called << "/" << actual_count << ")\n";
-	return "";
-}
-
 void init_testing()
 {
-	codecov_executed_procs.resize(Core::get_all_procs().size());
 	/*Core::Proc p = "/proc/bench_intrinsic_add_fields";
 	std::uint32_t* bc = p.get_bytecode();
 	bc[48] = Core::register_opcode("add_fields", add_subvars_of_locals);
