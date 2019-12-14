@@ -421,7 +421,8 @@ nlohmann::json value_to_text(Value val)
 	case DATUM_TYPEPATH:
 	case LIST_TYPEPATH:
 	case CLIENT_TYPEPATH:
-		// TODO
+		literal = { { "typepath", Core::type_to_text(val.value) } };
+		break;
 	case RESOURCE:
 		// TODO
 	default:
