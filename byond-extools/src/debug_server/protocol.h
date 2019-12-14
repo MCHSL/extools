@@ -140,6 +140,7 @@ struct VariableWrite
 #define MESSAGE_BREAKPOINT_STEP_INTO "breakpoint step into" //Content is empty
 #define MESSAGE_BREAKPOINT_STEP_OVER "breakpoint step over" //Content is empty
 #define MESSAGE_BREAKPOINT_RESUME "breakpoint resume" //Content is empty
+#define MESSAGE_BREAKPOINT_PAUSE "breakpoint pause"
 #define MESSAGE_VALUES_LOCALS "locals" //Content is a vector of ValueTexts
 #define MESSAGE_VALUES_ARGS "args" //^
 #define MESSAGE_VALUES_STACK "stack" //^

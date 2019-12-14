@@ -74,20 +74,19 @@ int DebugServer::handle_one_message()
 		std::vector<nlohmann::json> procs;
 		for (Core::Proc& proc : procs_by_id)
 		{
-			procs.push_back({ {"name", proc.name}, {"override_id", proc.override_id} });
+			procs.push_back({ {"proc", proc.name}, {"override_id", proc.override_id} });
 		}
 		debugger.send(MESSAGE_PROC_LIST, procs);
 	}
 	else if (type == MESSAGE_PROC_DISASSEMBLY)
 	{
 		auto content = data.at("content");
-		const std::string& proc_name = content.at("name");
-		//Core::Alert("Disassembling " + proc_name);
-		const int& override_id = content.at("override_id");
+		const std::string& proc_name = content.at("proc");
+		int override_id = content.at("override_id");
 		Core::Proc proc = Core::get_proc(proc_name, override_id);
 		Disassembly disassembly = proc.disassemble();
 		nlohmann::json disassembled_proc;
-		disassembled_proc["name"] = proc_name;
+		disassembled_proc["proc"] = proc_name;
 		disassembled_proc["override_id"] = override_id;
 
 		std::vector<nlohmann::json> instructions;
@@ -139,6 +138,10 @@ int DebugServer::handle_one_message()
 		next_action = STEP_OVER;
 		notifier.notify_all();
 	}
+	else if (type == MESSAGE_BREAKPOINT_PAUSE)
+	{
+		debug_server.step_mode = StepMode::INTO;
+	}
 	else if (type == MESSAGE_BREAKPOINT_RESUME)
 	{
 		std::lock_guard<std::mutex> lk(notifier_mutex);
@@ -148,13 +151,14 @@ int DebugServer::handle_one_message()
 	else if (type == MESSAGE_GET_FIELD)
 	{
 		auto content = data.at("content");
-		data["content"] = value_to_text(Value(datatype_name_to_val(content.at("datum_type")), content.at("datum_id")).get_safe(content.at("field_name")));
+		int ref = content.at("ref");
+		data["content"] = value_to_text(Value(ref >> 24, ref & 0xffffff).get_safe(content.at("field_name")));
 		debugger.send(data);
 	}
 	else if (type == MESSAGE_GET_ALL_FIELDS)
 	{
-		auto content = data.at("content");
-		Value datum = Value(datatype_name_to_val(content.at("datum_type")), content.at("datum_id"));
+		int ref = data.at("content");
+		Value datum = Value(ref >> 24, ref & 0xffffff);
 		nlohmann::json vals;
 		for (const std::pair<std::string, Value>& v: datum.get_all_vars())
 		{
@@ -170,8 +174,8 @@ int DebugServer::handle_one_message()
 	}
 	else if (type == MESSAGE_GET_TYPE)
 	{
-		auto content = data.at("content");
-		Value typeval = GetVariable(datatype_name_to_val(content.at("datum_type")), content.at("datum_id"), Core::GetStringId("type"));
+		int ref = data.at("content");
+		Value typeval = GetVariable(ref >> 24, ref & 0xffffff, Core::GetStringId("type"));
 		if (typeval.type == DataType::MOB_TYPEPATH)
 		{
 			typeval.value = *MobTableIndexToGlobalTableIndex(typeval.value);
@@ -186,7 +190,8 @@ int DebugServer::handle_one_message()
 	}
 	else if (type == MESSAGE_GET_LIST_CONTENTS)
 	{
-		List list(data.at("content"));
+		int ref = data.at("content");
+		List list(ref & 0xffffff);
 		std::vector<Value> elements = std::vector<Value>(list.list->vector_part, list.list->vector_part + list.list->length); //efficiency
 		std::vector<nlohmann::json> textual;
 		if (!list.is_assoc())
@@ -195,6 +200,7 @@ int DebugServer::handle_one_message()
 			{
 				textual.push_back(value_to_text(val));
 			}
+			data["content"] = { { "linear", textual } };
 		}
 		else
 		{
@@ -202,11 +208,8 @@ int DebugServer::handle_one_message()
 			{
 				textual.push_back(std::make_pair<nlohmann::json, nlohmann::json>(value_to_text(val), value_to_text(list.at(val))));
 			}
+			data["content"] = { { "associative", textual } };
 		}
-		data["content"] = {
-			{ "is_assoc", list.is_assoc() },
-			{ "elements", textual }
-		};
 		debugger.send(data);
 	}
 	else if (type == MESSAGE_GET_PROFILE)
@@ -400,24 +403,60 @@ void DebugServer::on_error(ExecutionContext* ctx, char* error)
 
 nlohmann::json value_to_text(Value val)
 {
-	std::string type_text = "UNKNOWN TYPE (" + std::to_string(val.type) + ")";
-	if (datatype_names.find((DataType)val.type) != datatype_names.end())
-	{
-		type_text = datatype_names.at((DataType)val.type);
-	}
-	std::string value_text;
+	nlohmann::json literal;
 	switch (val.type)
 	{
 	case NUMBER:
-		value_text = std::to_string(val.valuef);
+		literal = { { "number", val.valuef } };
 		break;
 	case STRING:
-		value_text = GetStringTableEntry(val.value)->stringData;
+		literal = { { "string", GetStringTableEntry(val.value)->stringData } };
 		break;
+	case MOB_TYPEPATH:
+		literal = { { "typepath", Core::type_to_text(*MobTableIndexToGlobalTableIndex(val.value)) } };
+		break;
+	case OBJ_TYPEPATH:
+	case TURF_TYPEPATH:
+	case AREA_TYPEPATH:
+	case DATUM_TYPEPATH:
+		literal = { { "typepath", Core::type_to_text(val.value) } };
+		break;
+	case LIST_TYPEPATH:
+		// Not subtypeable
+		literal = { { "typepath", "/list" } };
+		break;
+	case CLIENT_TYPEPATH:
+		// Not subtypeable
+		literal = { { "typepath", "/client" } };
+		break;
+	case RESOURCE:
+		// TODO
 	default:
-		value_text = std::to_string(val.value);
+		literal = { { "ref", (val.type << 24) | val.value } };
 	}
-	return { { "type", type_text }, { "value", value_text } };
+	nlohmann::json result = { { "literal", literal } };
+
+	switch (val.type)
+	{
+	case TURF:
+	case OBJ:
+	case MOB:
+	case AREA:
+	case CLIENT:
+	case IMAGE:
+	case WORLD_D:
+	case DATUM:
+	case SAVEFILE:
+		result["has_vars"] = true;
+	}
+
+	switch (val.type)
+	{
+	case LIST:
+		result["is_list"] = true;
+	}
+
+	return result;
 }
 
 void DebugServer::send_call_stack(ExecutionContext* ctx)
@@ -427,8 +466,11 @@ void DebugServer::send_call_stack(ExecutionContext* ctx)
 	{
 		nlohmann::json j;
 		Core::Proc p = Core::get_proc(ctx);
-		j["name"] = p.name;
+
+		j["proc"] = p.name;
 		j["override_id"] = p.override_id;
+		j["offset"] = ctx->current_opcode;
+
 		j["usr"] = value_to_text(ctx->constants->usr);
 		j["src"] = value_to_text(ctx->constants->src);
 
@@ -442,7 +484,6 @@ void DebugServer::send_call_stack(ExecutionContext* ctx)
 			args.push_back(value_to_text(ctx->constants->args[i]));
 		j["args"] = args;
 
-		j["instruction_pointer"] = ctx->current_opcode;
 		res.push_back(j);
 	} while(ctx = ctx->parent_context);
 	debug_server.send(MESSAGE_CALL_STACK, res);
