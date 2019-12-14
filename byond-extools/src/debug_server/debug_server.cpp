@@ -148,13 +148,14 @@ int DebugServer::handle_one_message()
 	else if (type == MESSAGE_GET_FIELD)
 	{
 		auto content = data.at("content");
-		data["content"] = value_to_text(Value(datatype_name_to_val(content.at("datum_type")), content.at("datum_id")).get_safe(content.at("field_name")));
+		int ref = content.at("ref");
+		data["content"] = value_to_text(Value(ref >> 24, ref & 0xffffff).get_safe(content.at("field_name")));
 		debugger.send(data);
 	}
 	else if (type == MESSAGE_GET_ALL_FIELDS)
 	{
-		auto content = data.at("content");
-		Value datum = Value(datatype_name_to_val(content.at("datum_type")), content.at("datum_id"));
+		int ref = data.at("content");
+		Value datum = Value(ref >> 24, ref & 0xffffff);
 		nlohmann::json vals;
 		for (const std::pair<std::string, Value>& v: datum.get_all_vars())
 		{
@@ -170,8 +171,8 @@ int DebugServer::handle_one_message()
 	}
 	else if (type == MESSAGE_GET_TYPE)
 	{
-		auto content = data.at("content");
-		Value typeval = GetVariable(datatype_name_to_val(content.at("datum_type")), content.at("datum_id"), Core::GetStringId("type"));
+		int ref = data.at("content");
+		Value typeval = GetVariable(ref >> 24, ref & 0xffffff, Core::GetStringId("type"));
 		if (typeval.type == DataType::MOB_TYPEPATH)
 		{
 			typeval.value = *MobTableIndexToGlobalTableIndex(typeval.value);
@@ -186,7 +187,8 @@ int DebugServer::handle_one_message()
 	}
 	else if (type == MESSAGE_GET_LIST_CONTENTS)
 	{
-		List list(data.at("content"));
+		int ref = data.at("content");
+		List list(ref & 0xffffff);
 		std::vector<Value> elements = std::vector<Value>(list.list->vector_part, list.list->vector_part + list.list->length); //efficiency
 		std::vector<nlohmann::json> textual;
 		if (!list.is_assoc())
@@ -195,6 +197,7 @@ int DebugServer::handle_one_message()
 			{
 				textual.push_back(value_to_text(val));
 			}
+			data["content"] = { { "linear", textual } };
 		}
 		else
 		{
@@ -202,11 +205,8 @@ int DebugServer::handle_one_message()
 			{
 				textual.push_back(std::make_pair<nlohmann::json, nlohmann::json>(value_to_text(val), value_to_text(list.at(val))));
 			}
+			data["content"] = { { "associative", textual } };
 		}
-		data["content"] = {
-			{ "is_assoc", list.is_assoc() },
-			{ "elements", textual }
-		};
 		debugger.send(data);
 	}
 	else if (type == MESSAGE_GET_PROFILE)
