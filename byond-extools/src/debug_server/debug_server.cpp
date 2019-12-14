@@ -140,10 +140,7 @@ int DebugServer::handle_one_message()
 	}
 	else if (type == MESSAGE_BREAKPOINT_PAUSE)
 	{
-		std::lock_guard<std::mutex> lk(notifier_mutex);
 		debug_server.step_mode = StepMode::INTO;
-		next_action = STEP_INTO;
-		notifier.notify_all();
 	}
 	else if (type == MESSAGE_BREAKPOINT_RESUME)
 	{
