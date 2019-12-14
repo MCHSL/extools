@@ -205,17 +205,39 @@ extern "C" EXPORT const char* proxy_initialize(int n_args, const char** args)
 
 extern "C" EXPORT const char* debug_initialize(int n_args, const char** args)
 {
-	if (!(Core::initialize() && debugger_initialize()))
-		return bad;
-	if (n_args > 0 && std::string(args[0]) == "pause")
+	// Fallback values if called
+	const char* mode = DBG_MODE_NONE;
+	const char* port = DBG_DEFAULT_PORT;
+
+	// Read from environment, set from shell or from DAP-controlled launch
+	const char* env_mode = getenv("EXTOOLS_MODE");
+	const char* env_port = getenv("EXTOOLS_PORT");
+	if (env_mode)
 	{
-		debugger_enable_wait(true);
+		mode = env_mode;
 	}
-	else
+	if (env_port)
 	{
-		debugger_enable();
+		port = env_port;
 	}
-	return good;
+
+	// Read from args, for maximum customizability
+	if (n_args > 0 && *args[0])
+	{
+		mode = args[0];
+	}
+	if (n_args > 1 && *args[1])
+	{
+		port = args[1];
+	}
+
+	// Return early if debugging is not enabled by config.
+	if (!strcmp(mode, DBG_MODE_NONE))
+	{
+		return "";
+	}
+
+	return (Core::initialize() && debugger_initialize() && debugger_enable(mode, port)) ? good : bad;
 }
 
 void init_testing();

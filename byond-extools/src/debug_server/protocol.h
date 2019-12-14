@@ -156,3 +156,4 @@ struct VariableWrite
 #define MESSAGE_GET_ALL_FIELDS "get all fields" //Request content is a Datum, response is a map<std::string, ValueText>
 #define MESSAGE_DATA_BREAKPOINT_READ "data breakpoint read" //Content is a VariableRead
 #define MESSAGE_DATA_BREAKPOINT_WRITE "data breakpoint write" //Content is a VariableWrite
+#define MESSAGE_CONFIGURATION_DONE "configuration done"
