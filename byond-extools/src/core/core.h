@@ -11,6 +11,7 @@
 #include <map>
 #include <string>
 #include <cmath>
+#include <vector>
 
 #ifdef _WIN32
 #define EXPORT __declspec(dllexport)
