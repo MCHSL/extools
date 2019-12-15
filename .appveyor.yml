@@ -10,4 +10,6 @@ build_script:
   - mkdir build
   - cd build
   - cmake ../byond-extools
-  - cmake --build .
+  - cmake --build . --config Release
+artifacts:
+  - path: build/Release/byond-extools.dll
