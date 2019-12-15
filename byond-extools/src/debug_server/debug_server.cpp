@@ -363,7 +363,7 @@ void DebugServer::on_breakpoint(ExecutionContext* ctx)
 	{
 		breakpoint_to_restore = bp;
 	}
-	send(MESSAGE_BREAKPOINT_HIT, { {"proc", bp->proc.name }, {"offset", bp->offset }, {"override_id", Core::get_proc(ctx).override_id} });
+	send(MESSAGE_BREAKPOINT_HIT, { {"proc", bp->proc.name }, {"offset", bp->offset }, {"override_id", Core::get_proc(ctx).override_id}, {"reason", "breakpoint opcode"} });
 	on_break(ctx);
 	ctx->current_opcode--;
 }
@@ -371,7 +371,7 @@ void DebugServer::on_breakpoint(ExecutionContext* ctx)
 void DebugServer::on_step(ExecutionContext* ctx)
 {
 	auto proc = Core::get_proc(ctx);
-	send(MESSAGE_BREAKPOINT_HIT, { {"proc", proc.name }, {"offset", ctx->current_opcode }, {"override_id", proc.override_id} });
+	send(MESSAGE_BREAKPOINT_HIT, { {"proc", proc.name }, {"offset", ctx->current_opcode }, {"override_id", proc.override_id}, {"reason", "step"} });
 	on_break(ctx);
 }
 

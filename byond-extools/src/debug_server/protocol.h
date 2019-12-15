@@ -32,6 +32,7 @@ struct BreakpointHit
 	std::string proc;
 	int override_id;
 	int offset;
+	std::string reason;
 };
 
 struct BreakpointSet
