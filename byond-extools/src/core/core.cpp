@@ -33,6 +33,7 @@ SetAssocElementPtr SetAssocElement;
 CreateListPtr CreateList;
 LengthPtr Length;
 IsInContainerPtr IsInContainer;
+ToStringPtr ToString;
 
 ExecutionContext** Core::current_execution_context_ptr;
 ExecutionContext** Core::parent_context_ptr_hack;
@@ -139,6 +140,11 @@ std::string Core::type_to_text(unsigned int type)
 Value Core::get_turf(int x, int y, int z)
 {
 	return GetTurf(x-1, y-1, z-1);
+}
+
+std::string Core::stringify(Value val)
+{
+	return GetStringFromId(ToString(val.type, val.value));
 }
 
 extern "C" __declspec(dllexport) const char* dump_codecov(int a, const char** b)

@@ -49,4 +49,5 @@ namespace Core
 	bool enable_profiling();
 	bool disable_profiling();
 	std::string type_to_text(unsigned int type);
+	std::string stringify(Value val);
 }

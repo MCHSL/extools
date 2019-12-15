@@ -109,6 +109,7 @@ extern "C" __declspec(dllexport) void add_subvars_of_locals(ExecutionContext* ct
 
 void init_testing()
 {
+	//Core::Alert(Core::stringify({ 0x0C, 0x00 }));
 	/*Core::Proc p = "/proc/bench_intrinsic_add_fields";
 	std::uint32_t* bc = p.get_bytecode();
 	bc[48] = Core::register_opcode("add_fields", add_subvars_of_locals);

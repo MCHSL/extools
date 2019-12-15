@@ -53,6 +53,7 @@ typedef void(*RuntimePtr)(char* error); //Do not call this, it relies on some gl
 typedef trvh(*GetTurfPtr)(int x, int y, int z);
 typedef unsigned int(*LengthPtr)(int type, int value);
 typedef bool(*IsInContainerPtr)(int keyType, int keyValue, int cntType, int cntId);
+typedef unsigned int(*ToStringPtr)(int type, int value);
 
 extern CrashProcPtr CrashProc;
 extern StartTimingPtr StartTiming;
@@ -80,3 +81,4 @@ extern SetAssocElementPtr SetAssocElement;
 extern CreateListPtr CreateList;
 extern LengthPtr Length;
 extern IsInContainerPtr IsInContainer;
+extern ToStringPtr ToString;

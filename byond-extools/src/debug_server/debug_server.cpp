@@ -430,7 +430,8 @@ nlohmann::json value_to_text(Value val)
 		literal = { { "typepath", "/client" } };
 		break;
 	case RESOURCE:
-		// TODO
+		literal = { {"resource", Core::stringify(val) } };
+		break;
 	default:
 		literal = { { "ref", (val.type << 24) | val.value } };
 	}
@@ -453,6 +454,11 @@ nlohmann::json value_to_text(Value val)
 	switch (val.type)
 	{
 	case LIST:
+	/*case LIST_ARGS: //uncomment when handled in GET_LIST_CONTENTS
+	case LIST_VERBS:
+	case LIST_CONTENTS_2:
+	case LIST_CONTENTS:
+	case LIST_VARS:*/
 		result["is_list"] = true;
 	}
 
