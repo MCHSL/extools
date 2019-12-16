@@ -57,7 +57,7 @@ bool Core::initialize()
 	{
 		return true;
 	}
-	initialized = find_functions() && populate_proc_list() && hook_custom_opcodes();
+	initialized = verify_compat() && find_functions() && populate_proc_list() && hook_custom_opcodes();
 	Core::codecov_executed_procs.resize(Core::get_all_procs().size());
 	return initialized;
 }
@@ -166,8 +166,8 @@ extern "C" __declspec(dllexport) const char* dump_codecov(int a, const char** b)
 	return "";
 }
 
-const char* good = "gucci";
-const char* bad = "pain";
+const char* good = "SUCCESS";
+const char* bad = "FAIL";
 
 extern "C" EXPORT const char* enable_profiling(int n_args, const char** args)
 {
@@ -188,7 +188,7 @@ extern "C" EXPORT const char* core_initialize(int n_args, const char** args)
 		Core::Alert("Core init failed!");
 		return bad;
 	}
-	optimizer_initialize();
+	//optimizer_initialize();
 #ifdef _WIN32 // i ain't fixing this awful Linux situation anytime soon
 	//extended_profiling_initialize();
 #endif

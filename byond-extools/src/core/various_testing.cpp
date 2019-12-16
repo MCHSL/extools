@@ -102,26 +102,15 @@ extern "C" __declspec(dllexport) void add_subvars_of_locals(ExecutionContext* ct
 	ctx->local_variables[2].valuef = GetVariable(a.type, a.value, 0x33).valuef + GetVariable(b.type, b.value, 0x33).valuef;
 }
 
-#define ADD 0x58
-#define SUB 0x5C
-#define MUL 0x59
-#define DIV 0x5E
-
 void init_testing()
 {
 	//Core::Alert(Core::stringify({ 0x0C, 0x00 }));
-	/*Core::Proc p = "/proc/bench_intrinsic_add_fields";
-	std::uint32_t* bc = p.get_bytecode();
-	bc[48] = Core::register_opcode("add_fields", add_subvars_of_locals);
-	bc[49] = JMP;
-	bc[50] = 0x2C;
-	bc[51] = 0x00;
-	bc[45] = 51;
-	std::ofstream o("out.txt");
-	for (Instruction& i : p.disassemble())
-	{
-		o << i.offset() << "\t\t\t" << i.bytes_str() << "\t\t\t" << i.opcode().mnemonic() << "\n";
-	}*/
+	//Core::Proc p = "/client/verb/crash";
+	//std::ofstream o("out.txt");
+	//for (Instruction& i : p.disassemble())
+	//{
+	//	o << i.offset() << "\t\t\t" << i.bytes_str() << "\t\t\t" << i.opcode().mnemonic() << "\n";
+	//}
 	/*Core::Proc p = "/proc/bench_intrinsic_add";
 	Disassembly d = p.disassemble();
 	Core::Proc intrinsic_add = "/proc/__intrinsic_add_locals";
