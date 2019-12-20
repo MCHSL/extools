@@ -75,10 +75,16 @@ struct Value
 		return trvh{ type, value };
 	}
 
+	bool operator==(const Value& rhs)
+	{
+		return value == rhs.value && type == rhs.type;
+	}
+
 	operator std::string();
 	operator float();
 	Value get(std::string name);
 	Value get_safe(std::string name);
+	Value get_by_id(int id);
 	std::unordered_map<std::string, Value> get_all_vars();
 	bool has_var(std::string name);
 	void set(std::string name, Value value);

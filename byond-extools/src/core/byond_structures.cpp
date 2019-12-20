@@ -27,6 +27,11 @@ Value Value::get_safe(std::string name)
 	return has_var(name) ? get(name) : Value::Null();
 }
 
+Value Value::get_by_id(int id)
+{
+	return GetVariable(type, value, id);
+}
+
 std::unordered_map<std::string, Value> Value::get_all_vars()
 {
 	Container vars = get("vars");

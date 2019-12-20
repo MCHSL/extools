@@ -1,6 +1,8 @@
 #include "proxy_object.h"
 #include "../core/byond_structures.h"
 #include "../dmdism/opcodes.h"
+#include <chrono>
+#include <atomic>
 
 #include <fstream>
 #include <unordered_set>
@@ -90,7 +92,7 @@ bool Proxy::initialize()
 	if (false)
 	{
 		Core::get_proc("/datum/proxy_object/proc/__install").hook(install_proxy);
+		
 	}
-
 	return true;
 }

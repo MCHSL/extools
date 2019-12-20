@@ -21,7 +21,7 @@ bool Core::verify_compat()
 	ByondBuild = GetByondBuild();
 	if (ByondVersion != COMPATIBLE_MAJOR || ByondBuild < COMPATIBLE_MINOR)
 	{
-		Core::Alert("Incompatible BYOND version, major must = " + std::to_string(COMPATIBLE_MAJOR) + " and minor must >= " + std::to_string(COMPATIBLE_MINOR));
+		Core::Alert("Incompatible BYOND version, major must = " + std::to_string(COMPATIBLE_MAJOR) + " and minor must >= " + std::to_string(COMPATIBLE_MINOR) + "(Current: "+std::to_string(ByondVersion)+"."+std::to_string(ByondBuild)+")");
 		return false;
 	}
 	return true;

@@ -2,6 +2,11 @@
 
 #include "byond_structures.h"
 
+struct variadic_arg_hack
+{
+	char data[1024];
+};
+
 typedef trvh(REGPARM3 *CallGlobalProcPtr)(char usr_type, int usr_value, int proc_type, unsigned int proc_id, int const_0, char src_type, int src_value, Value* argList, unsigned int argListLen, int const_0_2, int const_0_3);
 typedef Value(*Text2PathPtr)(unsigned int text);
 #ifdef _WIN32
@@ -31,7 +36,7 @@ typedef void(*SetAssocElementPtr)(unsigned int listType, unsigned int listId, un
 typedef unsigned int(*CreateListPtr)(unsigned int reserveSize);
 typedef trvh(*NewPtr)(Value* type, Value* args, unsigned int num_args, int unknown);
 //typedef void(*TempBreakpoint)();
-typedef void(*CrashProcPtr)(char* error, int argument);
+typedef void(*CrashProcPtr)(char* error, variadic_arg_hack hack);
 //typedef SuspendedProc* (*ResumeIn)(ExecutionContext* ctx, float deciseconds);
 typedef void(*SendMapsPtr)(void);
 #ifdef _WIN32

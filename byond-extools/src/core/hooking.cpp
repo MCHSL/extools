@@ -49,14 +49,15 @@ trvh REGPARM3 hCallGlobalProc(char usr_type, int usr_value, int proc_type, unsig
 	return result;
 }
 
-void hCrashProc(char *error, int argument)
+void hCrashProc(char *error, variadic_arg_hack hack) //this is a hack to pass variadic arguments to the original function, the struct contains a 1024 byte array
 {
+	int argument = *(int*)hack.data;
 	if (Core::opcode_handlers.find(argument) != Core::opcode_handlers.end())
 	{
 		Core::opcode_handlers[argument](*Core::current_execution_context_ptr);
 		return;
 	}
-	oCrashProc(error, argument);
+	oCrashProc(error, hack);
 }
 
 
@@ -75,24 +76,8 @@ void Core::remove_hook(void* func)
 	delete hooks[func];
 }
 
-void spam()
-{
-	Sleep(30000);
-	Core::Proc p = Core::get_proc("/atom/movable/proc/forceMove");
-	std::vector<Value> args = { {0x0E, 0x00} };
-	while (true)
-	{
-		args[0] = Core::get_turf(rand() % 255 + 1, rand() % 255 + 1, 2);
-		QueuedCall q{ p, Value(0x02, rand()%0xFFF), Value::Null(), args };
-		queued_calls.push_back(q);
-		Sleep(100);
-	}
-}
-
-
 bool Core::hook_custom_opcodes() {
 	oCrashProc = (CrashProcPtr)install_hook((void*)CrashProc, (void*)hCrashProc);
 	oCallGlobalProc = (CallGlobalProcPtr)install_hook((void*)CallGlobalProc, (void*)hCallGlobalProc);
-	//std::thread(spam).detach();
 	return oCrashProc && oCallGlobalProc;
 }
