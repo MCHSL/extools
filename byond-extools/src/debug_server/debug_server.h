@@ -70,6 +70,7 @@ public:
 	StepMode step_mode = NONE;
 	bool break_on_runtimes = false;
 	ExecutionContext* step_over_context = nullptr;
+	ExecutionContext* step_over_parent_context = nullptr;
 	std::optional<Breakpoint> breakpoint_to_restore = {};
 
 	std::unordered_map<int, std::unordered_map<int, Breakpoint>> breakpoints;

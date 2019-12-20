@@ -386,6 +386,7 @@ void DebugServer::on_break(ExecutionContext* ctx)
 	case STEP_OVER:
 		step_mode = PRE_OVER;
 		step_over_context = ctx;
+		step_over_parent_context = ctx->parent_context;
 		break;
 	case RESUME:
 		step_mode = NONE;
@@ -515,18 +516,26 @@ extern "C" void on_singlestep()
 	{
 		debug_server.restore_breakpoint();
 	}
-	if (debug_server.step_mode == INTO || (debug_server.step_mode == OVER && debug_server.step_over_context == Core::get_context()))
+	if (debug_server.step_mode == INTO)
 	{
-		if (debug_server.step_mode == OVER) //a few more ifs and this will turn sentient
-		{
-			debug_server.step_over_context = nullptr;
-		}
 		debug_server.on_step(Core::get_context());
 	}
-	/*else if (debug_server.step_mode == PRE_INTO) // Considering whether these are necessary at all
+	else if (debug_server.step_mode == OVER)
 	{
-		debug_server.step_mode = INTO;
-	}*/
+		ExecutionContext* ctx = Core::get_context();
+		if (debug_server.step_over_context == ctx || debug_server.step_over_parent_context == ctx)
+		{
+			debug_server.step_over_context = nullptr;
+			debug_server.step_over_parent_context = nullptr;
+			debug_server.on_step(Core::get_context());
+		}
+		else if (!debug_server.step_over_parent_context && (ctx->bytecode[ctx->current_opcode] == RET || ctx->bytecode[ctx->current_opcode] == END))
+		{
+			debug_server.step_over_context = nullptr; //there is nothing to return to, we missed our chance
+			debug_server.step_over_parent_context = nullptr;
+			debug_server.step_mode = NONE;
+		}
+	}
 	else if (debug_server.step_mode == PRE_OVER)
 	{
 		debug_server.step_mode = OVER;
