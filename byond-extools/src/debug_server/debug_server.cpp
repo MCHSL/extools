@@ -430,6 +430,10 @@ nlohmann::json value_to_text(Value val)
 		// Not subtypeable
 		literal = { { "typepath", "/client" } };
 		break;
+	case SAVEFILE_TYPEPATH:
+		// Not subtypeable
+		literal = { { "typepath", "/savefile" } };
+		break;
 	case RESOURCE:
 		literal = { {"resource", Core::stringify(val) } };
 		break;
