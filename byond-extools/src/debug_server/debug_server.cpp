@@ -480,6 +480,7 @@ void DebugServer::send_call_stack(ExecutionContext* ctx)
 
 		j["usr"] = value_to_text(ctx->constants->usr);
 		j["src"] = value_to_text(ctx->constants->src);
+		j["dot"] = value_to_text(ctx->dot);
 
 		std::vector<nlohmann::json> locals;
 		for (int i = 0; i < ctx->local_var_count; i++)

@@ -252,7 +252,8 @@ struct ExecutionContext
 	Value cached_datum;
 	char unknown2[8];
 	std::uint32_t test_flag;
-	char unknown3[12];
+	char unknown3[4];
+	Value dot;
 	Value* local_variables;
 	Value* stack;
 	std::uint16_t local_var_count;
