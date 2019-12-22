@@ -363,6 +363,7 @@ void DebugServer::on_breakpoint(ExecutionContext* ctx)
 	{
 		breakpoint_to_restore = bp;
 	}
+	send_call_stack(ctx);
 	send(MESSAGE_BREAKPOINT_HIT, { {"proc", bp->proc.name }, {"offset", bp->offset }, {"override_id", Core::get_proc(ctx).override_id}, {"reason", "breakpoint opcode"} });
 	on_break(ctx);
 	ctx->current_opcode--;
@@ -371,13 +372,13 @@ void DebugServer::on_breakpoint(ExecutionContext* ctx)
 void DebugServer::on_step(ExecutionContext* ctx)
 {
 	auto proc = Core::get_proc(ctx);
+	send_call_stack(ctx);
 	send(MESSAGE_BREAKPOINT_HIT, { {"proc", proc.name }, {"offset", ctx->current_opcode }, {"override_id", proc.override_id}, {"reason", "step"} });
 	on_break(ctx);
 }
 
 void DebugServer::on_break(ExecutionContext* ctx)
 {
-	send_call_stack(ctx);
 	switch (wait_for_action())
 	{
 	case STEP_INTO:
@@ -397,8 +398,8 @@ void DebugServer::on_break(ExecutionContext* ctx)
 void DebugServer::on_error(ExecutionContext* ctx, char* error)
 {
 	Core::Proc p = Core::get_proc(ctx);
-	debug_server.send(MESSAGE_RUNTIME, { {"proc", p.name }, {"offset", ctx->current_opcode }, {"override_id", p.override_id}, {"message", std::string(error)} });
 	send_call_stack(ctx);
+	debug_server.send(MESSAGE_RUNTIME, { {"proc", p.name }, {"offset", ctx->current_opcode }, {"override_id", p.override_id}, {"message", std::string(error)} });
 	debug_server.wait_for_action();
 }
 
@@ -480,6 +481,7 @@ void DebugServer::send_call_stack(ExecutionContext* ctx)
 
 		j["usr"] = value_to_text(ctx->constants->usr);
 		j["src"] = value_to_text(ctx->constants->src);
+		j["dot"] = value_to_text(ctx->dot);
 
 		std::vector<nlohmann::json> locals;
 		for (int i = 0; i < ctx->local_var_count; i++)

@@ -249,10 +249,11 @@ struct ExecutionContext
 	std::uint32_t dbg_current_line;
 	std::uint32_t* bytecode;
 	std::uint16_t current_opcode;
+	char test_flag;
+	char unknown1;
 	Value cached_datum;
-	char unknown2[8];
-	std::uint32_t test_flag;
-	char unknown3[12];
+	char unknown2[16];
+	Value dot;
 	Value* local_variables;
 	Value* stack;
 	std::uint16_t local_var_count;
