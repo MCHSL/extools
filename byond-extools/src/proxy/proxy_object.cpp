@@ -39,10 +39,10 @@ trvh hGetVariable(int datumType, int datumId, unsigned int name_id)
 		getters[name_id] = tmp;
 		return res;
 	}*/
-	if (data_breakpoints[datumType][datumId].find(name_id) != data_breakpoints[datumType][datumId].end())
+	/*if (data_breakpoints[datumType][datumId].find(name_id) != data_breakpoints[datumType][datumId].end())
 	{
 
-	}
+	}*/
 	return oGetVariable(datumType, datumId, name_id);
 }
 
