@@ -21,8 +21,8 @@
 
 typedef void(*opcode_handler)(ExecutionContext* ctx);
 
-#define COMPATIBLE_MAJOR 512
-#define COMPATIBLE_MINOR 1484
+#define MIN_COMPATIBLE_MAJOR 512
+#define MIN_COMPATIBLE_MINOR 1484
 
 extern int ByondVersion;
 extern int ByondBuild;

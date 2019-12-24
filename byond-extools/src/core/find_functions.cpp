@@ -19,9 +19,9 @@ bool Core::verify_compat()
 	IMPORT_OR_DIE(GetByondBuild, "?GetByondBuild@ByondLib@@QAEJXZ");
 	ByondVersion = GetByondVersion();
 	ByondBuild = GetByondBuild();
-	if (ByondVersion != COMPATIBLE_MAJOR || ByondBuild < COMPATIBLE_MINOR)
+	if (ByondVersion < MIN_COMPATIBLE_MAJOR || ByondBuild < MIN_COMPATIBLE_MINOR)
 	{
-		Core::Alert("Incompatible BYOND version, major must = " + std::to_string(COMPATIBLE_MAJOR) + " and minor must >= " + std::to_string(COMPATIBLE_MINOR) + "(Current: "+std::to_string(ByondVersion)+"."+std::to_string(ByondBuild)+")");
+		Core::Alert("Incompatible BYOND version, must be at least " + std::to_string(MIN_COMPATIBLE_MAJOR) + "." + std::to_string(MIN_COMPATIBLE_MINOR) + " (Current: "+std::to_string(ByondVersion)+"."+std::to_string(ByondBuild)+")");
 		return false;
 	}
 	return true;
