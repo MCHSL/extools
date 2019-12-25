@@ -528,6 +528,11 @@ extern "C" void on_singlestep()
 	}
 	else if (debug_server.step_mode == OVER)
 	{
+		if (!debug_server.step_over_context)
+		{
+			debug_server.step_mode = NONE;
+			return;
+		}
 		ExecutionContext* ctx = Core::get_context();
 		if (debug_server.step_over_context == ctx || debug_server.step_over_parent_context == ctx)
 		{
@@ -535,7 +540,7 @@ extern "C" void on_singlestep()
 			debug_server.step_over_parent_context = nullptr;
 			debug_server.on_step(Core::get_context());
 		}
-		else if (!debug_server.step_over_parent_context && (ctx->bytecode[ctx->current_opcode] == RET || ctx->bytecode[ctx->current_opcode] == END))
+		if (!ctx->parent_context && (ctx->bytecode[ctx->current_opcode] == RET || ctx->bytecode[ctx->current_opcode] == END))
 		{
 			debug_server.step_over_context = nullptr; //there is nothing to return to, we missed our chance
 			debug_server.step_over_parent_context = nullptr;
