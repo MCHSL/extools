@@ -17,19 +17,21 @@ SuspendPtr oSuspend;
 
 std::unordered_map<unsigned int, bool> procs_to_profile;
 
-#define TOMICROS(x) (long long)std::chrono::duration_cast<std::chrono::microseconds>(x).count()
+#define TOMICROS(x) (long long)std::chrono::duration_cast<std::chrono::nanoseconds>(x).count()
 unsigned int next_profile_id = 1;
 
 std::unordered_map<unsigned int, ExtendedProfile*> sleeping_profiles;
 
-void output_subcalls(std::string base, std::ofstream& output, ExtendedProfile* profile)
+unsigned long long output_subcalls(std::string base, std::ofstream& output, ExtendedProfile* profile)
 {
 	base += Core::get_proc(profile->proc_id).name;
 	//Core::Alert(base.c_str());
 
-	if (!(profile->subcalls.empty()))
+	unsigned long long total_time = 0;
+	if (!profile->subcalls.empty())
 	{
 		unsigned long long time = TOMICROS(profile->subcalls.front()->start_time - profile->start_time);
+		total_time += time;
 		if (time > STUPID_READOUTS_LIMIT)
 		{
 			time = 1;
@@ -39,14 +41,20 @@ void output_subcalls(std::string base, std::ofstream& output, ExtendedProfile* p
 			output << base << " " << time << "\n";
 		}
 
-		for (ExtendedProfile* sub : profile->subcalls)
+		for (int i=0; i < profile->subcalls.size()-1; i++)
 		{
+			ExtendedProfile* sub = profile->subcalls.at(i);
 			//Core::Alert( ("End: " + std::to_string(sub->end_time.time_since_epoch().count())).c_str());
 			//Core::Alert(("Start: " +std::to_string(sub->start_time.time_since_epoch().count())).c_str());
-			output_subcalls(base + ";", output, sub);
+			total_time += output_subcalls(base + ";", output, sub);
+			total_time += TOMICROS(profile->subcalls.at(i + 1)->start_time - sub->end_time);
+			output << base << " " << TOMICROS(profile->subcalls.at(i+1)->start_time - sub->end_time) << "\n";
+
 		}
 		ExtendedProfile* last_sub = profile->subcalls.back();
+		output_subcalls(base + ";", output, last_sub);
 		time = TOMICROS(profile->end_time - last_sub->end_time);
+		total_time += time;
 		if (time > STUPID_READOUTS_LIMIT)
 		{
 			time = 1;
@@ -55,15 +63,17 @@ void output_subcalls(std::string base, std::ofstream& output, ExtendedProfile* p
 		{
 			output << base << " " << time << "\n";
 		}
-
+		//unsigned long long drift = TOMICROS(profile->end_time - profile->start_time) - total_time;
+		//output << base << ";OVERHEAD " << drift << "\n";
 	}
 	else
 	{
 		unsigned long long time = TOMICROS(profile->end_time - profile->start_time);
-		if (time > STUPID_READOUTS_LIMIT)
-		{
-			time = 1;
-		}
+		total_time += time;
+		//if (time > STUPID_READOUTS_LIMIT)
+		//{
+		//	time = 1;
+		//}
 		if (time)
 		{
 			output << base << " " << time << "\n";
@@ -72,10 +82,13 @@ void output_subcalls(std::string base, std::ofstream& output, ExtendedProfile* p
 	//base.pop_back();
 	//Core::Alert(std::to_string(profile->end_time.time_since_epoch().count()).c_str());
 	//Core::Alert(std::to_string(profile->start_time.time_since_epoch().count()).c_str());
+	return total_time;
 }
 
 void dump_extended_profile(ExtendedProfile* profile)
 {
+	//Core::Alert(std::to_string(TOMICROS(real_end - real_start)));
+	//Core::Alert(std::to_string(TOMICROS(profile->end_time - profile->start_time)));
 	std::string procname = Core::get_proc(profile->proc_id);
 	std::replace(procname.begin(), procname.end(), '/', '.');
 	CreateDirectoryA("profiling", NULL);
@@ -113,7 +126,6 @@ void hCreateContext(ProcConstants* constants, ExecutionContext* new_context)
 	}
 	if (procs_to_profile.find(constants->proc_id) != procs_to_profile.end() || sleeping_profiles.find(constants->proc_id) != sleeping_profiles.end())
 	{
-
 		//Core::Alert("Creating profile for: " + Core::get_proc(constants->proc_id).name);
 		if (sleeping_profiles.find(constants->proc_id) != sleeping_profiles.end())
 		{
@@ -128,6 +140,7 @@ void hCreateContext(ProcConstants* constants, ExecutionContext* new_context)
 			ExtendedProfile* profile = new ExtendedProfile;
 			profile->proc_id = constants->proc_id;
 			profile->id = sleepy->id;
+			profile->call_stack.reserve(32);
 			profile->call_stack.push_back(profile);
 			profiles[constants->proc_id] = profile;
 			delete sleepy;
@@ -162,6 +175,7 @@ void hCreateContext(ProcConstants* constants, ExecutionContext* new_context)
 			{
 				ExtendedProfile* subprofile = new ExtendedProfile;
 				subprofile->proc_id = constants->proc_id;
+				subprofile->call_stack.reserve(32);
 				subprofile->call_stack.push_back(subprofile);
 				ep->call_stack.back()->subcalls.push_back(subprofile);
 				//ep->call_stack.back()->call_stack.push_back(subprofile);
@@ -204,10 +218,6 @@ void hProcCleanup(ExecutionContext* ctx)
 			}
 			//recursive_suspend(profile);
 			dump_extended_profile(profile);
-			for (ExtendedProfile* sub : profile->subcalls)
-			{
-				delete sub;
-			}
 			delete profile;
 			profiles.erase(proc_id);
 			//procs_to_profile.erase(proc_id);
@@ -274,4 +284,12 @@ void ExtendedProfile::stop_timer()
 unsigned long long ExtendedProfile::total_time()
 {
 	return TOMICROS(end_time - start_time);
+}
+
+ExtendedProfile::~ExtendedProfile()
+{
+	for (auto subcall : subcalls)
+	{
+		delete subcall;
+	}
 }

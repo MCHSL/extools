@@ -7,6 +7,7 @@
 
 struct ExtendedProfile
 {
+	~ExtendedProfile();
 	unsigned int proc_id;
 	unsigned int id;
 	unsigned long long total;
