@@ -128,3 +128,6 @@ Thank you to people who contributed in one way or another to the overall effort.
 - SpaceManiac
 
 Let me know if I forgot to include you!
+
+## Want to see more?
+Feel free to [buy me a beer.](https://ko-fi.com/asd1337)
