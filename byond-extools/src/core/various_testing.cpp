@@ -2,6 +2,9 @@
 #include "../dmdism/disassembly.h"
 #include "../debug_server/debug_server.h"
 #include "../proxy/proxy_object.h"
+#include "../optimizer/optimizer.h"
+#include "../crash_guard/crash_guard.h"
+#include "../extended_profiling/normal_profiling.h"
 
 #include <fstream>
 
@@ -104,6 +107,9 @@ extern "C" __declspec(dllexport) void add_subvars_of_locals(ExecutionContext* ct
 
 void init_testing()
 {
+	initialize_profiler_access();
+	//enable_crash_guard();
+	//optimizer_initialize();
 	//Core::Alert(Core::stringify({ 0x0C, 0x00 }));
 	//Core::Proc p = "/client/verb/crash";
 	//std::ofstream o("out.txt");

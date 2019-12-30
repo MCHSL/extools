@@ -246,6 +246,11 @@ extern "C" EXPORT const char* debug_initialize(int n_args, const char** args)
 	return (Core::initialize() && debugger_initialize() && debugger_enable(mode, port)) ? good : bad;
 }
 
+extern "C" EXPORT void force_debug()
+{
+	Core::initialize() && debugger_initialize() && debugger_enable(DBG_MODE_BACKGROUND, DBG_DEFAULT_PORT);
+}
+
 void init_testing();
 void run_tests();
 extern "C" EXPORT const char* run_tests(int n_args, const char** args)

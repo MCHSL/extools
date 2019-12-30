@@ -7,6 +7,12 @@ Value::Value(std::string s)
 	value = Core::GetStringId(s.c_str());
 }
 
+Value::Value(const char* s)
+{
+	type = 0x06;
+	value = Core::GetStringId(s);
+}
+
 Value::operator std::string()
 {
 	return Core::GetStringFromId(value);

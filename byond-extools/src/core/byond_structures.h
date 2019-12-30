@@ -47,8 +47,9 @@ struct Value
 		else
 			valuef = trvh.valuef;
 	}
-	explicit Value(float valuef) : type(0x2A), valuef(valuef) {};
+	Value(float valuef) : type(0x2A), valuef(valuef) {};
 	Value(std::string s);
+	Value(const char* s);
 
 
 	inline static Value Null() {
@@ -122,33 +123,6 @@ struct RawList
 
 };
 
-struct List //Specialization for Container with fast access by index
-{
-	List();
-	List(int _id);
-	List(Value v);
-	RawList* list;
-
-	int id;
-
-	Value at(int index);
-	Value at(Value key);
-	void append(Value val);
-
-	bool is_assoc()
-	{
-		return list->is_assoc();
-	}
-
-	Value* begin() { return list->vector_part; }
-	Value* end() { return list->vector_part + list->length; }
-
-	operator trvh()
-	{
-		return { 0x0F, id };
-	}
-};
-
 struct Container;
 
 struct ContainerProxy
@@ -192,6 +166,38 @@ struct Container //All kinds of lists, including magical snowflake lists like co
 	ContainerProxy operator[](Value key)
 	{
 		return ContainerProxy(*this, key);
+	}
+};
+
+struct List //Specialization for Container with fast access by index
+{
+	List();
+	List(int _id);
+	List(Value v);
+	RawList* list;
+
+	int id;
+
+	Value at(int index);
+	Value at(Value key);
+	void append(Value val);
+
+	bool is_assoc()
+	{
+		return list->is_assoc();
+	}
+
+	Value* begin() { return list->vector_part; }
+	Value* end() { return list->vector_part + list->length; }
+
+	operator trvh()
+	{
+		return { 0x0F, id };
+	}
+
+	operator Container()
+	{
+		return { 0x0F, id };
 	}
 };
 
@@ -297,7 +303,7 @@ struct ProfileEntry
 	}
 	double as_seconds()
 	{
-		return (double)seconds + microseconds / 1000000;
+		return (double)seconds + ((double)microseconds / 1000000);
 	}
 };
 

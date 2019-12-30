@@ -7,7 +7,7 @@
 std::map<Core::Proc, bool> has_been_optimized;
 std::vector<Core::Proc> inlineable_procs;
 
-Disassembly inline_into(Disassembly recipient, Disassembly donor, int which_instruction, int local_count)
+void inline_into(Disassembly& recipient, Disassembly& donor, int which_instruction, int local_count)
 {
 	int arg_count = 0;
 	for (Instruction& i : donor)
@@ -75,7 +75,7 @@ Disassembly inline_into(Disassembly recipient, Disassembly donor, int which_inst
 	{
 		recipient.at(instr_index).bytes().at(1) = recipient.instructions.back().offset() + 2;
 	}
-	for (int i = 0; i < recipient.size(); i++)
+	for (int i = 0; i < recipient.size()-1; i++)
 	{
 		Instruction& instr = recipient.at(i);
 		if (instr == JMP || instr == JMP2 || instr == JZ || instr == JNZ)
@@ -107,7 +107,6 @@ Disassembly inline_into(Disassembly recipient, Disassembly donor, int which_inst
 		}
 	}
 	recipient.instructions.insert(recipient.instructions.end(), plop_after_inlining.begin(), plop_after_inlining.end());
-	return recipient;
 }
 
 void optimize_proc(Core::Proc recipient);
@@ -119,13 +118,13 @@ void optimize_inline(Core::Proc recipient, Disassembly& recipient_code)
 		Instruction& instr = recipient_code.at(i);
 		if (instr == Bytecode::CALLGLOB)
 		{
-			Core::Proc donor = Core::get_proc(instr.bytes()[2]);
+			Core::Proc& donor = Core::get_proc(instr.bytes()[2]);
 			if (donor == recipient)
 			{
 				continue;
 			}
 			optimize_proc(donor);
-			recipient_code = inline_into(recipient_code, donor.disassemble(), i, recipient.get_local_varcount());
+			inline_into(recipient_code, donor.disassemble(), i, recipient.get_local_varcount());
 			i = 0;
 		}
 	}
@@ -156,12 +155,11 @@ void dump_proc_to_file(Core::Proc p, std::string name)
 
 void optimizer_initialize()
 {
-	return;
 	const std::vector<Core::Proc> all_procs = Core::get_all_procs();
 	for (Core::Proc p : all_procs)
 	{
 		has_been_optimized[p] = false;
-		if (p.name.back() != ')' && p.name.rfind("/proc/", 0) == 0) //find all global procs
+		if (!p.raw_path.empty() && p.raw_path.back() != ')' && p.raw_path.rfind("/proc/", 0) == 0) //find all global procs
 		{
 			inlineable_procs.push_back(p);
 		}

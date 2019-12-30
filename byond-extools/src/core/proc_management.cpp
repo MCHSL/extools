@@ -65,9 +65,9 @@ std::uint16_t Core::Proc::get_bytecode_length()
 
 std::uint16_t Core::Proc::get_local_varcount() //TODO: this is broken
 {
-	Core::Alert(std::to_string(setup_entry_varcount->local_var_count));
-	Core::Alert(std::to_string((int)proc_setup_table[varcount_idx]));
-	Core::Alert(std::to_string(setup_entry_bytecode->local_var_count));
+	//Core::Alert(std::to_string(setup_entry_varcount->local_var_count));
+	//Core::Alert(std::to_string((int)proc_setup_table[varcount_idx]));
+	//Core::Alert(std::to_string(setup_entry_bytecode->local_var_count));
 	return setup_entry_varcount->local_var_count;
 }
 
@@ -129,7 +129,7 @@ Core::Proc Core::get_proc(ExecutionContext* ctx)
 	return get_proc(ctx->constants->proc_id);
 }
 
-const std::vector<Core::Proc>& Core::get_all_procs()
+std::vector<Core::Proc>& Core::get_all_procs()
 {
 	return procs_by_id;
 }
