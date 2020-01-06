@@ -6,6 +6,8 @@
 #include "../extended_profiling/extended_profiling.h"
 #include "../debug_server/debug_server.h"
 #include <fstream>
+#include <unordered_set>
+#include <chrono>
 
 CrashProcPtr CrashProc;
 SuspendPtr Suspend;
@@ -34,6 +36,12 @@ CreateListPtr CreateList;
 LengthPtr Length;
 IsInContainerPtr IsInContainer;
 ToStringPtr ToString;
+TopicFloodCheckPtr TopicFloodCheck;
+PrintToDDPtr PrintToDD;
+GetBSocketPtr GetBSocket;
+DisconnectClient1Ptr DisconnectClient1;
+DisconnectClient2Ptr DisconnectClient2;
+GetSocketHandleStructPtr GetSocketHandleStruct;
 
 ExecutionContext** Core::current_execution_context_ptr;
 ExecutionContext** Core::parent_context_ptr_hack;
@@ -68,6 +76,11 @@ void Core::Alert(std::string what) {
 #else
 	printf("%s\n", what);
 #endif
+}
+
+void Core::Alert(int what)
+{
+	Alert(std::to_string(what));
 }
 
 unsigned int Core::GetStringId(std::string str) {
@@ -282,5 +295,62 @@ extern "C" EXPORT const char* enable_extended_profiling(int n_args, const char**
 extern "C" EXPORT const char* disable_extended_profiling(int n_args, const char** args)
 {
 	procs_to_profile.erase(Core::get_proc(args[0]).id); //TODO: improve consistency and reconsider how initialization works
+	return good;
+}
+
+std::uint32_t Core::get_socket_from_client(unsigned int id)
+{
+	int str = (int)GetSocketHandleStruct(id);
+	return ((Hellspawn*)(str - 0x74))->handle;
+}
+
+
+void Core::disconnect_client(unsigned int id)
+{
+	closesocket(get_socket_from_client(id));
+	DisconnectClient1(id, 1, 1);
+	DisconnectClient2(id);
+}
+
+
+
+std::unordered_set<std::string> blacklist;
+std::unordered_map<std::string, std::chrono::steady_clock::time_point> last_packets;
+
+bool flood_topic_filter(BSocket* socket, int socket_id)
+{
+	std::string addr = socket->addr();
+	if (blacklist.find(addr) != blacklist.end())
+	{
+		Core::disconnect_client(socket_id);
+		return false;
+	}
+	auto now = std::chrono::steady_clock::now();
+	if (last_packets.find(addr) == last_packets.end())
+	{
+		last_packets[addr] = now;
+		return true;
+	}
+	auto last = last_packets[addr];
+	if (std::chrono::duration_cast<std::chrono::milliseconds>(now - last).count() < 50)
+	{
+		PrintToDD(std::string("Blacklisting " + addr + " for this session.\n").c_str());
+		blacklist.emplace(addr);
+		last_packets.erase(addr);
+		Core::disconnect_client(socket_id);
+		return false;
+	}
+	last_packets[addr] = now;
+	return true;
+}
+
+extern "C" EXPORT const char* install_flood_topic_filter(int n_args, const char** args)
+{
+	if (!Core::initialize())
+	{
+		return bad;
+	}
+	//Core::Alert("Installing custom filter");
+	Core::set_topic_filter(flood_topic_filter);
 	return good;
 }

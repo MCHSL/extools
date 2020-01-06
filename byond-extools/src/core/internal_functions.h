@@ -7,6 +7,8 @@ struct variadic_arg_hack
 	char data[1024];
 };
 
+struct BSocket;
+
 typedef trvh(REGPARM3 *CallGlobalProcPtr)(char usr_type, int usr_value, int proc_type, unsigned int proc_id, int const_0, char src_type, int src_value, Value* argList, unsigned int argListLen, int const_0_2, int const_0_3);
 typedef Value(*Text2PathPtr)(unsigned int text);
 #ifdef _WIN32
@@ -59,6 +61,12 @@ typedef trvh(*GetTurfPtr)(int x, int y, int z);
 typedef unsigned int(*LengthPtr)(int type, int value);
 typedef bool(*IsInContainerPtr)(int keyType, int keyValue, int cntType, int cntId);
 typedef unsigned int(*ToStringPtr)(int type, int value);
+typedef bool(*TopicFloodCheckPtr)(int socket_id);
+typedef void(*PrintToDDPtr)(const char* msg);
+typedef BSocket*(*GetBSocketPtr)(unsigned int id);
+typedef void(*DisconnectClient1Ptr)(unsigned int id, int unknown, bool suggest_reconnect); //this and the below function must be called in tandem
+typedef void(*DisconnectClient2Ptr)(unsigned int id);
+typedef Hellspawn* (*GetSocketHandleStructPtr)(unsigned int id);
 
 extern CrashProcPtr CrashProc;
 extern StartTimingPtr StartTiming;
@@ -87,3 +95,9 @@ extern CreateListPtr CreateList;
 extern LengthPtr Length;
 extern IsInContainerPtr IsInContainer;
 extern ToStringPtr ToString;
+extern TopicFloodCheckPtr TopicFloodCheck;
+extern PrintToDDPtr PrintToDD;
+extern GetBSocketPtr GetBSocket;
+extern DisconnectClient1Ptr DisconnectClient1;
+extern DisconnectClient2Ptr DisconnectClient2;
+extern GetSocketHandleStructPtr GetSocketHandleStruct;

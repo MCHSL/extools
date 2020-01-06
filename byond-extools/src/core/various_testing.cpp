@@ -105,8 +105,18 @@ extern "C" __declspec(dllexport) void add_subvars_of_locals(ExecutionContext* ct
 	ctx->local_variables[2].valuef = GetVariable(a.type, a.value, 0x33).valuef + GetVariable(b.type, b.value, 0x33).valuef;
 }
 
+trvh toggle_verb_hidden(unsigned int argcount, Value* args, Value src)
+{
+	Core::get_proc("/client/verb/hidden").proc_table_entry->procFlags = 4;
+	return { 0, 0 };
+}
+
 void init_testing()
 {
+	//Core::Alert(Core::get_proc("/client/verb/hidden").proc_table_entry->procFlags);
+	//Core::Alert(Core::get_proc("/client/verb/nothidden").proc_table_entry->procFlags);
+	Core::get_proc("/client/verb/toggle_hidden_verb").hook(toggle_verb_hidden);
+	Core::get_proc("/client/verb/hidden").proc_table_entry->procFlags = 4;
 	initialize_profiler_access();
 	//enable_crash_guard();
 	//optimizer_initialize();

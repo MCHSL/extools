@@ -212,6 +212,7 @@ int DebugServer::handle_one_message()
 		}
 		debugger.send(data);
 	}
+
 	else if (type == MESSAGE_GET_PROFILE)
 	{
 		const std::string& name = data.at("content");

@@ -143,3 +143,8 @@ void ContainerProxy::operator=(Value val)
 {
 	SetAssocElement(c.type, c.id, key.type, key.value, val.type, val.value);
 }
+
+std::string BSocket::addr()
+{
+	return Core::GetStringFromId(addr_string_id);
+}

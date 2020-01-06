@@ -11,6 +11,8 @@
 #endif
 #define FLAG_PROFILE 0x10000
 
+#define PROC_FLAG_HIDDEN 1
+
 struct String
 {
 	char* stringData;
@@ -315,4 +317,32 @@ struct ProfileInfo
 	ProfileEntry self;
 	ProfileEntry overtime;
 	std::uint32_t proc_id;
+};
+
+struct NetMsg //named after the struct ThreadedNetMsg - unsure if it's actually that struct
+{
+	std::uint32_t type;
+	std::uint32_t payload_length;
+	std::uint32_t unk1;
+	std::uint32_t unk2;
+	char* payload;
+	std::uint32_t unk3;
+	std::uint32_t raw_header;
+};
+
+struct BSocket //or client?		   
+{
+	std::uint32_t unk1;
+	std::uint32_t addr_string_id;
+	//more unknown fields here
+	//EAX + 0x444 is the refcount, holy crap!
+	//EAX + 0x54 - key/username
+	std::string addr();
+};
+
+struct Hellspawn
+{
+	std::uint32_t outta_my_way;
+	std::uint32_t shove_off;
+	std::uint32_t handle;
 };

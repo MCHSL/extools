@@ -8,6 +8,9 @@
 
 CrashProcPtr oCrashProc;
 CallGlobalProcPtr oCallGlobalProc;
+TopicFloodCheckPtr oTopicFloodCheck;
+
+TopicFilter current_topic_filter = nullptr;
 
 std::unordered_map<void*, subhook::Hook*> hooks;
 
@@ -26,7 +29,8 @@ bool calling_queue = false;
 
 trvh REGPARM3 hCallGlobalProc(char usr_type, int usr_value, int proc_type, unsigned int proc_id, int const_0, char src_type, int src_value, Value *argList, unsigned int argListLen, int const_0_2, int const_0_3)
 {
-	Core::codecov_executed_procs[proc_id] = true;
+	if(proc_id < Core::codecov_executed_procs.size())
+		Core::codecov_executed_procs[proc_id] = true;
 	if (!queued_calls.empty() && !calling_queue)
 	{
 		calling_queue = true;
@@ -60,6 +64,20 @@ void hCrashProc(char *error, variadic_arg_hack hack) //this is a hack to pass va
 	oCrashProc(error, hack);
 }
 
+bool hTopicFloodCheck(int socket_id)
+{
+	if (current_topic_filter)
+	{
+		return !current_topic_filter(GetBSocket(socket_id), socket_id); //inverting here cause it seems that the function is more like "CheckIsBanned" where it returns true if byond needs to ignore the client
+	}
+	return oTopicFloodCheck(socket_id);
+}
+
+void Core::set_topic_filter(TopicFilter tf)
+{
+	current_topic_filter = tf;
+}
+
 
 void* Core::install_hook(void* original, void* hook)
 {
@@ -79,5 +97,6 @@ void Core::remove_hook(void* func)
 bool Core::hook_custom_opcodes() {
 	oCrashProc = (CrashProcPtr)install_hook((void*)CrashProc, (void*)hCrashProc);
 	oCallGlobalProc = (CallGlobalProcPtr)install_hook((void*)CallGlobalProc, (void*)hCallGlobalProc);
+	oTopicFloodCheck = (TopicFloodCheckPtr)install_hook((void*)TopicFloodCheck, (void*)hTopicFloodCheck);
 	return oCrashProc && oCallGlobalProc;
 }

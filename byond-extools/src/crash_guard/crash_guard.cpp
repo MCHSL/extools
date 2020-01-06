@@ -3,8 +3,10 @@
 #include <ctime>
 
 #ifdef WIN32
-#include <Windows.h>
+#include <windows.h>
 #include "exception_codes.h"
+
+RuntimePtr oRuntimeLL;
 
 std::string ErrorToString(int id)
 {
@@ -77,10 +79,66 @@ LONG WINAPI all_the_broken_things_that_byond_made(_EXCEPTION_POINTERS* Exception
 	return EXCEPTION_CONTINUE_SEARCH;
 }
 
+void dump_oor()
+{
+	std::ofstream dump("out_of_resources.log");
+	std::time_t t = std::time(nullptr);
+	std::string timestamp = "UNKNOWN TIME";
+	char buf[64];
+	if (std::strftime(buf, sizeof(buf), "%c", std::localtime(&t)))
+	{
+		timestamp = std::string(buf);
+	}
+	dump << "Out of resources runtime occured at" << timestamp << "\n";
+	ExecutionContext* ctx = Core::get_context();
+	if (!ctx)
+	{
+		dump << "Unable to acquire execution context. Sorry.\n";
+		return;
+	}
+	dump << "Call stack:\n";
+	do
+	{
+		dump << "Proc: " << Core::get_proc(ctx->constants->proc_id).raw_path << "\n";
+		dump << "File: " << Core::GetStringFromId(ctx->dbg_proc_file) << "\n";
+		dump << "Line: " << ctx->dbg_current_line << "\n";
+		dump << "usr: " << Core::stringify(ctx->constants->usr) << "\n";
+		dump << "src: " << Core::stringify(ctx->constants->src) << "\n";
+		dump << "dot: " << Core::stringify(ctx->dot) << "\n";
+		dump << "\nArguments:\n";
+		for (int i = 0; i < ctx->constants->arg_count; i++)
+		{
+			dump << "\t" << (int)ctx->constants->args[i].type << " " << (ctx->constants->args[i].type == 0x2A ? ctx->constants->args[i].valuef : ctx->constants->args[i].value) << "\n";
+		}
+		dump << "\nLocal variables:\n";
+		for (int i = 0; i < ctx->local_var_count; i++)
+		{
+			dump << "\t" << (int)ctx->local_variables[i].type << " " << (ctx->local_variables[i].type == 0x2A ? ctx->local_variables[i].valuef : ctx->local_variables[i].value) << "\n";
+		}
+		dump.flush();
+	} while (ctx = ctx->parent_context);
+}
+
+void hRuntimeLL(char* err)
+{
+	if (strcmp(err, "Out of resources!") == 0)
+	{
+		dump_oor();
+	}
+	oRuntimeLL(err);
+}
+
 bool enable_crash_guard()
 {
 	AddVectoredExceptionHandler(0, all_the_broken_things_that_byond_made);
 	return true;
+}
+
+extern "C" EXPORT const char* enable_resource_leak_locator(int arg_n, const char** c)
+{
+	Core::initialize();
+	oRuntimeLL = (RuntimePtr)Core::install_hook((void*)Runtime, (void*)hRuntimeLL);
+	return "";
 }
 
 #else

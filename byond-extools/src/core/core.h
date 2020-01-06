@@ -44,6 +44,7 @@ namespace Core
 	ExecutionContext* _get_parent_context();
 	unsigned int register_opcode(std::string name, opcode_handler handler);
 	void Alert(std::string what);
+	void Alert(int what);
 	bool initialize();
 	extern bool initialized;
 	Value get_stack_value(unsigned int which);
@@ -53,4 +54,6 @@ namespace Core
 	bool disable_profiling();
 	std::string type_to_text(unsigned int type);
 	std::string stringify(Value val);
+	void disconnect_client(unsigned int id);
+	std::uint32_t get_socket_from_client(unsigned int id);
 }
