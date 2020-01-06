@@ -29,8 +29,8 @@ bool calling_queue = false;
 
 trvh REGPARM3 hCallGlobalProc(char usr_type, int usr_value, int proc_type, unsigned int proc_id, int const_0, char src_type, int src_value, Value *argList, unsigned int argListLen, int const_0_2, int const_0_3)
 {
-	if(proc_id < Core::codecov_executed_procs.size())
-		Core::codecov_executed_procs[proc_id] = true;
+	//if(proc_id < Core::codecov_executed_procs.size())
+	//	Core::codecov_executed_procs[proc_id] = true;
 	if (!queued_calls.empty() && !calling_queue)
 	{
 		calling_queue = true;
@@ -90,13 +90,23 @@ void* Core::install_hook(void* original, void* hook)
 void Core::remove_hook(void* func)
 {
 	hooks[func]->Remove();
-	hooks.erase(func);
 	delete hooks[func];
+	hooks.erase(func);
+}
+
+void Core::remove_all_hooks()
+{
+	for (auto iter = hooks.begin(); iter != hooks.end(); )
+	{
+		iter->second->Remove();
+		delete iter->second;
+		iter = hooks.erase(iter);
+	}
 }
 
 bool Core::hook_custom_opcodes() {
 	oCrashProc = (CrashProcPtr)install_hook((void*)CrashProc, (void*)hCrashProc);
 	oCallGlobalProc = (CallGlobalProcPtr)install_hook((void*)CallGlobalProc, (void*)hCallGlobalProc);
 	oTopicFloodCheck = (TopicFloodCheckPtr)install_hook((void*)TopicFloodCheck, (void*)hTopicFloodCheck);
-	return oCrashProc && oCallGlobalProc;
+	return oCrashProc && oCallGlobalProc && oTopicFloodCheck;
 }

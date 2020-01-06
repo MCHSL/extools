@@ -35,7 +35,7 @@ namespace Core
 	extern ExecutionContext** parent_context_ptr_hack;
 	extern ProcSetupEntry** proc_setup_table;
 	extern unsigned int* some_flags_including_profile;
-	extern std::vector<bool> codecov_executed_procs;
+	//extern std::vector<bool> codecov_executed_procs;
 	unsigned int GetStringId(std::string str);
 	std::string GetStringFromId(unsigned int id);
 	Value get_turf(int x, int y, int z);
@@ -56,4 +56,5 @@ namespace Core
 	std::string stringify(Value val);
 	void disconnect_client(unsigned int id);
 	std::uint32_t get_socket_from_client(unsigned int id);
+	void cleanup();
 }

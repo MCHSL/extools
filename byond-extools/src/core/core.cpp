@@ -52,7 +52,7 @@ int ByondBuild;
 unsigned int* Core::some_flags_including_profile;
 unsigned int Core::extended_profiling_insanely_hacky_check_if_its_a_new_call_or_resume;
 
-std::vector<bool> Core::codecov_executed_procs;
+//std::vector<bool> Core::codecov_executed_procs;
 
 std::map<unsigned int, opcode_handler> Core::opcode_handlers;
 std::map<std::string, unsigned int> Core::name_to_opcode;
@@ -66,7 +66,7 @@ bool Core::initialize()
 		return true;
 	}
 	initialized = verify_compat() && find_functions() && populate_proc_list() && hook_custom_opcodes();
-	Core::codecov_executed_procs.resize(Core::get_all_procs().size());
+	//Core::codecov_executed_procs.resize(Core::get_all_procs().size());
 	return initialized;
 }
 
@@ -160,7 +160,7 @@ std::string Core::stringify(Value val)
 	return GetStringFromId(ToString(val.type, val.value));
 }
 
-extern "C" __declspec(dllexport) const char* dump_codecov(int a, const char** b)
+/*extern "C" __declspec(dllexport) const char* dump_codecov(int a, const char** b)
 {
 	std::ofstream o("codecov.txt");
 	unsigned int called = 0;
@@ -177,7 +177,7 @@ extern "C" __declspec(dllexport) const char* dump_codecov(int a, const char** b)
 	}
 	o << "Coverage: " << (called / (float)actual_count) * 100.0f << "% (" << called << "/" << actual_count << ")\n";
 	return "";
-}
+}*/
 
 const char* good = "SUCCESS";
 const char* bad = "FAIL";
@@ -312,7 +312,22 @@ void Core::disconnect_client(unsigned int id)
 	DisconnectClient2(id);
 }
 
+void Core::cleanup()
+{
+	Core::remove_all_hooks();
+	Core::opcode_handlers.clear();
+	procs_by_id.clear();
+	procs_by_name.clear();
+	procs_to_profile.clear();
+	proc_hooks.clear();
+	Core::initialized = false; // add proper modularization already
+}
 
+extern "C" EXPORT const char* cleanup(int n_args, const char** args)
+{
+	Core::cleanup();
+	return good;
+}
 
 std::unordered_set<std::string> blacklist;
 std::unordered_map<std::string, std::chrono::steady_clock::time_point> last_packets;
@@ -324,6 +339,10 @@ bool flood_topic_filter(BSocket* socket, int socket_id)
 	{
 		Core::disconnect_client(socket_id);
 		return false;
+	}
+	if (addr == "127.0.0.1") //this can be optimized further but whatever
+	{
+		return true;
 	}
 	auto now = std::chrono::steady_clock::now();
 	if (last_packets.find(addr) == last_packets.end())
@@ -351,6 +370,8 @@ extern "C" EXPORT const char* install_flood_topic_filter(int n_args, const char*
 		return bad;
 	}
 	//Core::Alert("Installing custom filter");
+	blacklist.clear();
+	last_packets.clear();
 	Core::set_topic_filter(flood_topic_filter);
 	return good;
 }

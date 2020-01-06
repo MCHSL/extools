@@ -8,7 +8,7 @@
 
 #define FIND_OR_DIE(name, sig) name = (name##Ptr)Pocket::Sigscan::FindPattern(BYONDCORE, sig); if(!name) { Core::Alert("Failed to locate " #name); return false; }
 #ifdef _WIN32
-#define IMPORT_OR_DIE(name, sig) name = (name##Ptr)GetProcAddress(LoadLibraryA(BYONDCORE), sig); if(!name) { Core::Alert("Failed to locate " #name " via " #sig); return false; }
+#define IMPORT_OR_DIE(name, sig) name = (name##Ptr)GetProcAddress(GetModuleHandleA(BYONDCORE), sig); if(!name) { Core::Alert("Failed to locate " #name " via " #sig); return false; }
 #else
 #define IMPORT_OR_DIE(name, sig) name = (name##Ptr)dlsym(dlopen(BYONDCORE, 0), sig); if(!name) { Core::Alert("Failed to locate " #name " via " #sig); return false; }
 #endif

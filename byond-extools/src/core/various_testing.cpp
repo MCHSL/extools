@@ -115,9 +115,9 @@ void init_testing()
 {
 	//Core::Alert(Core::get_proc("/client/verb/hidden").proc_table_entry->procFlags);
 	//Core::Alert(Core::get_proc("/client/verb/nothidden").proc_table_entry->procFlags);
-	Core::get_proc("/client/verb/toggle_hidden_verb").hook(toggle_verb_hidden);
-	Core::get_proc("/client/verb/hidden").proc_table_entry->procFlags = 4;
-	initialize_profiler_access();
+	//Core::get_proc("/client/verb/toggle_hidden_verb").hook(toggle_verb_hidden);
+	//Core::get_proc("/client/verb/hidden").proc_table_entry->procFlags = 4;
+	//initialize_profiler_access();
 	//enable_crash_guard();
 	//optimizer_initialize();
 	//Core::Alert(Core::stringify({ 0x0C, 0x00 }));
