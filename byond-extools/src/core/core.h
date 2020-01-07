@@ -57,4 +57,5 @@ namespace Core
 	void disconnect_client(unsigned int id);
 	std::uint32_t get_socket_from_client(unsigned int id);
 	void cleanup();
+	void alert_dd(std::string msg);
 }

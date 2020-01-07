@@ -312,6 +312,12 @@ void Core::disconnect_client(unsigned int id)
 	DisconnectClient2(id);
 }
 
+void Core::alert_dd(std::string msg)
+{
+	msg += "\n";
+	PrintToDD(msg.c_str());
+}
+
 void Core::cleanup()
 {
 	Core::remove_all_hooks();
@@ -330,6 +336,7 @@ extern "C" EXPORT const char* cleanup(int n_args, const char** args)
 }
 
 std::unordered_set<std::string> blacklist;
+std::unordered_set<std::string> whitelist;
 std::unordered_map<std::string, std::chrono::steady_clock::time_point> last_packets;
 
 bool flood_topic_filter(BSocket* socket, int socket_id)
@@ -344,6 +351,10 @@ bool flood_topic_filter(BSocket* socket, int socket_id)
 	{
 		return true;
 	}
+	if (whitelist.find(addr) != whitelist.end())
+	{
+		return true;
+	}
 	auto now = std::chrono::steady_clock::now();
 	if (last_packets.find(addr) == last_packets.end())
 	{
@@ -353,7 +364,7 @@ bool flood_topic_filter(BSocket* socket, int socket_id)
 	auto last = last_packets[addr];
 	if (std::chrono::duration_cast<std::chrono::milliseconds>(now - last).count() < 50)
 	{
-		PrintToDD(std::string("Blacklisting " + addr + " for this session.\n").c_str());
+		Core::alert_dd("Blacklisting " + addr + " for this session.\n");
 		blacklist.emplace(addr);
 		last_packets.erase(addr);
 		Core::disconnect_client(socket_id);
@@ -363,15 +374,34 @@ bool flood_topic_filter(BSocket* socket, int socket_id)
 	return true;
 }
 
+void read_filter_config(std::string filename, std::unordered_set<std::string>& set)
+{
+	std::ifstream conf("config/extools/" + filename);
+	if (!conf.is_open())
+	{
+		Core::alert_dd("Failed to open config/extools/" + filename);
+		return;
+	}
+	std::string line;
+	while (std::getline(conf, line))
+	{
+		Core::alert_dd("Read " + line + " from " + filename);
+		set.emplace(line);
+	}
+}
+
 extern "C" EXPORT const char* install_flood_topic_filter(int n_args, const char** args)
 {
 	if (!Core::initialize())
 	{
 		return bad;
 	}
-	//Core::Alert("Installing custom filter");
+	Core::alert_dd("Installing flood topic filter");
+	whitelist.clear();
 	blacklist.clear();
 	last_packets.clear();
+	read_filter_config("blacklist.txt", blacklist);
+	read_filter_config("whitelist.txt", whitelist);
 	Core::set_topic_filter(flood_topic_filter);
 	return good;
 }
