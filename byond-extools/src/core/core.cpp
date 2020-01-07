@@ -5,6 +5,7 @@
 #include "../optimizer/optimizer.h"
 #include "../extended_profiling/extended_profiling.h"
 #include "../debug_server/debug_server.h"
+#include "../maptick/maptick.h"
 #include <fstream>
 #include <unordered_set>
 #include <chrono>
@@ -43,6 +44,7 @@ DisconnectClient1Ptr DisconnectClient1;
 DisconnectClient2Ptr DisconnectClient2;
 GetSocketHandleStructPtr GetSocketHandleStruct;
 CallProcByNamePtr CallProcByName;
+SendMapsPtr SendMaps;
 
 ExecutionContext** Core::current_execution_context_ptr;
 ExecutionContext** Core::parent_context_ptr_hack;
@@ -333,6 +335,15 @@ void Core::cleanup()
 extern "C" EXPORT const char* cleanup(int n_args, const char** args)
 {
 	Core::cleanup();
+	return good;
+}
+
+extern "C" EXPORT const char* maptick_initialize(int n_args, const char** args)
+{
+	if (!(Core::initialize() && enable_maptick()))
+	{
+		return bad;
+	}
 	return good;
 }
 

@@ -102,3 +102,4 @@ extern DisconnectClient1Ptr DisconnectClient1;
 extern DisconnectClient2Ptr DisconnectClient2;
 extern GetSocketHandleStructPtr GetSocketHandleStruct;
 extern CallProcByNamePtr CallProcByName;
+extern SendMapsPtr SendMaps;

@@ -118,7 +118,7 @@ trvh test_invoke(unsigned int argcount, Value* args, Value src)
 
 void init_testing()
 {
-	Core::get_proc("/client/proc/invoke_hook").hook(test_invoke);
+	//Core::get_proc("/client/proc/invoke_hook").hook(test_invoke);
 	//Core::Alert(Core::get_proc("/client/verb/hidden").proc_table_entry->procFlags);
 	//Core::Alert(Core::get_proc("/client/verb/nothidden").proc_table_entry->procFlags);
 	//Core::get_proc("/client/verb/toggle_hidden_verb").hook(toggle_verb_hidden);
