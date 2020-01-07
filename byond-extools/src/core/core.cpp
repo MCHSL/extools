@@ -350,6 +350,7 @@ extern "C" EXPORT const char* maptick_initialize(int n_args, const char** args)
 std::unordered_set<std::string> blacklist;
 std::unordered_set<std::string> whitelist;
 std::unordered_map<std::string, std::chrono::steady_clock::time_point> last_packets;
+std::optional<Core::Proc> ban_callback;
 
 bool flood_topic_filter(BSocket* socket, int socket_id)
 {
@@ -380,6 +381,10 @@ bool flood_topic_filter(BSocket* socket, int socket_id)
 		blacklist.emplace(addr);
 		last_packets.erase(addr);
 		Core::disconnect_client(socket_id);
+		if (ban_callback)
+		{
+			ban_callback->call({ addr });
+		}
 		return false;
 	}
 	last_packets[addr] = now;
@@ -397,6 +402,8 @@ void read_filter_config(std::string filename, std::unordered_set<std::string>& s
 	std::string line;
 	while (std::getline(conf, line))
 	{
+		line.erase(line.find_last_not_of(" \t") + 1);
+		line.erase(0, line.find_first_not_of(" \t"));
 		Core::alert_dd("Read " + line + " from " + filename);
 		set.emplace(line);
 	}
@@ -407,6 +414,10 @@ extern "C" EXPORT const char* install_flood_topic_filter(int n_args, const char*
 	if (!Core::initialize())
 	{
 		return bad;
+	}
+	if (n_args == 1)
+	{
+		ban_callback = Core::try_get_proc(args[0]);
 	}
 	Core::alert_dd("Installing flood topic filter");
 	whitelist.clear();

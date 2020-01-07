@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <optional>
 
 typedef trvh(*ProcHook)(unsigned int args_len, Value* args, Value src);
 
@@ -69,6 +70,7 @@ namespace Core
 	Proc get_proc(std::string name, unsigned int override_id=0);
 	Proc get_proc(unsigned int id);
 	Proc get_proc(ExecutionContext* ctx);
+	std::optional<Proc> try_get_proc(std::string name, unsigned int override_id=0);
 	std::vector<Proc>& get_all_procs();
 
 	bool populate_proc_list();

@@ -2,13 +2,14 @@
 #include "../dmdism/disassembly.h"
 #include "../dmdism/disassembler.h"
 #include "../extended_profiling/extended_profiling.h"
+#include <optional>
 
 std::vector<Core::Proc> procs_by_id;
 std::unordered_map<std::string, std::vector<Core::Proc>> procs_by_name;
 std::unordered_map<unsigned int, bool> extended_profiling_procs;
 std::unordered_map<unsigned int, ProcHook> proc_hooks;
 
-Core::Proc::Proc(std::string name, unsigned int override_id)
+void strip_proc_path(std::string& name)
 {
 	size_t proc_pos = name.find("/proc/");
 	proc_pos = (proc_pos == std::string::npos ? name.find("/verb/") : proc_pos);
@@ -16,6 +17,11 @@ Core::Proc::Proc(std::string name, unsigned int override_id)
 	{
 		name.erase(proc_pos, 5);
 	}
+}
+
+Core::Proc::Proc(std::string name, unsigned int override_id)
+{
+	strip_proc_path(name);
 	*this = procs_by_name.at(name).at(override_id);
 }
 
@@ -109,14 +115,24 @@ void Core::Proc::assemble(Disassembly disasm)
 
 Core::Proc Core::get_proc(std::string name, unsigned int override_id)
 {
-	size_t proc_pos = name.find("/proc/");
-	proc_pos = (proc_pos == std::string::npos ? name.find("/verb/") : proc_pos);
-	if (proc_pos != std::string::npos)
-	{
-		name.erase(proc_pos, 5);
-	}
+	strip_proc_path(name);
 	//Core::Alert("Attempting to get proc " + name + ", override " + std::to_string(override_id));
 	return procs_by_name.at(name).at(override_id);
+}
+
+std::optional<Core::Proc> Core::try_get_proc(std::string name, unsigned int override_id)
+{
+	strip_proc_path(name);
+	if (procs_by_name.find(name) == procs_by_name.end())
+	{
+		return {};
+	}
+	auto v = procs_by_name[name];
+	if (override_id >= v.size())
+	{
+		return {};
+	}
+	return v[override_id];
 }
 
 Core::Proc Core::get_proc(unsigned int id)
