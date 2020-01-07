@@ -45,7 +45,7 @@ trvh REGPARM3 hCallGlobalProc(char usr_type, int usr_value, int proc_type, unsig
 	Core::extended_profiling_insanely_hacky_check_if_its_a_new_call_or_resume = proc_id;
 	if (proc_hooks.find((unsigned short)proc_id) != proc_hooks.end())
 	{
-		trvh result = proc_hooks[proc_id](argListLen, argList, src_type ? Value(src_type, src_value) : Value::Null());
+		trvh result = proc_hooks[proc_id](argListLen, argList, src_type ? Value(src_type, src_value) : static_cast<Value>(Value::Null()));
 		return result;
 	}
 	trvh result = oCallGlobalProc(usr_type, usr_value, proc_type, proc_id, const_0, src_type, src_value, argList, argListLen, const_0_2, const_0_3);
