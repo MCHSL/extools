@@ -35,6 +35,15 @@ namespace Core
 	extern ExecutionContext** parent_context_ptr_hack;
 	extern ProcSetupEntry** proc_setup_table;
 	extern unsigned int* some_flags_including_profile;
+	extern unsigned int* name_table_id_ptr;
+	extern unsigned int* name_table;
+	extern Value* global_var_table;
+
+	extern std::unordered_map<std::string, Value*> global_direct_cache;
+	void global_direct_set(std::string name, Value val);
+	Value global_direct_get(std::string name);
+
+
 	//extern std::vector<bool> codecov_executed_procs;
 	unsigned int GetStringId(std::string str);
 	std::string GetStringFromId(unsigned int id);

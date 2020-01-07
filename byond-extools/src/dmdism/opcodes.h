@@ -253,6 +253,7 @@ enum DataType
 	APPEARANCE = 0x3A,
 	CLIENT_TYPEPATH = 0x3B,
 	LIST_VARS = 0x31, //maybe?
+	LIST_GLOBAL_VARS = 0x52,
 };
 
 const std::unordered_map<DataType, std::string> datatype_names = {

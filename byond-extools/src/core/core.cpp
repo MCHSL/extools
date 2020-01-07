@@ -45,6 +45,8 @@ DisconnectClient2Ptr DisconnectClient2;
 GetSocketHandleStructPtr GetSocketHandleStruct;
 CallProcByNamePtr CallProcByName;
 SendMapsPtr SendMaps;
+GetGlobalByNamePtr GetGlobalByName;
+GetTableHolderThingyByIdPtr GetTableHolderThingyById;
 
 ExecutionContext** Core::current_execution_context_ptr;
 ExecutionContext** Core::parent_context_ptr_hack;
@@ -61,6 +63,10 @@ std::map<unsigned int, opcode_handler> Core::opcode_handlers;
 std::map<std::string, unsigned int> Core::name_to_opcode;
 unsigned int next_opcode_id = 0x1337;
 bool Core::initialized = false;
+unsigned int* Core::name_table_id_ptr = nullptr;
+unsigned int* Core::name_table = nullptr;
+Value* Core::global_var_table = nullptr;
+std::unordered_map<std::string, Value*> Core::global_direct_cache;
 
 bool Core::initialize()
 {
@@ -307,6 +313,44 @@ std::uint32_t Core::get_socket_from_client(unsigned int id)
 	return ((Hellspawn*)(str - 0x74))->handle;
 }
 
+Value* locate_global_by_name(std::string name)
+{
+	unsigned int varname = Core::GetStringId(name);
+	TableHolderThingy* tht = GetTableHolderThingyById(*Core::name_table_id_ptr);
+	int id;
+	for (id = 0; id < tht->length; id++) // add binary search here
+	{
+		if (Core::name_table[tht->elements[id]] == varname)
+		{
+			break;
+		}
+	}
+	return &Core::global_var_table[tht->elements[id]];
+}
+
+void Core::global_direct_set(std::string name, Value val)
+{
+	if (global_direct_cache.find(name) != global_direct_cache.end())
+	{
+		*global_direct_cache[name] = val;
+		return;
+	}
+	Value* var = locate_global_by_name(name);
+	*var = val;
+	global_direct_cache[name] = var;
+}
+
+Value Core::global_direct_get(std::string name)
+{
+	if (global_direct_cache.find(name) != global_direct_cache.end())
+	{
+		return *global_direct_cache[name];
+	}
+	Value* var = locate_global_by_name(name);
+	global_direct_cache[name] = var;
+	return *var;
+}
+
 
 void Core::disconnect_client(unsigned int id)
 {
@@ -329,6 +373,7 @@ void Core::cleanup()
 	procs_by_name.clear();
 	procs_to_profile.clear();
 	proc_hooks.clear();
+	global_direct_cache.clear();
 	Core::initialized = false; // add proper modularization already
 }
 

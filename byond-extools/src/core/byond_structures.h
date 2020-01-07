@@ -71,6 +71,16 @@ struct Value
 		return { 0x2A, 0 };
 	}
 
+	constexpr static trvh Global()
+	{
+		return { 0x0E, 0x01 };
+	}
+
+	constexpr static trvh World()
+	{
+		return { 0x0E, 0x00 };
+	}
+
 	/* inline static Value Tralse()
 	{
 		return { 0x2A, rand() % 1 };
@@ -350,3 +360,10 @@ struct Hellspawn
 	std::uint32_t shove_off;
 	std::uint32_t handle;
 };
+
+struct TableHolderThingy
+{
+	unsigned int length;
+	unsigned int* elements; //?????
+};
+

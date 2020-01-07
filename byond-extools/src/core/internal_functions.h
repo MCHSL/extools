@@ -67,6 +67,8 @@ typedef BSocket*(*GetBSocketPtr)(unsigned int id);
 typedef void(*DisconnectClient1Ptr)(unsigned int id, int unknown, bool suggest_reconnect); //this and the below function must be called in tandem
 typedef void(*DisconnectClient2Ptr)(unsigned int id);
 typedef Hellspawn* (*GetSocketHandleStructPtr)(unsigned int id);
+typedef Value(*GetGlobalByNamePtr)(unsigned int name_id);
+typedef TableHolderThingy*(*GetTableHolderThingyByIdPtr)(unsigned int id);
 
 extern CrashProcPtr CrashProc;
 extern StartTimingPtr StartTiming;
@@ -103,3 +105,5 @@ extern DisconnectClient2Ptr DisconnectClient2;
 extern GetSocketHandleStructPtr GetSocketHandleStruct;
 extern CallProcByNamePtr CallProcByName;
 extern SendMapsPtr SendMaps;
+extern GetGlobalByNamePtr GetGlobalByName;
+extern GetTableHolderThingyByIdPtr GetTableHolderThingyById;
