@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <regex>
 
 typedef trvh(*ProcHook)(unsigned int args_len, Value* args, Value src);
 

@@ -5,6 +5,10 @@
 
 std::vector<Core::Proc> procs_by_id;
 std::unordered_map<std::string, std::vector<Core::Proc>> procs_by_name;
+std::unordered_map<std::string, std::string> procs_by_inherit;
+//The above takes in a proc for some multiple-inherited object, and returns the actual proc to call
+//Like if you input as a key "/datum/disease_ability/symptom/powerful/heal/starlight/temperature_expose" it will output "/datum/proc/temperature_expose",
+//since none of those other classes overwrite the datum default.
 std::unordered_map<unsigned int, bool> extended_profiling_procs;
 std::unordered_map<unsigned int, ProcHook> proc_hooks;
 
@@ -116,7 +120,28 @@ Core::Proc Core::get_proc(std::string name, unsigned int override_id)
 		name.erase(proc_pos, 5);
 	}
 	//Core::Alert("Attempting to get proc " + name + ", override " + std::to_string(override_id));
-	return procs_by_name.at(name).at(override_id);
+	if (procs_by_inherit.count(name)) // If this is the exact name of the proc to be used
+	{
+		return procs_by_name.at(procs_by_inherit.at(name)).at(override_id);
+	}
+	else // If we need to go up higher in the inheritence tree before getting the correct proc
+	{
+		std::string newname = name;
+		std::regex strip("(\\/[\\w_\\d]+)+(?:\\/[\\w_\\d]+)"); // Captures one group: the location of the lowest type of the inheritence chain before the proc name
+		std::smatch matchstrip;
+		while (std::regex_search(newname,matchstrip,strip))
+		{
+			if (matchstrip.size() != 2)
+				break;
+			newname = newname.erase(newname.find(matchstrip[1].str), matchstrip[1].length);
+			if (procs_by_name.count(newname)) // If this is the exact name of the proc to be used
+			{
+				procs_by_inherit[name] = newname; // Cache it for later so we don't have to do this shit again
+				return procs_by_name.at(newname).at(override_id);
+			}
+		}
+	}
+	
 }
 
 Core::Proc Core::get_proc(unsigned int id)
@@ -139,7 +164,7 @@ Disassembly Core::disassemble_raw(std::vector<int> bytecode)
 	return Disassembler(std::vector<std::uint32_t>(bytecode.begin(), bytecode.end()), procs_by_id).disassemble();
 }
 
-bool Core::populate_proc_list()
+bool Core::populate_proc_list() // Populates proc_by_name and proc_by_id (and some initial stuff for proc_by_inherit)
 {
 	unsigned int i = 0;
 	while (true)
@@ -172,6 +197,7 @@ bool Core::populate_proc_list()
 		p.override_id = procs_by_name.at(p.name).size();
 		procs_by_name[p.name].push_back(p);
 		procs_by_id.push_back(p);
+		procs_by_inherit[p.name] = p.name;
 		i++;
 	}
 	return true;
