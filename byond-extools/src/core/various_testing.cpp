@@ -118,8 +118,8 @@ trvh test_invoke(unsigned int argcount, Value* args, Value src)
 
 void init_testing()
 {
-	Core::global_direct_set("internal_tick_usage", "AYYLMAO");
-	Core::Alert(Core::global_direct_get("internal_tick_usage"));
+	//Core::global_direct_set("internal_tick_usage", "AYYLMAO");
+	//Core::Alert(Core::global_direct_get("internal_tick_usage"));
 	//Core::Alert(Core::GetStringFromId(0x86));
 	//Core::get_proc("/client/proc/invoke_hook").hook(test_invoke);
 	//Core::Alert(Core::get_proc("/client/verb/hidden").proc_table_entry->procFlags);
