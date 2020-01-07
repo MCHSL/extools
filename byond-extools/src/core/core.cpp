@@ -42,6 +42,7 @@ GetBSocketPtr GetBSocket;
 DisconnectClient1Ptr DisconnectClient1;
 DisconnectClient2Ptr DisconnectClient2;
 GetSocketHandleStructPtr GetSocketHandleStruct;
+CallProcByNamePtr CallProcByName;
 
 ExecutionContext** Core::current_execution_context_ptr;
 ExecutionContext** Core::parent_context_ptr_hack;

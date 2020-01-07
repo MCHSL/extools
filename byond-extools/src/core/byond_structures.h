@@ -54,18 +54,20 @@ struct Value
 	Value(const char* s);
 
 
-	inline static Value Null() {
+	constexpr static trvh Null() {
 		return { 0, 0 };
 	}
 
-	inline static Value True()
+	constexpr static trvh True()
 	{
-		return Value(1.0f); //number
+		trvh t{0x2A};
+		t.valuef = 1.0f;
+		return t;
 	}
 
-	inline static Value False()
+	constexpr static trvh False()
 	{
-		return Value(0.0f);
+		return { 0x2A, 0 };
 	}
 
 	/* inline static Value Tralse()
@@ -88,6 +90,7 @@ struct Value
 	Value get(std::string name);
 	Value get_safe(std::string name);
 	Value get_by_id(int id);
+	Value invoke(std::string name, std::vector<Value> args, Value usr = Value::Null());
 	std::unordered_map<std::string, Value> get_all_vars();
 	bool has_var(std::string name);
 	void set(std::string name, Value value);

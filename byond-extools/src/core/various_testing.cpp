@@ -111,8 +111,14 @@ trvh toggle_verb_hidden(unsigned int argcount, Value* args, Value src)
 	return { 0, 0 };
 }
 
+trvh test_invoke(unsigned int argcount, Value* args, Value src)
+{
+	return src.invoke("print_ckey", { 1, 2, "three" });
+}
+
 void init_testing()
 {
+	Core::get_proc("/client/proc/invoke_hook").hook(test_invoke);
 	//Core::Alert(Core::get_proc("/client/verb/hidden").proc_table_entry->procFlags);
 	//Core::Alert(Core::get_proc("/client/verb/nothidden").proc_table_entry->procFlags);
 	//Core::get_proc("/client/verb/toggle_hidden_verb").hook(toggle_verb_hidden);

@@ -1,5 +1,6 @@
 #include "byond_structures.h"
 #include "core.h"
+#include <algorithm>
 
 Value::Value(std::string s)
 {
@@ -85,6 +86,12 @@ bool Value::has_var(std::string name)
 void Value::set(std::string name, Value value)
 {
 	SetVariable(type, value, Core::GetStringId(name), value);
+}
+
+Value Value::invoke(std::string name, std::vector<Value> args, Value usr)
+{
+	std::replace(name.begin(), name.end(), '_', ' ');
+	return CallProcByName(usr.type, usr.value, 2, Core::GetStringId(name), type, value, args.data(), args.size(), 0, 0);
 }
 
 Value List::at(int index)
