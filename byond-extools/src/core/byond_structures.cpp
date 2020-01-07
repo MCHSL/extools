@@ -1,6 +1,7 @@
 #include "byond_structures.h"
 #include "core.h"
 #include <algorithm>
+#include <vector>
 
 Value::Value(std::string s)
 {
@@ -31,7 +32,7 @@ Value Value::get(std::string name)
 
 Value Value::get_safe(std::string name)
 {
-	return has_var(name) ? get(name) : Value::Null();
+	return has_var(name) ? static_cast<trvh>(get(name)) : Value::Null();
 }
 
 Value Value::get_by_id(int id)
