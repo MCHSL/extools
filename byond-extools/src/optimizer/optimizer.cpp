@@ -118,13 +118,14 @@ void optimize_inline(Core::Proc recipient, Disassembly& recipient_code)
 		Instruction& instr = recipient_code.at(i);
 		if (instr == Bytecode::CALLGLOB)
 		{
-			Core::Proc& donor = Core::get_proc(instr.bytes()[2]);
+			Core::Proc donor = Core::get_proc(instr.bytes()[2]);
 			if (donor == recipient)
 			{
 				continue;
 			}
 			optimize_proc(donor);
-			inline_into(recipient_code, donor.disassemble(), i, recipient.get_local_varcount());
+			Disassembly d = donor.disassemble();
+			inline_into(recipient_code, d, i, recipient.get_local_varcount());
 			i = 0;
 		}
 	}
