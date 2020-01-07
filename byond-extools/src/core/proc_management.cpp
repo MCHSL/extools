@@ -127,21 +127,22 @@ Core::Proc Core::get_proc(std::string name, unsigned int override_id)
 	else // If we need to go up higher in the inheritence tree before getting the correct proc
 	{
 		std::string newname = name;
-		std::regex strip("(\\/[\\w_\\d]+)+(?:\\/[\\w_\\d]+)"); // Captures one group: the location of the lowest type of the inheritence chain before the proc name
+		std::regex strip("\\/[\\w_\\d]+(?=\\/[\\w_\\d]+$)"); // Matches one thing: the location of the lowest type of the inheritence chain before the proc name
 		std::smatch matchstrip;
-		while (std::regex_search(newname,matchstrip,strip))
+		std::vector<std::string> captures = {};
+		while (std::regex_search(newname, matchstrip, strip))
 		{
-			if (matchstrip.size() != 2)
-				break;
-			newname = newname.erase(newname.find(matchstrip[1].str), matchstrip[1].length);
-			if (procs_by_name.count(newname)) // If this is the exact name of the proc to be used
+			newname = matchstrip.prefix().str() + matchstrip.suffix().str();
+			if (procs_by_name.count(newname)) // if we find it's parent proc
 			{
-				procs_by_inherit[name] = newname; // Cache it for later so we don't have to do this shit again
+				procs_by_inherit[name] = newname; // Cache result for later so we don't have to do this shit again
 				return procs_by_name.at(newname).at(override_id);
 			}
 		}
 	}
-	
+	//If we're here that means that no proc was found.
+	Core::Alert("WARNING: PROC " + name + " NOT FOUND!");
+	//OH MY GOD JC A CRASH
 }
 
 Core::Proc Core::get_proc(unsigned int id)
