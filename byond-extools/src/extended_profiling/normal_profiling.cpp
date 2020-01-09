@@ -5,6 +5,7 @@
 #include "../dmdism/opcodes.h"
 #include "../core/json.hpp"
 #include <fstream>
+#include <chrono>
 
 trvh get_profile(unsigned int args_len, Value* args, Value src)
 {
@@ -21,9 +22,14 @@ trvh get_profile(unsigned int args_len, Value* args, Value src)
 
 trvh dump_all_profiles(unsigned int args_len, Value* args, Value src)
 {
+	auto start = std::chrono::high_resolution_clock::now();
 	std::vector<nlohmann::json> interresult;
 	for (Core::Proc& p : Core::get_all_procs())
 	{
+		if (!p.raw_path.empty() && p.raw_path.back() == ')')
+		{
+			continue;
+		}
 		ProfileInfo* prof = p.profile();
 		nlohmann::json j;
 		j["proc"] = p.raw_path;
@@ -47,6 +53,9 @@ trvh dump_all_profiles(unsigned int args_len, Value* args, Value src)
 	}
 	nlohmann::json jresult = interresult;
 	std::string result = jresult.dump();
+	auto end = std::chrono::high_resolution_clock::now();
+	unsigned long long milis = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+	//Core::Alert(std::to_string(milis));
 	std::ofstream out("profile_dump.txt");
 	out << result;
 	return Value::Null();

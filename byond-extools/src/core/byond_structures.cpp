@@ -6,13 +6,19 @@
 Value::Value(std::string s)
 {
 	type = 0x06;
-	value = Core::GetStringId(s.c_str());
+	value = Core::GetStringId(s);
 }
 
 Value::Value(const char* s)
 {
 	type = 0x06;
 	value = Core::GetStringId(s);
+}
+
+Value::Value(Core::ManagedString& ms)
+{
+	type = 0x06;
+	value = ms;
 }
 
 Value::operator std::string()

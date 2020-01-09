@@ -68,6 +68,36 @@ unsigned int* Core::name_table = nullptr;
 Value* Core::global_var_table = nullptr;
 std::unordered_map<std::string, Value*> Core::global_direct_cache;
 
+Core::ManagedString::ManagedString(unsigned int id) : string_id(id)
+{
+	string_entry = GetStringTableEntry(string_id);
+	string_entry->refcount++;
+}
+
+Core::ManagedString::ManagedString(std::string str)
+{
+	string_id = GetStringId(str);
+	string_entry = GetStringTableEntry(string_id);
+	string_entry->refcount++;
+}
+
+Core::ManagedString::ManagedString(const ManagedString& other)
+{
+	string_id = other.string_id;
+	string_entry = other.string_entry;
+	string_entry->refcount++;
+}
+
+Core::ManagedString::~ManagedString()
+{
+	string_entry->refcount--;
+}
+
+Core::ManagedString Core::GetManagedString(std::string str)
+{
+	return ManagedString(str);
+}
+
 bool Core::initialize()
 {
 	if (initialized)
@@ -92,10 +122,18 @@ void Core::Alert(int what)
 	Alert(std::to_string(what));
 }
 
-unsigned int Core::GetStringId(std::string str) {
+unsigned int Core::GetStringId(std::string str, bool increment_refcount) {
 	switch (ByondVersion) {
-		case 512:
-			return GetStringTableIndex(str.c_str(), 0, 1);
+	case 512:
+		{
+			int idx = GetStringTableIndex(str.c_str(), 0, 1);
+			if (increment_refcount)
+			{
+				String* str = GetStringTableEntry(idx);
+				str->refcount++;
+			}
+			return idx; //this could cause memory problems with a lot of long strings but otherwise they get garbage collected after first use.
+		}
 		case 513:
 			return GetStringTableIndexUTF8(str.c_str(), 0, 0, 1);
 		default: break;
@@ -428,7 +466,7 @@ bool flood_topic_filter(BSocket* socket, int socket_id)
 		Core::disconnect_client(socket_id);
 		if (ban_callback)
 		{
-			ban_callback->call({ addr });
+			ban_callback->call({ MANAGED(addr) });
 		}
 		return false;
 	}
@@ -460,6 +498,7 @@ extern "C" EXPORT const char* install_flood_topic_filter(int n_args, const char*
 	{
 		return bad;
 	}
+	ban_callback = {};
 	if (n_args == 1)
 	{
 		ban_callback = Core::try_get_proc(args[0]);

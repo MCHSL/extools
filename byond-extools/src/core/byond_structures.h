@@ -32,6 +32,12 @@ struct trvh //temporary return value holder, used for sidestepping the fact that
 	};
 };
 
+namespace Core
+{
+	struct ManagedString;
+}
+
+
 struct Value
 {
 	char type;
@@ -53,6 +59,7 @@ struct Value
 	Value(float valuef) : type(0x2A), valuef(valuef) {};
 	Value(std::string s);
 	Value(const char* s);
+	Value(Core::ManagedString& ms);
 
 
 	constexpr static trvh Null() {
