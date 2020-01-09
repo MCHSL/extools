@@ -33,7 +33,7 @@ Value::operator float()
 
 Value::operator bool()
 {
-	return (type != 0 && (value != 0 && value != 0xFFFF)) || (type == 0x2A && valuef == 0.0f) || (type == 0x06 && *(GetStringTableEntry(value)->stringData) != 0);
+	return (type == 0x2A && valuef != 0.0f) || (type == 0x06 && *(GetStringTableEntry(value)->stringData) != 0) || (type != 0 && value != 0xFFFF);
 }
 
 ManagedValue Value::get(std::string name)
