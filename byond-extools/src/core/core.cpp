@@ -468,8 +468,7 @@ bool flood_topic_filter(BSocket* socket, int socket_id)
 		Core::disconnect_client(socket_id);
 		if (ban_callback)
 		{
-			Core::ManagedString mb(addr);
-			ban_callback->call({ mb });
+			ban_callback->call({ addr });
 		}
 		return false;
 	}
