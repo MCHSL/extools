@@ -47,6 +47,8 @@ CallProcByNamePtr CallProcByName;
 SendMapsPtr SendMaps;
 GetGlobalByNamePtr GetGlobalByName;
 GetTableHolderThingyByIdPtr GetTableHolderThingyById;
+DecRefCountPtr DecRefCount;
+IncRefCountPtr IncRefCount;
 
 ExecutionContext** Core::current_execution_context_ptr;
 ExecutionContext** Core::parent_context_ptr_hack;
@@ -460,13 +462,14 @@ bool flood_topic_filter(BSocket* socket, int socket_id)
 	auto last = last_packets[addr];
 	if (std::chrono::duration_cast<std::chrono::milliseconds>(now - last).count() < 50)
 	{
-		Core::alert_dd("Blacklisting " + addr + " for this session.\n");
+		Core::alert_dd("Blacklisting " + addr + " for this session.");
 		blacklist.emplace(addr);
 		last_packets.erase(addr);
 		Core::disconnect_client(socket_id);
 		if (ban_callback)
 		{
-			ban_callback->call({ MANAGED(addr) });
+			Core::ManagedString mb(addr);
+			ban_callback->call({ mb });
 		}
 		return false;
 	}

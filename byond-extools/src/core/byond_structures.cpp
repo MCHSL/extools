@@ -31,17 +31,17 @@ Value::operator float()
 	return valuef;
 }
 
-Value Value::get(std::string name)
+ManagedValue Value::get(std::string name)
 {
 	return GetVariable(type, value, Core::GetStringId(name));
 }
 
-Value Value::get_safe(std::string name)
+ManagedValue Value::get_safe(std::string name)
 {
 	return has_var(name) ? static_cast<trvh>(get(name)) : Value::Null();
 }
 
-Value Value::get_by_id(int id)
+ManagedValue Value::get_by_id(int id)
 {
 	return GetVariable(type, value, id);
 }
@@ -95,10 +95,15 @@ void Value::set(std::string name, Value value)
 	SetVariable(type, value, Core::GetStringId(name), value);
 }
 
-Value Value::invoke(std::string name, std::vector<Value> args, Value usr)
+ManagedValue Value::invoke(std::string name, std::vector<Value> args, Value usr)
 {
 	std::replace(name.begin(), name.end(), '_', ' ');
-	return CallProcByName(usr.type, usr.value, 2, Core::GetStringId(name), type, value, args.data(), args.size(), 0, 0);
+	std::vector<ManagedValue> margs;
+	for (Value& v : args)
+	{
+		margs.emplace_back(v);
+	}
+	return CallProcByName(usr.type, usr.value, 2, Core::GetStringId(name), type, value, margs.data(), margs.size(), 0, 0);
 }
 
 Value List::at(int index)
@@ -161,4 +166,41 @@ void ContainerProxy::operator=(Value val)
 std::string BSocket::addr()
 {
 	return Core::GetStringFromId(addr_string_id);
+}
+
+ManagedValue::ManagedValue(Value val)
+{
+	//Core::Alert("Incrememnting");
+	type = val.type;
+	value = val.value;
+	IncRefCount(type, value);
+}
+
+ManagedValue::ManagedValue(char type, int value) : Value(type, value)
+{
+	IncRefCount(type, value);
+}
+
+ManagedValue::ManagedValue(trvh trvh) : Value(trvh)
+{
+	//Core::Alert("trvh inc");
+	IncRefCount(type, value);
+}
+
+ManagedValue::ManagedValue(std::string s) : Value(s)
+{
+	IncRefCount(type, value);
+}
+
+ManagedValue::ManagedValue(const ManagedValue& other)
+{
+	type = other.type;
+	value = other.value;
+	IncRefCount(type, value);
+}
+
+ManagedValue::~ManagedValue()
+{
+	//Core::Alert("decrementing");
+	DecRefCount(type, value);
 }

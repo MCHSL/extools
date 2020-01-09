@@ -37,6 +37,8 @@ namespace Core
 	struct ManagedString;
 }
 
+struct ManagedValue;
+
 
 struct Value
 {
@@ -62,28 +64,28 @@ struct Value
 	Value(Core::ManagedString& ms);
 
 
-	constexpr static trvh Null() {
+	inline static trvh Null() {
 		return { 0, 0 };
 	}
 
-	constexpr static trvh True()
+	inline static trvh True()
 	{
-		trvh t{0x2A};
+		trvh t{ 0x2A };
 		t.valuef = 1.0f;
 		return t;
 	}
 
-	constexpr static trvh False()
+	inline static trvh False()
 	{
 		return { 0x2A, 0 };
 	}
 
-	constexpr static trvh Global()
+	inline static Value Global()
 	{
 		return { 0x0E, 0x01 };
 	}
 
-	constexpr static trvh World()
+	inline static Value World()
 	{
 		return { 0x0E, 0x00 };
 	}
@@ -105,13 +107,23 @@ struct Value
 
 	operator std::string();
 	operator float();
-	Value get(std::string name);
-	Value get_safe(std::string name);
-	Value get_by_id(int id);
-	Value invoke(std::string name, std::vector<Value> args, Value usr = Value::Null());
+	ManagedValue get(std::string name);
+	ManagedValue get_safe(std::string name);
+	ManagedValue get_by_id(int id);
+	ManagedValue invoke(std::string name, std::vector<Value> args, Value usr = Value::Null());
 	std::unordered_map<std::string, Value> get_all_vars();
 	bool has_var(std::string name);
 	void set(std::string name, Value value);
+};
+
+struct ManagedValue : Value
+{
+	ManagedValue(Value val);
+	ManagedValue(char type, int value);
+	ManagedValue(trvh trvh);
+	ManagedValue(std::string s);
+	ManagedValue(const ManagedValue& other);
+	~ManagedValue();
 };
 
 struct IDArrayEntry

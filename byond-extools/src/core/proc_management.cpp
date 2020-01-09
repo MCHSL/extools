@@ -95,7 +95,12 @@ void Core::Proc::hook(ProcHook hook_func)
 // This is not thread safe - only use when you are on the main thread, such as hooks or custom opcodes
 Value Core::Proc::call(std::vector<Value> arguments, Value usr, Value src)
 {
-	return CallGlobalProc(usr.type, usr.value, 2, id, 0, src.type, src.value, arguments.data(), arguments.size(), 0, 0);
+	std::vector<ManagedValue> margs;
+	for (Value& v : arguments)
+	{
+		margs.emplace_back(v);
+	}
+	return CallGlobalProc(usr.type, usr.value, 2, id, 0, src.type, src.value, margs.data(), margs.size(), 0, 0);
 }
 
 Disassembly Core::Proc::disassemble()
