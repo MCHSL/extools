@@ -31,6 +31,11 @@ Value::operator float()
 	return valuef;
 }
 
+Value::operator bool()
+{
+	return (type != 0 && (value != 0 && value != 0xFFFF)) || (type == 0x2A && valuef == 0.0f) || (type == 0x06 && strlen(GetStringTableEntry(value)->stringData) != 0);
+}
+
 ManagedValue Value::get(std::string name)
 {
 	return GetVariable(type, value, Core::GetStringId(name));

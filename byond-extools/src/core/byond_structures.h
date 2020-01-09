@@ -107,6 +107,7 @@ struct Value
 
 	operator std::string();
 	operator float();
+	operator bool();
 	ManagedValue get(std::string name);
 	ManagedValue get_safe(std::string name);
 	ManagedValue get_by_id(int id);
@@ -118,6 +119,7 @@ struct Value
 
 struct ManagedValue : Value
 {
+	//This class is used to prevent objects being garbage collected before you are done with them
 	ManagedValue(Value val);
 	ManagedValue(char type, int value);
 	ManagedValue(trvh trvh);

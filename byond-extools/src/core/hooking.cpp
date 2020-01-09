@@ -38,7 +38,14 @@ trvh REGPARM3 hCallGlobalProc(char usr_type, int usr_value, int proc_type, unsig
 		{
 			auto qc = queued_calls.back();
 			queued_calls.pop_back();
-			qc.proc.call(qc.args, qc.usr, qc.src);
+			if (qc.src)
+			{
+				qc.src.invoke(qc.proc.simple_name, qc.args, qc.usr);
+			}
+			else
+			{
+				qc.proc.call(qc.args, qc.usr);
+			}
 		}
 		calling_queue = false;
 	}
