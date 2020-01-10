@@ -1,6 +1,11 @@
 #include "datum_socket.h"
 #include "../core/core.h"
 #include "../core/proc_management.h"
+#include <thread>
+
+#ifndef min
+#define min(a,b)            (((a) < (b)) ? (a) : (b))
+#endif
 
 std::unordered_map<unsigned int, std::unique_ptr<DatumSocket>> sockets;
 unsigned int recv_sleep_opcode = -1;
@@ -72,32 +77,27 @@ void DatumSocket::recv_loop()
 
 trvh register_socket(unsigned int args_len, Value* args, Value src)
 {
-	//Core::Alert("register");
 	sockets[src.value] = std::make_unique<DatumSocket>();
 	return Value::Null();
 }
 
 trvh connect_socket(unsigned int args_len, Value* args, Value src)
 {
-	//Core::Alert("connect");
 	return sockets[src.value]->connect(args[0], std::to_string((int)args[1].valuef)) ? Value::True() : Value::False();
 }
 
 trvh send_socket(unsigned int args_len, Value* args, Value src)
 {
-	//Core::Alert("send");
 	return sockets[src.value]->send(args[0]) ? Value::True() : Value::False();
 }
 
 trvh check_socket(unsigned int args_len, Value* args, Value src)
 {
-	//Core::Alert("check");
 	return sockets[src.value]->has_data() ? Value::True() : Value::False();
 }
 
 trvh retrieve_socket(unsigned int args_len, Value* args, Value src)
 {
-	//Core::Alert("retrieve");
 	return Value(sockets[src.value]->recv(1024));
 }
 
