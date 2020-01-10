@@ -9,7 +9,6 @@
 	__register_socket()
 	
 /datum/socket/Del()
-	//world << "Deleting socket"
 	__deregister_socket()
 
 //addr is a string with IP or domain, port is a number
@@ -24,7 +23,7 @@
 		__wait_for_data()
 	return __retrieve_data()
 
-//disconnect the socket
+//disconnect the socket, unimplemented
 /datum/socket/proc/close()
 
 /* Example:
