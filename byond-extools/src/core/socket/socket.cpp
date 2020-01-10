@@ -58,8 +58,50 @@ bool Socket::create(int family, int socktype, int protocol)
 	return raw_socket != INVALID_SOCKET;
 }
 
+bool connect_socket(Socket& socket, const char* port, const char* remote)
+{
+
+	struct addrinfo* result = NULL;
+	struct addrinfo hints;
+	int iResult;
+
+	ZeroMemory(&hints, sizeof(hints));
+	hints.ai_family = AF_INET;
+	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_protocol = IPPROTO_TCP;
+	hints.ai_flags = AI_PASSIVE;
+
+	// Resolve the server address and port
+	iResult = getaddrinfo(remote, port, &hints, &result);
+	if (iResult != 0)
+	{
+		Core::Alert("getaddrinfo failed with error: " + std::to_string(iResult));
+		return false;
+	}
+
+	// Create a SOCKET for connecting to server
+	if (!socket.create(result->ai_family, result->ai_socktype, result->ai_protocol))
+	{
+		Core::Alert("socket failed with error: " + std::to_string(WSAGetLastError()));
+		freeaddrinfo(result);
+		return false;
+	}
+
+	// Setup the TCP listening socket
+	iResult = ::connect(socket.raw(), result->ai_addr, (int)result->ai_addrlen);
+	if (iResult == SOCKET_ERROR)
+	{
+		Core::Alert("connect failed with error: " + std::to_string(WSAGetLastError()));
+		freeaddrinfo(result);
+		socket.close();
+		return false;
+	}
+
+	return true;
+}
+
 // Listening.
-bool TcpListener::listen(const char* port, const char* iface)
+bool JsonListener::listen(const char* port, const char* iface)
 {
 	struct addrinfo* result = NULL;
 	struct addrinfo hints;
@@ -121,56 +163,20 @@ bool TcpListener::listen(const char* port, const char* iface)
 	return true;
 }
 
-JsonStream TcpListener::accept()
+JsonStream JsonListener::accept()
 {
 	return JsonStream(Socket(::accept(socket.raw(), NULL, NULL)));
 }
 
 bool JsonStream::connect(const char* port, const char* remote)
 {
-	struct addrinfo* result = NULL;
-	struct addrinfo hints;
-	int iResult;
-
 	// Initialize Winsock
 	if (!InitOnce())
 	{
 		return false;
 	}
 
-	ZeroMemory(&hints, sizeof(hints));
-	hints.ai_family = AF_INET;
-	hints.ai_socktype = SOCK_STREAM;
-	hints.ai_protocol = IPPROTO_TCP;
-	hints.ai_flags = AI_PASSIVE;
-
-	// Resolve the server address and port
-	iResult = getaddrinfo(remote, port, &hints, &result);
-	if (iResult != 0)
-	{
-		Core::Alert("getaddrinfo failed with error: " + std::to_string(iResult));
-		return false;
-	}
-
-	// Create a SOCKET for connecting to server
-	if (!socket.create(result->ai_family, result->ai_socktype, result->ai_protocol))
-	{
-		Core::Alert("socket failed with error: " + std::to_string(WSAGetLastError()));
-		freeaddrinfo(result);
-		return false;
-	}
-
-	// Setup the TCP listening socket
-	iResult = ::connect(socket.raw(), result->ai_addr, (int)result->ai_addrlen);
-	if (iResult == SOCKET_ERROR)
-	{
-		Core::Alert("connect failed with error: " + std::to_string(WSAGetLastError()));
-		freeaddrinfo(result);
-		socket.close();
-		return false;
-	}
-
-	return true;
+	return connect_socket(socket, port, remote);
 }
 
 bool JsonStream::send(const char* type, nlohmann::json content)
@@ -217,4 +223,39 @@ nlohmann::json JsonStream::recv_message()
 
 		recv_buffer.append(data.begin(), data.begin() + received_bytes);
 	}
+}
+
+bool TcpStream::connect(const char* port, const char* remote)
+{
+	if (!InitOnce())
+	{
+		return false;
+	}
+
+	return connect_socket(socket, port, remote);
+}
+
+std::string TcpStream::recv()
+{
+	std::vector<char> data(1024);
+	int received_bytes = ::recv(socket.raw(), data.data(), data.size(), 0);
+	if (received_bytes <= 0)
+	{
+		return "";
+	}
+	return std::string(data.begin(), data.begin() + received_bytes);
+}
+
+bool TcpStream::send(std::string data)
+{
+	while (!data.empty())
+	{
+		int sent_bytes = ::send(socket.raw(), data.c_str(), data.size(), 0);
+		if (sent_bytes == SOCKET_ERROR)
+		{
+			return false;
+		}
+		data.erase(data.begin(), data.begin() + sent_bytes);
+	}
+	return true;
 }

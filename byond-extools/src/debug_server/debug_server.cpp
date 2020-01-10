@@ -18,7 +18,7 @@ RuntimePtr oRuntime;
 
 bool DebugServer::listen(const char* port)
 {
-	TcpListener listener;
+	JsonListener listener;
 	if (!listener.listen(port))
 	{
 		Core::Alert("couldn't listen");

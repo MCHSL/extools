@@ -143,6 +143,21 @@ List::List(Value v)
 	list = GetListPointerById(id);
 }
 
+Container::Container(char type, int id) : type(type), id(id)
+{
+	IncRefCount(type, id);
+}
+
+Container::Container(Value val) : type(val.type), id(val.value)
+{
+	IncRefCount(type, id);
+}
+
+Container::~Container()
+{
+	DecRefCount(type, id);
+}
+
 unsigned int Container::length()
 {
 	return Length(type, id);

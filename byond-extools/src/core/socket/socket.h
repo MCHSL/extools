@@ -49,12 +49,22 @@ public:
 	void close() { socket.close(); }
 };
 
-class TcpListener
+class JsonListener
 {
 	Socket socket;
 public:
-	TcpListener() {}
+	JsonListener() {}
 	bool listen(const char* port = DBG_DEFAULT_PORT, const char* iface = "127.0.0.1");
 	JsonStream accept();
+	void close() { socket.close(); }
+};
+
+class TcpStream
+{
+	Socket socket;
+public:
+	bool connect(const char* port, const char* remote); //augh, why port first?! damn it spaceman
+	bool send(std::string data);
+	std::string recv();
 	void close() { socket.close(); }
 };
