@@ -52,7 +52,7 @@ trvh dump_all_profiles(unsigned int args_len, Value* args, Value src)
 		interresult.push_back(j);
 	}
 	nlohmann::json jresult = interresult;
-	std::string result = jresult.dump();
+	std::string result = jresult.dump(-1, ' ', false, nlohmann::json::error_handler_t::replace);
 	auto end = std::chrono::high_resolution_clock::now();
 	unsigned long long milis = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 	//Core::Alert(std::to_string(milis));

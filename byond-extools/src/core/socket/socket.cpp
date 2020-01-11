@@ -58,7 +58,7 @@ bool Socket::create(int family, int socktype, int protocol)
 	return raw_socket != INVALID_SOCKET;
 }
 
-bool connect_socket(Socket& socket, const char* port, const char* remote)
+bool connect_socket(Socket& socket, const char* port, const char* remote, bool yell = false)
 {
 
 	struct addrinfo* result = NULL;
@@ -75,14 +75,14 @@ bool connect_socket(Socket& socket, const char* port, const char* remote)
 	iResult = getaddrinfo(remote, port, &hints, &result);
 	if (iResult != 0)
 	{
-		Core::Alert("getaddrinfo failed with error: " + std::to_string(iResult));
+		if(yell) Core::Alert("getaddrinfo failed with error: " + std::to_string(iResult));
 		return false;
 	}
 
 	// Create a SOCKET for connecting to server
 	if (!socket.create(result->ai_family, result->ai_socktype, result->ai_protocol))
 	{
-		Core::Alert("socket failed with error: " + std::to_string(WSAGetLastError()));
+		if(yell) Core::Alert("socket failed with error: " + std::to_string(WSAGetLastError()));
 		freeaddrinfo(result);
 		return false;
 	}
@@ -91,7 +91,7 @@ bool connect_socket(Socket& socket, const char* port, const char* remote)
 	iResult = ::connect(socket.raw(), result->ai_addr, (int)result->ai_addrlen);
 	if (iResult == SOCKET_ERROR)
 	{
-		Core::Alert("connect failed with error: " + std::to_string(WSAGetLastError()));
+		if(yell) Core::Alert("connect failed with error: " + std::to_string(WSAGetLastError()));
 		freeaddrinfo(result);
 		socket.close();
 		return false;
@@ -176,7 +176,7 @@ bool JsonStream::connect(const char* port, const char* remote)
 		return false;
 	}
 
-	return connect_socket(socket, port, remote);
+	return connect_socket(socket, port, remote, true);
 }
 
 bool JsonStream::send(const char* type, nlohmann::json content)
@@ -190,7 +190,7 @@ bool JsonStream::send(const char* type, nlohmann::json content)
 
 bool JsonStream::send(nlohmann::json j)
 {
-	std::string data = j.dump();
+	std::string data = j.dump(-1, ' ', false, nlohmann::json::error_handler_t::replace);
 	data.push_back(0);
 	while (!data.empty())
 	{
