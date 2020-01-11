@@ -6,7 +6,7 @@
 #ifdef WIN32
 #include <windows.h>
 #else
-#error dump_extended_profile() needs to be able to create a directory on linux
+#include <sys/stat.h>
 #endif
 
 #define STUPID_READOUTS_LIMIT 40000000
@@ -91,7 +91,11 @@ void dump_extended_profile(ExtendedProfile* profile)
 	//Core::Alert(std::to_string(TOMICROS(profile->end_time - profile->start_time)));
 	std::string procname = Core::get_proc(profile->proc_id);
 	std::replace(procname.begin(), procname.end(), '/', '.');
+#ifdef _WIN32
 	CreateDirectoryA("profiling", NULL);
+#else
+	mkdir("profiling", 777);
+#endif
 	std::string filename = "./profiling/extended_profile" + procname + "." + std::to_string(profile->id) + ".txt";
 	std::ofstream output(filename, std::fstream::app);
 	if (!output.is_open())

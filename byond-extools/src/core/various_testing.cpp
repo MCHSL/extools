@@ -81,6 +81,7 @@ public:
 	}
 };
 
+#ifdef _WIN32
 opcode_handler _generate_number_op_localm_localn_store_localx(unsigned char op, int localm, int localn, int localx)
 {
 	unsigned char* func = (unsigned char*)VirtualAlloc(NULL, 64, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
@@ -97,8 +98,9 @@ opcode_handler _generate_number_op_localm_localn_store_localx(unsigned char op, 
 	VirtualProtect(func, 64, PAGE_EXECUTE_READ, &old_prot);
 	return (opcode_handler)func;
 }
+#endif
 
-extern "C" __declspec(dllexport) void add_subvars_of_locals(ExecutionContext* ctx)
+extern "C" EXPORT void add_subvars_of_locals(ExecutionContext* ctx)
 {
 	Value a = ctx->local_variables[0];
 	Value b = ctx->local_variables[1];

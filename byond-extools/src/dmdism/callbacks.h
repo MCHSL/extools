@@ -15,6 +15,10 @@
 #include "instr_matrix.h"
 #include "instr_debug.h"
 
+#ifndef _WIN32
+#define __forceinline
+#endif
+
 #define ADD_CALLBACK(op) case op: return new Instr_##op(op);
 
 __forceinline Instruction* get_instr(std::uint32_t op) {
