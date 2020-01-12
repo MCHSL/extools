@@ -1,6 +1,7 @@
 #include "maptick.h"
 #include "../core/core.h"
 #include <chrono>
+#include "../datum_socket/datum_socket.h"
 
 //#define MAPTICK_FAST_WRITE
 

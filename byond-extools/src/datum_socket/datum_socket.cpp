@@ -9,6 +9,7 @@
 
 std::unordered_map<unsigned int, std::unique_ptr<DatumSocket>> sockets;
 unsigned int recv_sleep_opcode = -1;
+std::vector<SuspendedProc*> timers_to_reset;
 
 DatumSocket::DatumSocket()
 {
@@ -29,6 +30,7 @@ bool DatumSocket::connect(std::string addr, std::string port)
 	bool connected = stream.connect(port.c_str(), addr.c_str());
 	if (connected)
 	{
+		open = true;
 		std::thread(&DatumSocket::recv_loop, this).detach();
 	}
 	return connected;
@@ -69,7 +71,7 @@ void DatumSocket::recv_loop()
 		buffer_lock.unlock();
 		if (data_awaiter)
 		{
-			data_awaiter->time_to_resume = 0;
+			StartTiming(data_awaiter);
 			data_awaiter = nullptr;
 		}
 	}
@@ -116,8 +118,7 @@ void recv_suspend(ExecutionContext* ctx)
 {
 	ctx->current_opcode++;
 	SuspendedProc* proc = Suspend(ctx, 0);
-	proc->time_to_resume = 0x7FFFFF;
-	StartTiming(proc);
+	proc->time_to_resume = 1;
 	int datum_id = ctx->constants->src.value;
 	sockets[datum_id]->set_awaiter(proc);
 	ctx->current_opcode--;
@@ -138,6 +139,10 @@ bool enable_sockets()
 
 extern "C" EXPORT const char* init_sockets(int a, const char** b)
 {
+	if (!Core::initialize())
+	{
+		return "no";
+	}
 	enable_sockets();
 	return "ok";
 }

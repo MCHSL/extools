@@ -26,6 +26,9 @@
 //disconnect the socket, unimplemented
 /datum/socket/proc/close()
 
+/world/proc/enable_sockets()
+	call("byond-extools.dll", "init_sockets")()
+
 /* Example:
 
 /proc/upload_statistics()

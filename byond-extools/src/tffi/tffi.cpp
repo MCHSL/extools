@@ -22,8 +22,6 @@ void tffi_suspend(ExecutionContext* ctx)
 {
 	ctx->current_opcode++;
 	SuspendedProc* proc = Suspend(ctx, 0);
-	proc->time_to_resume = 0x7FFFFF;
-	StartTiming(proc);
 	float promise_id = ctx->constants->args[1].valuef;
 	std::lock_guard<std::mutex> lk(unsuspend_ready_mutex);
 	suspended_procs[promise_id] = proc;
@@ -58,7 +56,8 @@ void ffi_thread(byond_ffi_func* proc, int promise_id, int n_args, std::vector<st
 	float internal_id = GetVariable( 0x21, promise_id , internal_id_string_id).valuef;
 	std::unique_lock<std::mutex> lk(unsuspend_ready_mutex);
 	unsuspend_ready_cv.wait(lk, [internal_id] { return suspended_procs.find(internal_id) != suspended_procs.end();  });
-	suspended_procs[internal_id]->time_to_resume = 1;
+	suspended_procs[internal_id]->time_to_resume = 0;
+	StartTiming(suspended_procs[internal_id]);
 	suspended_procs.erase(internal_id);
 }
 

@@ -16,14 +16,6 @@ std::unordered_map<void*, subhook::Hook*> hooks;
 
 //ExecutionContext* last_suspended_ec;
 
-struct QueuedCall
-{
-	Core::Proc proc;
-	Value src;
-	Value usr;
-	std::vector<Value> args;
-};
-
 std::vector<QueuedCall> queued_calls;
 bool calling_queue = false;
 
