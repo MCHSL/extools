@@ -25,7 +25,8 @@ protected:
 	std::string buffer;
 	std::mutex buffer_lock;
 	SuspendedProc* data_awaiter = nullptr;
-	bool open = true;
+	bool open = false;
 };
 
 extern std::unordered_map<unsigned int, std::unique_ptr<DatumSocket>> sockets;
+extern std::vector<SuspendedProc*> timers_to_reset;
