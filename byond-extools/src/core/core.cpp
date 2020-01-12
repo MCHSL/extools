@@ -115,7 +115,7 @@ void Core::Alert(std::string what) {
 #ifdef _WIN32
 	MessageBoxA(NULL, what.c_str(), "Ouch!", MB_OK);
 #else
-	printf("%s\n", what);
+	printf("Ouch!: %s\n", what.c_str());
 #endif
 }
 

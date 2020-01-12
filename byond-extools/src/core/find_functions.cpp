@@ -149,7 +149,7 @@ bool Core::find_functions()
 	current_execution_context_ptr = *(ExecutionContext * **)Pocket::Sigscan::FindPattern(BYONDCORE, "A1 ?? ?? ?? ?? 8D 7D ?? 89 78 ??", 1);
 	proc_setup_table = **(ProcSetupEntry * ***)Pocket::Sigscan::FindPattern(BYONDCORE, "A1 ?? ?? ?? ?? 8B 04 98 85 C0 74 ?? 89 04 24 E8 ?? ?? ?? ?? 8B 15 ?? ?? ?? ??", 1);
 	some_flags_including_profile = *(unsigned int**)Pocket::Sigscan::FindPattern(BYONDCORE, "A1 ?? ?? ?? ?? A8 ?? 0F 85 ?? ?? ?? ??", 2);
-	parent_context_ptr_hack = *(ExecutionContext***)Pocket::Sigscan::FindPattern(BYONDCORE, "A1 ?? ?? ?? ?? 8B 4D ?? 0F B7 50 ", 1);
+	parent_context_ptr_hack = *(ExecutionContext***)Pocket::Sigscan::FindPattern(BYONDCORE, "A1 ?? ?? ?? ?? 8B 4D ?? 0F B7 50", 1);
 #endif
 	return true;
 }

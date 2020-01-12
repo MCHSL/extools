@@ -575,7 +575,7 @@ __declspec(naked) void singlestep_hook()
 	}
 }
 #else
-extern "C" void singlestep_hook();
+void singlestep_hook() {};
 #endif
 
 /*
