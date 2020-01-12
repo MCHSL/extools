@@ -15,8 +15,13 @@
 
 bool Core::verify_compat()
 {
+#ifdef _WIN32
 	IMPORT_OR_DIE(GetByondVersion, "?GetByondVersion@ByondLib@@QAEJXZ");
 	IMPORT_OR_DIE(GetByondBuild, "?GetByondBuild@ByondLib@@QAEJXZ");
+#else
+	IMPORT_OR_DIE(GetByondVersion, "_ZN8ByondLib15GetByondVersionEv");
+	IMPORT_OR_DIE(GetByondBuild, "_ZN8ByondLib13GetByondBuildEv");
+#endif
 	ByondVersion = GetByondVersion();
 	ByondBuild = GetByondBuild();
 	if (ByondVersion < MIN_COMPATIBLE_MAJOR || ByondBuild < MIN_COMPATIBLE_MINOR)
