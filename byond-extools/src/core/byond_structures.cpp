@@ -2,6 +2,7 @@
 #include "core.h"
 #include <algorithm>
 #include <vector>
+#include <cassert>
 
 Value::Value(std::string s)
 {
@@ -31,9 +32,9 @@ Value::operator float()
 	return valuef;
 }
 
-Value::operator bool()
+Value::operator void*() //if you attempt to delete a value I will eat you
 {
-	return (type == 0x2A && valuef != 0.0f) || (type == 0x06 && *(GetStringTableEntry(value)->stringData) != 0) || (type != 0 && value != 0xFFFF);
+	return (void*)((type == 0x2A && valuef != 0.0f) || (type == 0x06 && *(GetStringTableEntry(value)->stringData) != 0) || (type != 0 && value != 0xFFFF));
 }
 
 ManagedValue Value::get(std::string name)
@@ -111,6 +112,63 @@ ManagedValue Value::invoke(std::string name, std::vector<Value> args, Value usr)
 	return CallProcByName(usr.type, usr.value, 2, Core::GetStringId(name), type, value, margs.data(), margs.size(), 0, 0);
 }
 
+Value& Value::operator+=(const Value& rhs)
+{
+	if (type == 0x2A && rhs.type == 0x2A)
+		valuef += rhs.valuef;
+	else if (type == 0x06 && rhs.type == 0x06)
+		value = Core::GetStringId(Core::GetStringFromId(value) + Core::GetStringFromId(rhs.value));
+	else
+	{
+		assert(false);
+		Runtime("Attempt to add invalid types in native code! (good luck)");
+	}
+	return *this;
+}
+
+Value& Value::operator-=(const Value& rhs)
+{
+	if (type == 0x2A && rhs.type == 0x2A)
+		valuef -= rhs.valuef;
+	else
+	{
+		assert(false);
+		Runtime("Attempt to subtract invalid types in native code! (good luck)");
+	}
+	return *this;
+}
+
+Value& Value::operator*=(const Value& rhs)
+{
+	if (type == 0x2A && rhs.type == 0x2A)
+		valuef *= rhs.valuef;
+	else
+	{
+		assert(false);
+		Runtime("Attempt to multiply invalid types in native code! (good luck)");
+	}
+	return *this;
+}
+
+Value& Value::operator/=(const Value& rhs)
+{
+	if (type == 0x2A && rhs.type == 0x2A)
+		valuef /= rhs.valuef;
+	else
+	{
+		assert(false);
+		Runtime("Attempt to divide invalid types in native code! (good luck)");
+	}
+	return *this;
+}
+
+#define VALOPS(ret, l, r, op) inline ret operator##op##(l lhs, r rhs) { return lhs ##op##= rhs; }
+#define ALLVALOPS(ret, l, r) VALOPS(ret, l, r, +); VALOPS(ret, l, r, -); VALOPS(ret, l, r, *); VALOPS(ret, l, r, /);
+
+ALLVALOPS(Value, Value, Value&)
+ALLVALOPS(Value, Value, float)
+ALLVALOPS(Value, Value, std::string)
+
 Value List::at(int index)
 {
 	return list->vector_part[index];
@@ -130,17 +188,25 @@ List::List()
 {
 	id = CreateList(8);
 	list = GetListPointerById(id);
+	IncRefCount(0x0F, id);
 }
 
 List::List(int _id) : id(_id)
 {
 	list = GetListPointerById(id);
+	IncRefCount(0x0F, id);
 }
 
 List::List(Value v)
 {
 	id = v.value;
 	list = GetListPointerById(id);
+	IncRefCount(0x0F, id);
+}
+
+List::~List()
+{
+	DecRefCount(0x0F, id);
 }
 
 Container::Container(char type, int id) : type(type), id(id)

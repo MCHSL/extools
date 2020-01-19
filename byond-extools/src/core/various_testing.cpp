@@ -120,7 +120,11 @@ trvh test_invoke(unsigned int argcount, Value* args, Value src)
 
 void init_testing()
 {
-	Core::get_proc("/client/verb/test_invoke").hook(test_invoke);
+	//Value a(5.0f);
+	//Value b = a + 5.0f;
+	//b += 1.0f;
+	//Core::Alert(std::to_string(b));
+	//Core::get_proc("/client/verb/test_invoke").hook(test_invoke);
 	//ManagedValue a = Value::World().get("name");
 	//Core::Alert("end func");
 	//Core::global_direct_set("internal_tick_usage", "AYYLMAO");

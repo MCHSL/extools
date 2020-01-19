@@ -105,9 +105,23 @@ struct Value
 		return value == rhs.value && type == rhs.type;
 	}
 
+	bool operator!=(const Value& rhs)
+	{
+		return !(*this == rhs);
+	}
+
+	Value& operator +=(const Value& rhs);
+	Value& operator -=(const Value& rhs);
+	Value& operator *=(const Value& rhs);
+	Value& operator /=(const Value& rhs);
+	/*inline Value& operator +=(float rhs);
+	inline Value& operator -=(float rhs);
+	inline Value& operator *=(float rhs);
+	inline Value& operator /=(float rhs);*/
+
 	operator std::string();
 	operator float();
-	operator bool();
+	operator void*();
 	ManagedValue get(std::string name);
 	ManagedValue get_safe(std::string name);
 	ManagedValue get_by_id(int id);
@@ -212,6 +226,7 @@ struct List //Specialization for Container with fast access by index
 	List();
 	List(int _id);
 	List(Value v);
+	~List();
 	RawList* list;
 
 	int id;
