@@ -141,13 +141,13 @@ bool Core::find_functions()
 		case 513:
 			FIND_OR_DIE(SetVariable, "55 89 E5 81 EC ?? ?? ?? ?? 8B 55 ?? 8B 45 ??");
 			FIND_OR_DIE(GetStringTableIndexUTF8, "55 89 E5 57 56 89 CE 53 89 D3 83 EC ?? 8B 55 ?? 85 C0") // regparm3
+			parent_context_ptr_hack = *(ExecutionContext***)Pocket::Sigscan::FindPattern(BYONDCORE, "A1 ?? ?? ?? ?? 8B 4D ?? 0F B7 50", 1);
 			break;
 		default: break;
 	}
 	current_execution_context_ptr = *(ExecutionContext * **)Pocket::Sigscan::FindPattern(BYONDCORE, "A1 ?? ?? ?? ?? 8D 7D ?? 89 78 ??", 1);
 	proc_setup_table = **(ProcSetupEntry * ***)Pocket::Sigscan::FindPattern(BYONDCORE, "A1 ?? ?? ?? ?? 8B 04 98 85 C0 74 ?? 89 04 24 E8 ?? ?? ?? ?? 8B 15 ?? ?? ?? ??", 1);
 	some_flags_including_profile = *(unsigned int**)Pocket::Sigscan::FindPattern(BYONDCORE, "A1 ?? ?? ?? ?? A8 ?? 0F 85 ?? ?? ?? ??", 2);
-	//parent_context_ptr_hack = *(ExecutionContext***)Pocket::Sigscan::FindPattern(BYONDCORE, "A1 ?? ?? ?? ?? 8B 4D ?? 0F B7 50", 1);
 #endif
 	return true;
 }

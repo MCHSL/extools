@@ -68,16 +68,18 @@ bool connect_socket(Socket& socket, const char* port, const char* remote, bool y
 {
 
 	struct addrinfo* result = NULL;
-	struct addrinfo* hints = (addrinfo*)malloc(sizeof(hints));
+	struct addrinfo hints;
 	int iResult;
 
-	hints->ai_family = AF_INET;
-	hints->ai_socktype = SOCK_STREAM;
-	hints->ai_protocol = IPPROTO_TCP;
-	hints->ai_flags = AI_PASSIVE;
+	memset(&hints, 0, sizeof(hints));
+
+	hints.ai_family = AF_INET;
+	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_protocol = IPPROTO_TCP;
+	hints.ai_flags = AI_PASSIVE;
 
 	// Resolve the server address and port
-	iResult = getaddrinfo(remote, port, hints, &result);
+	iResult = getaddrinfo(remote, port, &hints, &result);
 	if (iResult != 0)
 	{
 		if(yell) Core::Alert("getaddrinfo failed with error: " + std::to_string(iResult));
