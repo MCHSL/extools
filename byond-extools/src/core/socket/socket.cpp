@@ -132,7 +132,7 @@ bool JsonListener::listen(const char* port, const char* iface)
 	hints.ai_flags = AI_PASSIVE;
 
 	// Resolve the server address and port
-	iResult = getaddrinfo(iface, port, hints, &result);
+	iResult = getaddrinfo(iface, port, &hints, &result);
 	if (iResult != 0)
 	{
 		Core::Alert("getaddrinfo failed with error: " + std::to_string(iResult));
