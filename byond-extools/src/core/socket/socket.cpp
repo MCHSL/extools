@@ -126,10 +126,10 @@ bool JsonListener::listen(const char* port, const char* iface)
 		return false;
 	}
 
-	hints->ai_family = AF_INET;
-	hints->ai_socktype = SOCK_STREAM;
-	hints->ai_protocol = IPPROTO_TCP;
-	hints->ai_flags = AI_PASSIVE;
+	hints.ai_family = AF_INET;
+	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_protocol = IPPROTO_TCP;
+	hints.ai_flags = AI_PASSIVE;
 
 	// Resolve the server address and port
 	iResult = getaddrinfo(iface, port, hints, &result);
