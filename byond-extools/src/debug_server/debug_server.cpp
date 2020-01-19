@@ -612,6 +612,7 @@ void install_singlestep_hook()
 
 bool debugger_initialize()
 {
+#ifdef _WIN32
 	static bool debugger_initialized = false;
 	if (debugger_initialized)
 	{
@@ -624,6 +625,10 @@ bool debugger_initialize()
 	nop_opcode = Core::register_opcode("DEBUG_NOP", on_nop);
 	debugger_initialized = true;
 	return true;
+#else
+	Core::alert_dd("The extools debugger is not supported on Linux.");
+	return false;
+#endif
 }
 
 bool debugger_enable(const char* mode, const char* port)
