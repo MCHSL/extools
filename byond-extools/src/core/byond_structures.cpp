@@ -162,7 +162,7 @@ Value& Value::operator/=(const Value& rhs)
 	return *this;
 }
 
-#define VALOPS(ret, l, r, op) inline ret operator##op##(l lhs, r rhs) { return lhs ##op##= rhs; }
+#define VALOPS(ret, l, r, op) inline ret operator op(l lhs, r rhs) { return lhs op##= rhs; }
 #define ALLVALOPS(ret, l, r) VALOPS(ret, l, r, +); VALOPS(ret, l, r, -); VALOPS(ret, l, r, *); VALOPS(ret, l, r, /);
 
 ALLVALOPS(Value, Value, Value&)

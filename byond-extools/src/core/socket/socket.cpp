@@ -8,6 +8,7 @@ static bool InitOnce()
 	}
 	// It doesn't really matter if we call this a couple extra times.
 	// It also doesn't really matter if we never call WSACleanup.
+#ifdef _WIN32
 	WSADATA wsaData;
 	int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
 	if (iResult != 0)
@@ -16,6 +17,7 @@ static bool InitOnce()
 		return false;
 	}
 	done = true;
+#endif
 	return true;
 }
 
@@ -41,7 +43,11 @@ void Socket::close()
 {
 	if (raw_socket != INVALID_SOCKET)
 	{
+#ifdef _WIN32
 		closesocket(raw_socket);
+#else
+		::close(raw_socket);
+#endif
 		raw_socket = INVALID_SOCKET;
 	}
 }
@@ -65,7 +71,8 @@ bool connect_socket(Socket& socket, const char* port, const char* remote, bool y
 	struct addrinfo hints;
 	int iResult;
 
-	ZeroMemory(&hints, sizeof(hints));
+	memset(&hints, 0, sizeof(hints));
+
 	hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_protocol = IPPROTO_TCP;
@@ -82,7 +89,9 @@ bool connect_socket(Socket& socket, const char* port, const char* remote, bool y
 	// Create a SOCKET for connecting to server
 	if (!socket.create(result->ai_family, result->ai_socktype, result->ai_protocol))
 	{
+#ifdef _WIN32
 		if(yell) Core::Alert("socket failed with error: " + std::to_string(WSAGetLastError()));
+#endif
 		freeaddrinfo(result);
 		return false;
 	}
@@ -91,7 +100,9 @@ bool connect_socket(Socket& socket, const char* port, const char* remote, bool y
 	iResult = ::connect(socket.raw(), result->ai_addr, (int)result->ai_addrlen);
 	if (iResult == SOCKET_ERROR)
 	{
+#ifdef _WIN32
 		if(yell) Core::Alert("connect failed with error: " + std::to_string(WSAGetLastError()));
+#endif
 		freeaddrinfo(result);
 		socket.close();
 		return false;
@@ -104,7 +115,7 @@ bool connect_socket(Socket& socket, const char* port, const char* remote, bool y
 bool JsonListener::listen(const char* port, const char* iface)
 {
 	struct addrinfo* result = NULL;
-	struct addrinfo hints;
+	struct addrinfo* hints = (addrinfo*)malloc(sizeof(hints));
 	int iResult;
 
 	// Initialize Winsock
@@ -113,14 +124,13 @@ bool JsonListener::listen(const char* port, const char* iface)
 		return false;
 	}
 
-	ZeroMemory(&hints, sizeof(hints));
-	hints.ai_family = AF_INET;
-	hints.ai_socktype = SOCK_STREAM;
-	hints.ai_protocol = IPPROTO_TCP;
-	hints.ai_flags = AI_PASSIVE;
+	hints->ai_family = AF_INET;
+	hints->ai_socktype = SOCK_STREAM;
+	hints->ai_protocol = IPPROTO_TCP;
+	hints->ai_flags = AI_PASSIVE;
 
 	// Resolve the server address and port
-	iResult = getaddrinfo(iface, port, &hints, &result);
+	iResult = getaddrinfo(iface, port, hints, &result);
 	if (iResult != 0)
 	{
 		Core::Alert("getaddrinfo failed with error: " + std::to_string(iResult));
@@ -130,7 +140,9 @@ bool JsonListener::listen(const char* port, const char* iface)
 	// Create a SOCKET for connecting to server
 	if (!socket.create(result->ai_family, result->ai_socktype, result->ai_protocol))
 	{
+#ifdef _WIN32
 		Core::Alert("socket failed with error: " + std::to_string(WSAGetLastError()));
+#endif
 		freeaddrinfo(result);
 		return false;
 	}
@@ -144,7 +156,9 @@ bool JsonListener::listen(const char* port, const char* iface)
 	iResult = bind(socket.raw(), result->ai_addr, (int)result->ai_addrlen);
 	if (iResult == SOCKET_ERROR)
 	{
+#ifdef _WIN32
 		Core::Alert("bind failed with error: " + std::to_string(WSAGetLastError()));
+#endif
 		freeaddrinfo(result);
 		socket.close();
 		return false;
@@ -155,7 +169,9 @@ bool JsonListener::listen(const char* port, const char* iface)
 	iResult = ::listen(socket.raw(), SOMAXCONN);
 	if (iResult == SOCKET_ERROR)
 	{
+#ifdef _WIN32
 		Core::Alert("listen failed with error: " + std::to_string(WSAGetLastError()));
+#endif
 		socket.close();
 		return false;
 	}

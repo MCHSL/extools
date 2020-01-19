@@ -137,7 +137,7 @@ bool enable_sockets()
 	return true;
 }
 
-extern "C" __declspec(dllexport) const char* init_sockets(int a, const char** b)
+extern "C" EXPORT const char* init_sockets(int a, const char** b)
 {
 	if (!Core::initialize())
 	{

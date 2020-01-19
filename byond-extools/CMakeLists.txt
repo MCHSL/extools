@@ -6,17 +6,27 @@ else()
 endif()
 
 project(byond-extools)
-enable_language(ASM)
+if (WIN32)
+    enable_language(ASM)
+endif()
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(SRC_DIR ${CMAKE_SOURCE_DIR}/src)
-file(GLOB_RECURSE SRC_FILES
-    "${SRC_DIR}/*.cpp"
-    "${SRC_DIR}/*.h"
-    "${SRC_DIR}/*.hpp"
-    "${SRC_DIR}/*.s"
-)
+if (WIN32)
+    file(GLOB_RECURSE SRC_FILES
+        "${SRC_DIR}/*.cpp"
+        "${SRC_DIR}/*.h"
+        "${SRC_DIR}/*.hpp"
+        "${SRC_DIR}/*.s"
+    )
+else()
+    file(GLOB_RECURSE SRC_FILES
+        "${SRC_DIR}/*.cpp"
+        "${SRC_DIR}/*.h"
+        "${SRC_DIR}/*.hpp"
+    )
+endif()
 set(SRC_FILES ${SRC_FILES} "${SRC_DIR}/core/subhook/subhook.c")
 
 add_library(byond-extools SHARED ${SRC_FILES})

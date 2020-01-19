@@ -19,9 +19,7 @@ public:
 protected:
 	void recv_loop();
 
-#ifdef _WIN32
 	TcpStream stream;
-#endif
 	std::string buffer;
 	std::mutex buffer_lock;
 	SuspendedProc* data_awaiter = nullptr;

@@ -575,7 +575,7 @@ __declspec(naked) void singlestep_hook()
 	}
 }
 #else
-extern "C" void singlestep_hook();
+void singlestep_hook() {};
 #endif
 
 /*
@@ -594,8 +594,10 @@ void install_singlestep_hook()
 {
 	char* opcode_switch = (char*)Pocket::Sigscan::FindPattern("byondcore.dll", "0F B7 48 14 8B 78 10 8B F1 8B 14 B7 81 FA");
 	std::uint32_t addr = (std::uint32_t) & singlestep_hook;
+#ifdef _WIN32
 	DWORD old_prot;
 	VirtualProtect((void*)opcode_switch, 16, PAGE_EXECUTE_READWRITE, &old_prot);
+#endif
 	opcode_switch[0] = 0xBA; //MOV EDX,
 	opcode_switch[1] = nth(addr, 0);
 	opcode_switch[2] = nth(addr, 1);
@@ -603,11 +605,14 @@ void install_singlestep_hook()
 	opcode_switch[4] = nth(addr, 3); //address of singlestep_hook
 	opcode_switch[5] = 0xFF; //CALL
 	opcode_switch[6] = 0xD2; //EDX
+#ifdef _WIN32
 	VirtualProtect((void*)opcode_switch, 16, old_prot, &old_prot);
+#endif
 }
 
 bool debugger_initialize()
 {
+#ifdef _WIN32
 	static bool debugger_initialized = false;
 	if (debugger_initialized)
 	{
@@ -620,6 +625,10 @@ bool debugger_initialize()
 	nop_opcode = Core::register_opcode("DEBUG_NOP", on_nop);
 	debugger_initialized = true;
 	return true;
+#else
+	Core::alert_dd("The extools debugger is not supported on Linux.");
+	return false;
+#endif
 }
 
 bool debugger_enable(const char* mode, const char* port)
