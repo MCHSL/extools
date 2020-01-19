@@ -115,8 +115,10 @@ bool connect_socket(Socket& socket, const char* port, const char* remote, bool y
 bool JsonListener::listen(const char* port, const char* iface)
 {
 	struct addrinfo* result = NULL;
-	struct addrinfo* hints = (addrinfo*)malloc(sizeof(hints));
+	struct addrinfo hints;
 	int iResult;
+
+	memset(&hints, 0, sizeof(hints));
 
 	// Initialize Winsock
 	if (!InitOnce())
