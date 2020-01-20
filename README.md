@@ -8,6 +8,9 @@ Most of development of [Lunar-Dreamland](https://github.com/goonstation/Lunar-Dr
 ## What can I do with it?
 Here are the modules currently available (not counting the core). Scroll to the bottom to see install instructions.
 
+#### Proc hooking
+Not exactly a module, but still useful. Hooking allows you to reimplement procs in C++, which usually run much faster, especially if the hooked proc is, for example, just math operations.
+
 #### Debug server
 Interfaces with debugger frontends, providing various information and managing breakpoints.  
 [SpacemanDMM](https://github.com/SpaceManiac/SpacemanDMM) by SpaceManiac enables line-by-line debugging and live viewing of variables. More to come.  
