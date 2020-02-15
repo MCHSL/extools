@@ -1,6 +1,6 @@
 #define EXTOOLS			(world.system_type == MS_WINDOWS ? "byond-extools.dll" : "byond-extools")
-#define EXTOOLS_SUCCESS	"gucci"
-#define EXTOOLS_FAILED	"pain"
+#define EXTOOLS_SUCCESS	"SUCCESS"
+#define EXTOOLS_FAILED	"FAIL"
 #define GLOBAL_PROC		"magic BS"
 
 /*

@@ -115,7 +115,7 @@ void Core::Alert(std::string what) {
 #ifdef _WIN32
 	MessageBoxA(NULL, what.c_str(), "Ouch!", MB_OK);
 #else
-	printf("%s\n", what);
+	printf("Ouch!: %s\n", what.c_str());
 #endif
 }
 
@@ -394,7 +394,11 @@ Value Core::global_direct_get(std::string name)
 
 void Core::disconnect_client(unsigned int id)
 {
+#ifdef _WIN32
 	closesocket(get_socket_from_client(id));
+#else
+	close(get_socket_from_client(id));
+#endif
 	DisconnectClient1(id, 1, 1);
 	DisconnectClient2(id);
 }

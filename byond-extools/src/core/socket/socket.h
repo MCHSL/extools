@@ -9,6 +9,15 @@
 #include <ws2tcpip.h>
 #include <windows.h>
 #pragma comment (lib, "Ws2_32")
+#else
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <arpa/inet.h>
+#include <netdb.h>  /* Needed for getaddrinfo() and freeaddrinfo() */
+#include <unistd.h> /* Needed for close() */
+#define SOCKET int
+#define INVALID_SOCKET -1
+#define SOCKET_ERROR -1
 #endif
 
 const char* const DBG_DEFAULT_PORT = "2448";

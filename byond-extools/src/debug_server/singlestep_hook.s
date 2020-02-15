@@ -1,4 +1,4 @@
-.intel_syntax
+.intel_syntax noprefix  
 .global _singlestep_hook
 _singlestep_hook:
 
