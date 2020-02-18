@@ -96,9 +96,9 @@ bool Value::has_var(std::string name)
 	return false;*/
 }
 
-void Value::set(std::string name, Value value)
+void Value::set(std::string name, Value newvalue)
 {
-	SetVariable(type, value, Core::GetStringId(name), value);
+	SetVariable(type, value, Core::GetStringId(name), newvalue);
 }
 
 ManagedValue Value::invoke(std::string name, std::vector<Value> args, Value usr)
