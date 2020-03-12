@@ -175,7 +175,7 @@ float GasMixture::share(GasMixture &sharer, int atmos_adjacent_turfs) {
     }
     if(temperature_delta > MINIMUM_TEMPERATURE_TO_MOVE || std::abs(moved_moles) > MINIMUM_MOLES_DELTA_TO_MOVE) {
 		float our_moles = total_moles();
-		float their_moles = sharer.total_moles();
+		float their_moles = sharer.total_moles();;
 		return (temperature_archived*(our_moles + moved_moles) - sharer.temperature_archived*(their_moles - moved_moles)) * R_IDEAL_GAS_EQUATION / volume;
     }
     return 0;

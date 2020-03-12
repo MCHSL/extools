@@ -237,7 +237,8 @@ int str_id_is_openturf;
 int str_id_x, str_id_y, str_id_z;
 int str_id_current_cycle, str_id_archived_cycle, str_id_excited_group, str_id_planetary_atmos, str_id_initial_gas_mix;
 int str_id_excited_groups, str_id_excited, str_id_active_turfs;
-Value SSair;
+int str_id_consider_pressure_difference;
+ManagedValue SSair = Value::Null();
 
 const char* enable_monstermos()
 {
