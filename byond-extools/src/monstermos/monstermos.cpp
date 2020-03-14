@@ -2,6 +2,7 @@
 #include "GasMixture.h"
 #include "turf_grid.h"
 #include "../dmdism/opcodes.h"
+#include <chrono>
 
 trvh fuck(unsigned int args_len, Value* args, Value src)
 {
@@ -13,6 +14,7 @@ std::unordered_map<unsigned int, int> gas_ids;
 std::unordered_map<unsigned int, std::shared_ptr<GasMixture>> gas_mixtures;
 std::vector<Value> gas_id_to_type;
 TurfGrid all_turfs;
+Value SSair;
 
 int str_id_volume;
 trvh gasmixture_register(unsigned int args_len, Value* args, Value src)
@@ -225,6 +227,105 @@ trvh turf_update_air_ref(unsigned int args_len, Value* args, Value src)
 	return Value::Null();
 }
 
+trvh turf_eg_reset_cooldowns(unsigned int args_len, Value* args, Value src)
+{
+	if (src.type != TURF) { return Value::Null(); }
+	Tile *tile = all_turfs.get(src.value);
+	if (tile != nullptr) {
+		if (tile->excited_group) {
+			tile->excited_group->reset_cooldowns();
+		}
+	}
+	return Value::Null();
+}
+
+trvh turf_eg_garbage_collect(unsigned int args_len, Value* args, Value src)
+{
+	if (src.type != TURF) { return Value::Null(); }
+	Tile *tile = all_turfs.get(src.value);
+	if (tile != nullptr) {
+		if (tile->excited_group) {
+			// store to local variable to prevent it from being destructed while we're still using it because that causes segfaults.
+			std::shared_ptr<ExcitedGroup> eg = tile->excited_group;
+			eg->dismantle(false);
+		}
+	}
+	return Value::Null();
+}
+
+trvh turf_get_excited(unsigned int args_len, Value* args, Value src)
+{
+	if (src.type != TURF) { return Value::Null(); }
+	Tile *tile = all_turfs.get(src.value);
+	if (tile != nullptr) {
+		return Value(tile->excited ? 1.0 : 0.0);
+	}
+	return Value::Null();
+}
+trvh turf_set_excited(unsigned int args_len, Value* args, Value src)
+{
+	if (src.type != TURF) { return Value::Null(); }
+	Tile *tile = all_turfs.get(src.value);
+	if (tile != nullptr) {
+		tile->excited = args_len > 0 ? args[0] : false;
+	}
+	return Value::Null();
+}
+
+trvh turf_process_cell(unsigned int args_len, Value* args, Value src)
+{
+	if (src.type != TURF || args_len < 1) { return Value::Null(); }
+	Tile *tile = all_turfs.get(src.value);
+	if (tile != nullptr) {
+		tile->process_cell(args[0]);
+	}
+	return Value::Null();
+}
+
+trvh turf_eq(unsigned int args_len, Value* args, Value src) {
+	if (src.type != TURF || args_len < 1) { return Value::Null(); }
+	Tile *tile = all_turfs.get(src.value);
+	if (tile != nullptr) {
+		tile->equalize_pressure_in_zone(args[0]);
+	}
+	return Value::Null();
+}
+
+std::vector<std::weak_ptr<ExcitedGroup>> excited_groups_currentrun;
+trvh SSair_process_excited_groups(unsigned int args_len, Value* args, Value src) {
+	auto start = std::chrono::high_resolution_clock::now();
+	float time_limit = args[1] * 100000.0f;
+
+	if (args_len < 2) { return Value::Null(); }
+	if (!args[0]) {
+		excited_groups_currentrun = excited_groups; // this copies it.... right?
+	}
+	while (excited_groups_currentrun.size()) {
+		std::shared_ptr<ExcitedGroup> eg = excited_groups_currentrun.back().lock();
+		excited_groups_currentrun.pop_back();
+		if (!eg) continue;
+		eg->breakdown_cooldown++;
+		eg->dismantle_cooldown++;
+		if (eg->breakdown_cooldown >= EXCITED_GROUP_BREAKDOWN_CYCLES)
+			eg->self_breakdown();
+		if (eg->dismantle_cooldown >= EXCITED_GROUP_DISMANTLE_CYCLES)
+			eg->dismantle(true);
+		if (std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start).count() > time_limit) {
+			return Value::True();
+		}
+	}
+	return Value::False();
+}
+
+trvh SSair_get_amt_excited_groups(unsigned int args_len, Value* args, Value src) {
+	return Value(excited_groups.size());
+}
+
+trvh SSair_update_ssair(unsigned int args_len, Value* args, Value src) {
+	SSair = src;
+	return Value::Null();
+}
+
 trvh refresh_atmos_grid(unsigned int args_len, Value* args, Value src)
 {
 	all_turfs.refresh();
@@ -235,10 +336,9 @@ int str_id_air;
 int str_id_atmosadj;
 int str_id_is_openturf;
 int str_id_x, str_id_y, str_id_z;
-int str_id_current_cycle, str_id_archived_cycle, str_id_excited_group, str_id_planetary_atmos, str_id_initial_gas_mix;
-int str_id_excited_groups, str_id_excited, str_id_active_turfs;
-int str_id_consider_pressure_difference;
-ManagedValue SSair = Value::Null();
+int str_id_current_cycle, str_id_archived_cycle, str_id_planetary_atmos, str_id_initial_gas_mix;
+int str_id_active_turfs;
+int str_id_react, str_id_consider_pressure_difference, str_id_update_visuals;
 
 const char* enable_monstermos()
 {
@@ -252,12 +352,12 @@ const char* enable_monstermos()
 	str_id_z = Core::GetStringId("z", true);
 	str_id_current_cycle = Core::GetStringId("current_cycle", true);
 	str_id_archived_cycle = Core::GetStringId("archived_cycle", true);
-	str_id_excited_group = Core::GetStringId("excited_group", true);
 	str_id_active_turfs = Core::GetStringId("active_turfs", true);
-	str_id_excited_groups = Core::GetStringId("excited_groups", true);
-	str_id_excited = Core::GetStringId("excited", true);
 	str_id_planetary_atmos = Core::GetStringId("planetary_atmos", true);
 	str_id_initial_gas_mix = Core::GetStringId("initial_gas_mix", true);
+	str_id_react = Core::GetStringId("react", true);
+	str_id_consider_pressure_difference = Core::GetStringId("consider pressure difference", true); // byond replaces "_" with " " in proc names. thanks BYOND.
+	str_id_update_visuals = Core::GetStringId("update visuals", true);
 
 	SSair = Value::Global().get("SSair");
 	//Set up gas types map
@@ -301,8 +401,17 @@ const char* enable_monstermos()
 	Core::get_proc("/datum/gas_mixture/proc/multiply").hook(gasmixture_multiply);
 	Core::get_proc("/datum/gas_mixture/proc/get_last_share").hook(gasmixture_get_last_share);
 	Core::get_proc("/turf/proc/__update_extools_adjacent_turfs").hook(turf_update_adjacent);
-	Core::get_proc("/turf/open/proc/update_air_ref").hook(turf_update_air_ref);
+	Core::get_proc("/turf/proc/update_air_ref").hook(turf_update_air_ref);
+	Core::get_proc("/turf/open/proc/eg_reset_cooldowns").hook(turf_eg_reset_cooldowns);
+	Core::get_proc("/turf/open/proc/eg_garbage_collect").hook(turf_eg_garbage_collect);
+	Core::get_proc("/turf/open/proc/get_excited").hook(turf_get_excited);
+	Core::get_proc("/turf/open/proc/set_excited").hook(turf_set_excited);
+	Core::get_proc("/turf/open/proc/process_cell").hook(turf_process_cell);
+	Core::get_proc("/turf/open/proc/equalize_pressure_in_zone").hook(turf_eq);
 	Core::get_proc("/world/proc/refresh_atmos_grid").hook(refresh_atmos_grid);
+	Core::get_proc("/datum/controller/subsystem/air/proc/process_excited_groups_extools").hook(SSair_process_excited_groups);
+	Core::get_proc("/datum/controller/subsystem/air/proc/get_amt_excited_groups").hook(SSair_get_amt_excited_groups);
+	Core::get_proc("/datum/controller/subsystem/air/proc/extools_update_ssair").hook(SSair_update_ssair);
 
 	all_turfs.refresh();
 	return "ok";

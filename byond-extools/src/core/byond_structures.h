@@ -126,6 +126,7 @@ struct Value
 	ManagedValue get_safe(std::string name);
 	ManagedValue get_by_id(int id);
 	ManagedValue invoke(std::string name, std::vector<Value> args, Value usr = Value::Null());
+	ManagedValue invoke_by_id(int id, std::vector<Value> args, Value usr = Value::Null());
 	std::unordered_map<std::string, Value> get_all_vars();
 	bool has_var(std::string name);
 	void set(std::string name, Value value);

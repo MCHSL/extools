@@ -112,6 +112,16 @@ ManagedValue Value::invoke(std::string name, std::vector<Value> args, Value usr)
 	return CallProcByName(usr.type, usr.value, 2, Core::GetStringId(name), type, value, margs.data(), margs.size(), 0, 0);
 }
 
+ManagedValue Value::invoke_by_id(int id, std::vector<Value> args, Value usr)
+{
+	std::vector<ManagedValue> margs;
+	for (Value& v : args)
+	{
+		margs.emplace_back(v);
+	}
+	return CallProcByName(usr.type, usr.value, 2, id, type, value, margs.data(), margs.size(), 0, 0);
+}
+
 Value& Value::operator+=(const Value& rhs)
 {
 	if (type == 0x2A && rhs.type == 0x2A)

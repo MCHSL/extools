@@ -7,8 +7,9 @@
 class TurfGrid;
 struct PlanetAtmosInfo;
 struct ExcitedGroup;
+struct MonstermosInfo;
 
-extern std::vector<ExcitedGroup*> excited_groups;
+extern std::vector<std::weak_ptr<ExcitedGroup>> excited_groups;
 
 struct Tile
 {
@@ -18,6 +19,12 @@ struct Tile
 	void process_cell(int fire_count);
 	void archive(int fire_count);
 	void last_share_check();
+	void update_planet_atmos();
+	void adjust_eq_movement(int dir, float amount);
+	void finalize_eq();
+	void finalize_eq_neighbors(float *transfer_dirs);
+	void equalize_pressure_in_zone(int cyclenum);
+	void explosively_depressurize(int cyclenum);
 	// adjacent tiles in the order NORTH,SOUTH,EAST,WEST,UP,DOWN.
 	// 
 	Tile *adjacent[6];
@@ -25,9 +32,10 @@ struct Tile
 	unsigned char atmos_cooldown = 0;
 	bool excited = false;
 	std::shared_ptr<GasMixture> air;
-	Value turf_ref; // not managed because turf refcounts are very unimportant
-	std::shared_ptr<PlanetAtmosInfo> planet_atmos_info; // shared_ptr because uhhhhhh reasons.
+	Value turf_ref; // not managed because turf refcounts are very unimportant and don't matter
+	std::shared_ptr<PlanetAtmosInfo> planet_atmos_info; // shared_ptr because uhhh reasons.
 	std::shared_ptr<ExcitedGroup> excited_group; // shared_ptr for an actuall good reason this time.
+	std::shared_ptr<MonstermosInfo> monstermos_info; // I'd make these unique_ptrs but then I wouldn't be able to copy the thing.
 };
 
 struct PlanetAtmosInfo
@@ -36,16 +44,29 @@ struct PlanetAtmosInfo
 	GasMixture last_mix = GasMixture(CELL_VOLUME);
 }; // not part of main Tile struct because we don't need it for the whole map
 
-struct ExcitedGroup
+struct MonstermosInfo
+{
+	int last_cycle = 0;
+	uint64_t last_queue_cycle = 0;
+	uint64_t last_slow_queue_cycle = 0;
+	float mole_delta = 0;
+	float transfer_dirs[7] = { 0,0,0,0,0,0,0 };
+	float curr_transfer_amount = 0;
+	float distance_score = 0;
+	uint8_t curr_transfer_dir = 6;
+	bool fast_done = false;
+};
+
+struct ExcitedGroup : public std::enable_shared_from_this<ExcitedGroup>
 {
 	std::vector<Tile*> turf_list;
 	int breakdown_cooldown = 0;
 	int dismantle_cooldown = 0;
-	ExcitedGroup();
+	void initialize();
 	~ExcitedGroup();
 	void reset_cooldowns();
-	static void merge_groups(std::shared_ptr<ExcitedGroup>& us, std::shared_ptr<ExcitedGroup>& other);
-	static void add_turf(std::shared_ptr<ExcitedGroup>& us, Tile &tile);
+	void merge_groups(std::shared_ptr<ExcitedGroup>& other);
+	void add_turf(Tile &tile);
 	void self_breakdown(bool space_is_all_consuming = false);
 	void dismantle(bool unexcite = true);
 };
