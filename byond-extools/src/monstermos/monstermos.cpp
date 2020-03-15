@@ -16,6 +16,7 @@ std::vector<Value> gas_id_to_type;
 TurfGrid all_turfs;
 Value SSair;
 int str_id_extools_pointer;
+int gas_mixture_count = 0;
 
 std::shared_ptr<GasMixture> &get_gas_mixture(Value val)
 {
@@ -31,6 +32,7 @@ trvh gasmixture_register(unsigned int args_len, Value* args, Value src)
 	std::shared_ptr<GasMixture> *ptr = new std::shared_ptr<GasMixture>;
 	*ptr = std::make_shared<GasMixture>(src.get_by_id(str_id_volume).valuef);
 	SetVariable(src.type, src.value, str_id_extools_pointer, Value(NUMBER, (int)ptr));
+	gas_mixture_count++;
 	return Value::Null();
 }
 
@@ -40,6 +42,7 @@ trvh gasmixture_unregister(unsigned int args_len, Value* args, Value src)
 	if (v != 0) {
 		std::shared_ptr<GasMixture> *gm = (std::shared_ptr<GasMixture> *)v;
 		delete gm;
+		gas_mixture_count--;
 	}
 	return Value::Null();
 }
@@ -84,6 +87,7 @@ trvh gasmixture_merge(unsigned int args_len, Value* args, Value src)
 {
 	if (args_len < 1)
 		return Value::Null();
+	DecRefCount(args[0].type, args[0].value); // super hacky memory leak fix  (and others) - arguments automatically have refcounts incremented, but not decremented.
 	get_gas_mixture(src)->merge(*get_gas_mixture(args[0]));
 	return Value::Null();
 }
@@ -92,6 +96,7 @@ trvh gasmixture_remove_ratio(unsigned int args_len, Value* args, Value src)
 {
 	if (args_len < 2)
 		return Value::Null();
+	DecRefCount(args[0].type, args[0].value);
 	get_gas_mixture(args[0])->copy_from_mutable(get_gas_mixture(src)->remove_ratio(args[1].valuef));
 	return Value::Null();
 }
@@ -100,6 +105,7 @@ trvh gasmixture_remove(unsigned int args_len, Value* args, Value src)
 {
 	if (args_len < 2)
 		return Value::Null();
+	DecRefCount(args[0].type, args[0].value);
 	get_gas_mixture(args[0])->copy_from_mutable(get_gas_mixture(src)->remove(args[1].valuef));
 	return Value::Null();
 }
@@ -108,6 +114,7 @@ trvh gasmixture_copy_from(unsigned int args_len, Value* args, Value src)
 {
 	if (args_len < 1)
 		return Value::Null();
+	DecRefCount(args[0].type, args[0].value);
 	get_gas_mixture(src)->copy_from_mutable(*get_gas_mixture(args[0]));
 	return Value::Null();
 }
@@ -116,6 +123,7 @@ trvh gasmixture_share(unsigned int args_len, Value* args, Value src)
 {
 	if (args_len < 1)
 		return Value::Null();
+	DecRefCount(args[0].type, args[0].value);
 	return Value(get_gas_mixture(src)->share(*get_gas_mixture(args[0]), args_len >= 2 ? args[1].valuef : 4));
 }
 
