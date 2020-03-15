@@ -11,123 +11,123 @@ trvh fuck(unsigned int args_len, Value* args, Value src)
 
 std::unordered_map<std::string, Value> gas_types;
 std::unordered_map<unsigned int, int> gas_ids;
-std::unordered_map<unsigned int, std::shared_ptr<GasMixture>> gas_mixtures;
+//std::unordered_map<unsigned int, std::shared_ptr<GasMixture>> gas_mixtures;
 std::vector<Value> gas_id_to_type;
 TurfGrid all_turfs;
 Value SSair;
+int str_id_extools_pointer;
+
+std::shared_ptr<GasMixture> &get_gas_mixture(Value val)
+{
+	uint32_t v = val.get_by_id(str_id_extools_pointer).value;
+	if (v == 0) Runtime("Gas mixture has null extools pointer");
+	return *((std::shared_ptr<GasMixture>*)v);
+}
 
 int str_id_volume;
 trvh gasmixture_register(unsigned int args_len, Value* args, Value src)
 {
-	gas_mixtures[src.value] = std::make_shared<GasMixture>(src.get_by_id(str_id_volume).valuef);
+	//gas_mixtures[src.value] = std::make_shared<GasMixture>(src.get_by_id(str_id_volume).valuef);
+	std::shared_ptr<GasMixture> *ptr = new std::shared_ptr<GasMixture>;
+	*ptr = std::make_shared<GasMixture>(src.get_by_id(str_id_volume).valuef);
+	SetVariable(src.type, src.value, str_id_extools_pointer, Value(NUMBER, (int)ptr));
 	return Value::Null();
 }
 
 trvh gasmixture_unregister(unsigned int args_len, Value* args, Value src)
 {
-	if (gas_mixtures.find(src.value) == gas_mixtures.end()) {return Value::Null();}
-	gas_mixtures.erase(src.value);
+	uint32_t v = src.get_by_id(str_id_extools_pointer).value;
+	if (v != 0) {
+		std::shared_ptr<GasMixture> *gm = (std::shared_ptr<GasMixture> *)v;
+		delete gm;
+	}
 	return Value::Null();
 }
 
 trvh gasmixture_heat_capacity(unsigned int args_len, Value* args, Value src)
 {
-	if (gas_mixtures.find(src.value) == gas_mixtures.end()) { return Value::Null(); }
-	return Value(gas_mixtures[src.value]->heat_capacity());
+	return Value(get_gas_mixture(src)->heat_capacity());
 }
 
 trvh gasmixture_total_moles(unsigned int args_len, Value* args, Value src)
 {
-	if (gas_mixtures.find(src.value) == gas_mixtures.end()) { return Value::Null(); }
-	return Value(gas_mixtures[src.value]->total_moles());
+	return Value(get_gas_mixture(src)->total_moles());
 }
 
 trvh gasmixture_return_pressure(unsigned int args_len, Value* args, Value src)
 {
-	if (gas_mixtures.find(src.value) == gas_mixtures.end()) { return Value::Null(); }
-	return Value(gas_mixtures[src.value]->return_pressure());
+	return Value(get_gas_mixture(src)->return_pressure());
 }
 
 trvh gasmixture_return_temperature(unsigned int args_len, Value* args, Value src)
 {
-	if (gas_mixtures.find(src.value) == gas_mixtures.end()) { return Value::Null(); }
-	return Value(gas_mixtures[src.value]->get_temperature());
+	return Value(get_gas_mixture(src)->get_temperature());
 }
 
 trvh gasmixture_return_volume(unsigned int args_len, Value* args, Value src)
 {
-	if (gas_mixtures.find(src.value) == gas_mixtures.end()) { return Value::Null(); }
-	return Value(gas_mixtures[src.value]->get_volume());
+	return Value(get_gas_mixture(src)->get_volume());
 }
 
 trvh gasmixture_thermal_energy(unsigned int args_len, Value* args, Value src)
 {
-	if (gas_mixtures.find(src.value) == gas_mixtures.end()) { return Value::Null(); }
-	return Value(gas_mixtures[src.value]->thermal_energy());
+	return Value(get_gas_mixture(src)->thermal_energy());
 }
 
 trvh gasmixture_archive(unsigned int args_len, Value* args, Value src)
 {
-	if (gas_mixtures.find(src.value) == gas_mixtures.end()) { return Value::Null(); }
-	gas_mixtures[src.value]->archive();
+	get_gas_mixture(src)->archive();
 	return Value::Null();
 }
 
 trvh gasmixture_merge(unsigned int args_len, Value* args, Value src)
 {
-	if (gas_mixtures.find(src.value) == gas_mixtures.end()) { return Value::Null(); }
 	if (args_len < 1)
 		return Value::Null();
-	gas_mixtures[src.value]->merge(*gas_mixtures[args[0].value]);
+	get_gas_mixture(src)->merge(*get_gas_mixture(args[0]));
 	return Value::Null();
 }
 
 trvh gasmixture_remove_ratio(unsigned int args_len, Value* args, Value src)
 {
-	if (gas_mixtures.find(src.value) == gas_mixtures.end()) { return Value::Null(); }
-	if (args_len < 2 || args[0].type != DATUM)
+	if (args_len < 2)
 		return Value::Null();
-	gas_mixtures[args[0].value]->copy_from_mutable(gas_mixtures[src.value]->remove_ratio(args[1].valuef));
+	get_gas_mixture(args[0])->copy_from_mutable(get_gas_mixture(src)->remove_ratio(args[1].valuef));
 	return Value::Null();
 }
 
 trvh gasmixture_remove(unsigned int args_len, Value* args, Value src)
 {
-	if (gas_mixtures.find(src.value) == gas_mixtures.end()) { return Value::Null(); }
-	if (args_len < 2 || args[0].type != DATUM)
+	if (args_len < 2)
 		return Value::Null();
-	gas_mixtures[args[0].value]->copy_from_mutable(gas_mixtures[src.value]->remove(args[1].valuef));
+	get_gas_mixture(args[0])->copy_from_mutable(get_gas_mixture(src)->remove(args[1].valuef));
 	return Value::Null();
 }
 
 trvh gasmixture_copy_from(unsigned int args_len, Value* args, Value src)
 {
-	if (gas_mixtures.find(src.value) == gas_mixtures.end()) { return Value::Null(); }
-	if (args_len < 1 || args[0].type != DATUM)
+	if (args_len < 1)
 		return Value::Null();
-	gas_mixtures[args[0].value]->copy_from_mutable(*gas_mixtures[src.value]);
+	get_gas_mixture(src)->copy_from_mutable(*get_gas_mixture(args[0]));
 	return Value::Null();
 }
 
 trvh gasmixture_share(unsigned int args_len, Value* args, Value src)
 {
-	if (gas_mixtures.find(src.value) == gas_mixtures.end()) { return Value::Null(); }
-	if (args_len < 1 || args[0].type != DATUM)
+	if (args_len < 1)
 		return Value::Null();
-	return Value(gas_mixtures[src.value]->share(*gas_mixtures[args[0].value], args_len >= 2 ? args[1].valuef : 4));
+	return Value(get_gas_mixture(src)->share(*get_gas_mixture(args[0]), args_len >= 2 ? args[1].valuef : 4));
 }
 
 trvh gasmixture_get_last_share(unsigned int args_len, Value* args, Value src)
 {
-	if (gas_mixtures.find(src.value) == gas_mixtures.end()) { return Value::Null(); }
-	return Value(gas_mixtures[src.value]->get_last_share());
+	return Value(get_gas_mixture(src)->get_last_share());
 }
 
 trvh gasmixture_get_gases(unsigned int args_len, Value* args, Value src)
 {
-	if (gas_mixtures.find(src.value) == gas_mixtures.end()) { return Value::Null(); }
 	List l(CreateList(0));
-	GasMixture &gm = *gas_mixtures[src.value];
+	GasMixture &gm = *get_gas_mixture(src);
 	for (int i = 0; i < TOTAL_NUM_GASES; i++) {
 		if (gm.get_moles(i) >= GAS_MIN_MOLES) {
 			l.append(gas_id_to_type[i]);
@@ -138,58 +138,51 @@ trvh gasmixture_get_gases(unsigned int args_len, Value* args, Value src)
 
 trvh gasmixture_set_temperature(unsigned int args_len, Value* args, Value src)
 {
-	if (gas_mixtures.find(src.value) == gas_mixtures.end()) { return Value::Null(); }
-	gas_mixtures[src.value]->set_temperature(args_len > 0 ? args[0].valuef : 0);
+	get_gas_mixture(src)->set_temperature(args_len > 0 ? args[0].valuef : 0);
 	return Value::Null();
 }
 
 trvh gasmixture_set_volume(unsigned int args_len, Value* args, Value src)
 {
-	if (gas_mixtures.find(src.value) == gas_mixtures.end()) { return Value::Null(); }
-	gas_mixtures[src.value]->set_volume(args_len > 0 ? args[0].valuef : 0);
+	get_gas_mixture(src)->set_volume(args_len > 0 ? args[0].valuef : 0);
 	return Value::Null();
 }
 
 trvh gasmixture_get_moles(unsigned int args_len, Value* args, Value src)
 {
-	if (gas_mixtures.find(src.value) == gas_mixtures.end()) { return Value::Null(); }
 	if (args_len < 1 || args[0].type != DATUM_TYPEPATH)
 		return Value::Null();
 	int index = gas_ids[args[0].value];
-	return Value(gas_mixtures[src.value]->get_moles(index));
+	return Value(get_gas_mixture(src)->get_moles(index));
 	return Value::Null();
 }
 
 trvh gasmixture_set_moles(unsigned int args_len, Value* args, Value src)
 {
-	if (gas_mixtures.find(src.value) == gas_mixtures.end()) { return Value::Null(); }
 	if (args_len < 2 || args[0].type != DATUM_TYPEPATH)
 		return Value::Null();
 	int index = gas_ids[args[0].value];
-	gas_mixtures[src.value]->set_moles(index, args[1].valuef);
+	get_gas_mixture(src)->set_moles(index, args[1].valuef);
 	return Value::Null();
 }
 
 trvh gasmixture_mark_immutable(unsigned int args_len, Value* args, Value src)
 {
-	if (gas_mixtures.find(src.value) == gas_mixtures.end()) { return Value::Null(); }
-	gas_mixtures[src.value]->mark_immutable();
+	get_gas_mixture(src)->mark_immutable();
 	return Value::Null();
 }
 
 trvh gasmixture_clear(unsigned int args_len, Value* args, Value src)
 {
-	if (gas_mixtures.find(src.value) == gas_mixtures.end()) { return Value::Null(); }
-	gas_mixtures[src.value]->clear();
+	get_gas_mixture(src)->clear();
 	return Value::Null();
 }
 
 trvh gasmixture_compare(unsigned int args_len, Value* args, Value src)
 {
-	if (gas_mixtures.find(src.value) == gas_mixtures.end()) { return Value::Null(); }
-	if (args_len < 1 || args[0].type != DATUM)
+	if (args_len < 1)
 		return Value::Null();
-	int result = gas_mixtures[src.value]->compare(*gas_mixtures[args[0].value]);
+	int result = get_gas_mixture(src)->compare(*get_gas_mixture(args[0]));
 	if (result == -1) {
 		return Value("temp");
 	}
@@ -202,8 +195,7 @@ trvh gasmixture_compare(unsigned int args_len, Value* args, Value src)
 
 trvh gasmixture_multiply(unsigned int args_len, Value* args, Value src)
 {
-	if (gas_mixtures.find(src.value) == gas_mixtures.end()) { return Value::Null(); }
-	gas_mixtures[src.value]->multiply(args_len > 0 ? args[0].valuef : 1);
+	get_gas_mixture(src)->multiply(args_len > 0 ? args[0].valuef : 1);
 	return Value::Null();
 }
 
@@ -358,6 +350,7 @@ const char* enable_monstermos()
 	str_id_react = Core::GetStringId("react", true);
 	str_id_consider_pressure_difference = Core::GetStringId("consider pressure difference", true); // byond replaces "_" with " " in proc names. thanks BYOND.
 	str_id_update_visuals = Core::GetStringId("update visuals", true);
+	str_id_extools_pointer = Core::GetStringId("_extools_pointer_gasmixture", true);
 
 	SSair = Value::Global().get("SSair");
 	//Set up gas types map

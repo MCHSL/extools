@@ -3,8 +3,6 @@
 #include "var_ids.h"
 #include <algorithm>
 
-extern std::unordered_map<unsigned int, std::shared_ptr<GasMixture>> gas_mixtures;
-
 Tile::Tile()
 {
     //ctor
@@ -54,7 +52,7 @@ void Tile::update_air_ref() {
 	if (isopenturf) {
 		Value air_ref = turf_ref.get_by_id(str_id_air);
 		if (air_ref.type == DATUM) {
-			air = gas_mixtures[air_ref.value];
+			air = get_gas_mixture(air_ref);
 		}
 		else {
 			air.reset();
@@ -156,8 +154,8 @@ void Tile::update_planet_atmos() {
 
 	if (!planet_atmos_info || planet_atmos_info->last_initial != turf_ref.get_by_id(str_id_initial_gas_mix)) {
 		Value air_ref = turf_ref.get_by_id(str_id_air);
-		if (air_ref.type != DATUM || gas_mixtures[air_ref.value] != air) {
-			air = gas_mixtures[air_ref.value];
+		if (air_ref.type != DATUM || get_gas_mixture(air_ref) != air) {
+			air = get_gas_mixture(air_ref);
 			std::string message = (std::string("Air reference in extools doesn't match actual air, or the air is null! Turf ref: ") + std::to_string(turf_ref.value));
 			Runtime((char *)message.c_str()); // ree why doesn't it accept const
 			return;
@@ -209,7 +207,8 @@ bool cmp_monstermos_pushorder(Tile* a, Tile* b) {
 }
 
 uint64_t eq_queue_cycle_ctr = 0;
-const int MONSTERMOS_TURF_LIMIT = 1000; // 1000 instead of 100 - this is c++ after all.
+const int MONSTERMOS_TURF_LIMIT = 100;
+const int MONSTERMOS_HARD_TURF_LIMIT = 300;
 const int opp_dir_index[] = {1, 0, 3, 2, 5, 4, 6};
 
 void Tile::adjust_eq_movement(int dir_index, float amount) {
@@ -318,8 +317,10 @@ void Tile::equalize_pressure_in_zone(int cyclenum) {
 	int total_moles = 0;
 	std::vector<Tile*> turfs;
 	turfs.push_back(this);
+	monstermos_info->last_queue_cycle = queue_cycle;
 	std::vector<Tile*> planet_turfs;
 	for (int i = 0; i < turfs.size(); i++) { // turfs.size() increases as the loop goes on.
+		if (i > MONSTERMOS_HARD_TURF_LIMIT) break;
 		Tile* exploring = turfs[i];
 		exploring->monstermos_info->distance_score = 0;
 		if (i < MONSTERMOS_TURF_LIMIT) {
@@ -327,6 +328,7 @@ void Tile::equalize_pressure_in_zone(int cyclenum) {
 			exploring->monstermos_info->mole_delta = turf_moles;
 			if (exploring->turf_ref.get_by_id(str_id_planetary_atmos).valuef) {
 				planet_turfs.push_back(exploring);
+				exploring->monstermos_info->is_planet = true;
 				continue;
 			}
 			total_moles += turf_moles;
@@ -353,7 +355,7 @@ void Tile::equalize_pressure_in_zone(int cyclenum) {
 		}
 	}
 	if (turfs.size() > MONSTERMOS_TURF_LIMIT) {
-		turfs.erase(turfs.begin() + MONSTERMOS_TURF_LIMIT + 1, turfs.end());
+		turfs.resize(MONSTERMOS_TURF_LIMIT);
 	}
 	float average_moles = total_moles / (turfs.size() - planet_turfs.size());
 	std::vector<Tile*> giver_turfs;
@@ -362,7 +364,7 @@ void Tile::equalize_pressure_in_zone(int cyclenum) {
 		Tile* tile = turfs[i];
 		tile->monstermos_info->last_cycle = cyclenum;
 		tile->monstermos_info->mole_delta -= average_moles;
-		if (tile->turf_ref.get_by_id(str_id_planetary_atmos).valuef) continue;
+		if (tile->monstermos_info->is_planet) continue;
 		if (tile->monstermos_info->mole_delta > 0) {
 			giver_turfs.push_back(tile);
 		}
@@ -402,7 +404,7 @@ void Tile::equalize_pressure_in_zone(int cyclenum) {
 		taker_turfs.clear();
 		for (int i = 0; i < turfs.size(); i++) {
 			Tile* tile = turfs[i];
-			if (tile->turf_ref.get_by_id(str_id_planetary_atmos).valuef) continue;
+			if (tile->monstermos_info->is_planet) continue;
 			if (tile->monstermos_info->mole_delta > 0) {
 				giver_turfs.push_back(tile);
 			}
@@ -414,12 +416,14 @@ void Tile::equalize_pressure_in_zone(int cyclenum) {
 
 	// alright this is the part that can become O(n^2).
 	if (giver_turfs.size() < taker_turfs.size()) { // as an optimization, we choose one of two methods based on which list is smaller. We really want to avoid O(n^2) if we can.
+		std::vector<Tile*> queue;
+		queue.reserve(taker_turfs.size());
 		for (int k = 0; k < giver_turfs.size(); k++) {
 			Tile *giver = giver_turfs[k];
 			giver->monstermos_info->curr_transfer_dir = 6;
 			giver->monstermos_info->curr_transfer_amount = 0;
 			uint64_t queue_cycle_slow = ++eq_queue_cycle_ctr;
-			std::vector<Tile*> queue;
+			queue.clear();
 			queue.push_back(giver);
 			giver->monstermos_info->last_slow_queue_cycle = queue_cycle_slow;
 			for (int i = 0; i < queue.size(); i++) {
@@ -434,7 +438,7 @@ void Tile::equalize_pressure_in_zone(int cyclenum) {
 						break; // we're done here now. Let's not do more work than we need.
 					}
 					if (!tile2->monstermos_info || tile2->monstermos_info->last_queue_cycle != queue_cycle) continue;
-					if (tile2->turf_ref.get_by_id(str_id_planetary_atmos).valuef) continue;
+					if (tile2->monstermos_info->is_planet) continue;
 					if (tile2->monstermos_info->last_slow_queue_cycle == queue_cycle_slow) continue;
 					queue.push_back(tile2);
 					tile2->monstermos_info->last_slow_queue_cycle = queue_cycle_slow;
@@ -467,12 +471,14 @@ void Tile::equalize_pressure_in_zone(int cyclenum) {
 		}
 	}
 	else {
+		std::vector<Tile*> queue;
+		queue.reserve(giver_turfs.size());
 		for (int k = 0; k < taker_turfs.size(); k++) {
 			Tile *taker = taker_turfs[k];
 			taker->monstermos_info->curr_transfer_dir = 6;
 			taker->monstermos_info->curr_transfer_amount = 0;
 			uint64_t queue_cycle_slow = ++eq_queue_cycle_ctr;
-			std::vector<Tile*> queue;
+			queue.clear();
 			queue.push_back(taker);
 			taker->monstermos_info->last_slow_queue_cycle = queue_cycle_slow;
 			for (int i = 0; i < queue.size(); i++) {
@@ -487,7 +493,7 @@ void Tile::equalize_pressure_in_zone(int cyclenum) {
 						break; // we're done here now. Let's not do more work than we need.
 					}
 					if (!tile2->monstermos_info || tile2->monstermos_info->last_queue_cycle != queue_cycle) continue;
-					if (tile2->turf_ref.get_by_id(str_id_planetary_atmos).valuef) continue;
+					if (tile2->monstermos_info->is_planet) continue;
 					if (tile2->monstermos_info->last_slow_queue_cycle == queue_cycle_slow) continue;
 					queue.push_back(tile2);
 					tile2->monstermos_info->last_slow_queue_cycle = queue_cycle_slow;
@@ -543,7 +549,7 @@ void Tile::equalize_pressure_in_zone(int cyclenum) {
 				Tile *tile2 = tile->adjacent[j];
 				if (!tile2->monstermos_info || tile2->monstermos_info->last_queue_cycle != queue_cycle) continue;
 				if (tile2->monstermos_info->last_slow_queue_cycle == queue_cycle_slow) continue;
-				if (tile2->turf_ref.get_by_id(str_id_planetary_atmos).valuef) continue;
+				if (tile2->monstermos_info->is_planet) continue;
 				tile2->monstermos_info->last_slow_queue_cycle = queue_cycle_slow;
 				tile2->monstermos_info->curr_transfer_dir = opp_dir_index[j];
 				progression_order.push_back(tile2);
@@ -608,6 +614,7 @@ void Tile::explosively_depressurize(int cyclenum) {
 			space_turfs.push_back(tile);
 			tile->turf_ref.set("pressure_specific_target", tile->turf_ref);
 		} else {
+			if (i > MONSTERMOS_HARD_TURF_LIMIT) continue;
 			for (int j = 0; j < 6; j++) {
 				if (!(tile->adjacent_bits & (1 << j))) continue;
 				Tile *tile2 = tile->adjacent[j];
@@ -787,6 +794,10 @@ void ExcitedGroup::self_breakdown(bool space_is_all_consuming) {
 	for (int i = 0; i < turf_list_size; i++) {
 		Tile& tile = *turf_list[i];
 		combined.merge(*tile.air);
+		if (space_is_all_consuming && tile.air->is_immutable()) {
+			combined.clear();
+			break;
+		}
 	}
 	combined.multiply(1 / (float)turf_list_size);
 	for (int i = 0; i < turf_list_size; i++){

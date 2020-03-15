@@ -55,6 +55,7 @@ struct MonstermosInfo
 	float distance_score = 0;
 	uint8_t curr_transfer_dir = 6;
 	bool fast_done = false;
+	bool is_planet = false;
 };
 
 struct ExcitedGroup : public std::enable_shared_from_this<ExcitedGroup>
@@ -84,3 +85,5 @@ private:
 	short maxz = 0;
 	int maxid = 0;
 };
+
+std::shared_ptr<GasMixture> &get_gas_mixture(Value src);

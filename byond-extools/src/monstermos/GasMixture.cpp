@@ -71,25 +71,7 @@ void GasMixture::merge(const GasMixture &giver) {
 }
 
 GasMixture GasMixture::remove(float amount) {
-    if(amount <= 0)
-        return GasMixture(volume);
-    float sum = total_moles();
-    if(amount > sum) amount = sum;
-    GasMixture removed;
-    removed.volume = volume;
-    removed.temperature = temperature;
-    for(int i = 0; i < TOTAL_NUM_GASES; i++) {
-
-        if(moles[i] < GAS_MIN_MOLES) {
-            removed.moles[i] = 0;
-        } else {
-            float removed_moles = (removed.moles[i] = (moles[i] / sum * amount));
-            if(!immutable) {
-                moles[i] -= removed_moles;
-            }
-        }
-    }
-    return removed;
+	return remove_ratio(amount / total_moles());
 }
 
 GasMixture GasMixture::remove_ratio(float ratio) {
