@@ -78,6 +78,9 @@ namespace Core
 	extern unsigned int* name_table;
 	extern Value* global_var_table;
 
+	extern RawDatum*** datum_pointer_table;
+	extern unsigned int* datum_pointer_table_length;
+
 	extern std::unordered_map<std::string, Value*> global_direct_cache;
 	void global_direct_set(std::string name, Value val);
 	Value global_direct_get(std::string name);
@@ -89,6 +92,7 @@ namespace Core
 	void FreeByondString(std::string s);
 	void FreeByondString(unsigned int id);
 	std::string GetStringFromId(unsigned int id);
+	RawDatum* GetDatumPointerById(unsigned int id);
 	Value get_turf(int x, int y, int z);
 	extern unsigned int extended_profiling_insanely_hacky_check_if_its_a_new_call_or_resume;
 	ExecutionContext* get_context();

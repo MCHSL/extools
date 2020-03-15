@@ -22,7 +22,7 @@ bool calling_queue = false;
 trvh REGPARM3 hCallGlobalProc(char usr_type, int usr_value, int proc_type, unsigned int proc_id, int const_0, char src_type, int src_value, Value *argList, unsigned int argListLen, int const_0_2, int const_0_3)
 {
 	//if(proc_id < Core::codecov_executed_procs.size())
-	//	Core::codecov_executed_procs[proc_id] = true;
+	//	Core::codecov_executed_procs[proc_id] = true;q	
 	if (!queued_calls.empty() && !calling_queue)
 	{
 		calling_queue = true;

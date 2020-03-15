@@ -175,6 +175,23 @@ struct RawList
 
 };
 
+struct DatumVarEntry
+{
+	int fuck;
+	unsigned int id;
+	Value value;
+};
+
+struct RawDatum
+{
+	int type_id;
+	DatumVarEntry *vars;
+	short len_vars; // maybe
+	short fuck;
+	int cunt;
+	int refcount;
+};
+
 struct Container;
 
 struct ContainerProxy

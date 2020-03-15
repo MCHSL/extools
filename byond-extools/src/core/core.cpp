@@ -54,6 +54,9 @@ ExecutionContext** Core::current_execution_context_ptr;
 ExecutionContext** Core::parent_context_ptr_hack;
 ProcSetupEntry** Core::proc_setup_table;
 
+RawDatum*** Core::datum_pointer_table;
+unsigned int* Core::datum_pointer_table_length;
+
 int ByondVersion;
 int ByondBuild;
 unsigned int* Core::some_flags_including_profile;
@@ -146,6 +149,12 @@ unsigned int Core::GetStringId(std::string str, bool increment_refcount) {
 std::string Core::GetStringFromId(unsigned int id)
 {
 	return GetStringTableEntry(id)->stringData;
+}
+
+RawDatum* Core::GetDatumPointerById(unsigned int id)
+{
+	if (id >= *datum_pointer_table_length) return nullptr;
+	return (*datum_pointer_table)[id];
 }
 
 std::uint32_t Core::register_opcode(std::string name, opcode_handler handler)
