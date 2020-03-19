@@ -22,7 +22,7 @@ float GasMixture::heat_capacity() const {
     for(int i = 0; i < TOTAL_NUM_GASES; i++) {
         capacity += (gas_specific_heat[i] * moles[i]);
     }
-    return capacity;
+    return std::fmax(capacity, min_heat_capacity);
 }
 
 float GasMixture::heat_capacity_archived() const {
@@ -30,7 +30,12 @@ float GasMixture::heat_capacity_archived() const {
     for(int i = 0; i < TOTAL_NUM_GASES; i++) {
         capacity += (gas_specific_heat[i] * moles_archived[i]);
     }
-    return capacity;
+    return std::fmax(capacity, min_heat_capacity);
+}
+
+void GasMixture::set_min_heat_capacity(float n) {
+	if (immutable) return;
+	min_heat_capacity = n;
 }
 
 float GasMixture::total_moles() const {

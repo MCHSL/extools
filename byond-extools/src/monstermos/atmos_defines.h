@@ -15,7 +15,7 @@
 #define N2STANDARD				0.79	//same but for nitrogen
 #define MOLES_O2STANDARD		(MOLES_CELLSTANDARD*O2STANDARD)	// O2 standard value (21%)
 #define MOLES_N2STANDARD		(MOLES_CELLSTANDARD*N2STANDARD)	// N2 standard value (79%)
-#define CELL_VOLUME				2500	//liters in a cell
+#define CELL_VOLUME				2500.0	//liters in a cell
 #define BREATH_VOLUME			0.5		//liters in a normal breath
 #define BREATH_PERCENTAGE		(BREATH_VOLUME/CELL_VOLUME)					//Amount of air to take a from a tile
 
@@ -26,11 +26,11 @@
 #define MINIMUM_AIR_RATIO_TO_MOVE					0.001	//Minimum ratio of air that must move to/from a tile
 #define MINIMUM_AIR_TO_SUSPEND						(MOLES_CELLSTANDARD*MINIMUM_AIR_RATIO_TO_SUSPEND)	//Minimum amount of air that has to move before a group processing can be suspended
 #define MINIMUM_MOLES_DELTA_TO_MOVE					(MOLES_CELLSTANDARD*MINIMUM_AIR_RATIO_TO_MOVE) //Either this must be active
-#define MINIMUM_TEMPERATURE_TO_MOVE					(T20C+100)			//or this (or both, obviously)
-#define MINIMUM_TEMPERATURE_DELTA_TO_SUSPEND		4		//Minimum temperature difference before group processing is suspended
+#define MINIMUM_TEMPERATURE_TO_MOVE					(T20C+100.0)			//or this (or both, obviously)
+#define MINIMUM_TEMPERATURE_DELTA_TO_SUSPEND		4.0		//Minimum temperature difference before group processing is suspended
 #define MINIMUM_TEMPERATURE_DELTA_TO_CONSIDER		0.5		//Minimum temperature difference before the gas temperatures are just set to be equal
-#define MINIMUM_TEMPERATURE_FOR_SUPERCONDUCTION		(T20C+10)
-#define MINIMUM_TEMPERATURE_START_SUPERCONDUCTION	(T20C+200)
+#define MINIMUM_TEMPERATURE_FOR_SUPERCONDUCTION		(T20C+10.0)
+#define MINIMUM_TEMPERATURE_START_SUPERCONDUCTION	(T20C+200.0)
 
 //HEAT TRANSFER COEFFICIENTS
 //Must be between 0 and 1. Values closer to 1 equalize temperature faster
@@ -38,15 +38,15 @@
 #define WALL_HEAT_TRANSFER_COEFFICIENT		0.0
 #define OPEN_HEAT_TRANSFER_COEFFICIENT		0.4
 #define WINDOW_HEAT_TRANSFER_COEFFICIENT	0.1		//a hack for now
-#define HEAT_CAPACITY_VACUUM				7000	//a hack to help make vacuums "cold", sacrificing realism for gameplay
+#define HEAT_CAPACITY_VACUUM				7000.0	//a hack to help make vacuums "cold", sacrificing realism for gameplay
 
 //FIRE
-#define FIRE_MINIMUM_TEMPERATURE_TO_SPREAD	(150+T0C)
-#define FIRE_MINIMUM_TEMPERATURE_TO_EXIST	(100+T0C)
+#define FIRE_MINIMUM_TEMPERATURE_TO_SPREAD	(150.0+T0C)
+#define FIRE_MINIMUM_TEMPERATURE_TO_EXIST	(100.0+T0C)
 #define FIRE_SPREAD_RADIOSITY_SCALE			0.85
 #define FIRE_GROWTH_RATE					40000	//For small fires
-#define PLASMA_MINIMUM_BURN_TEMPERATURE		(100+T0C)
-#define PLASMA_UPPER_TEMPERATURE			(1370+T0C)
+#define PLASMA_MINIMUM_BURN_TEMPERATURE		(100.0+T0C)
+#define PLASMA_UPPER_TEMPERATURE			(1370.0+T0C)
 #define PLASMA_OXYGEN_FULLBURN				10
 
 //GASES

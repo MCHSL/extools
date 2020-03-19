@@ -52,6 +52,12 @@ trvh gasmixture_heat_capacity(unsigned int args_len, Value* args, Value src)
 	return Value(get_gas_mixture(src)->heat_capacity());
 }
 
+trvh gasmixture_set_min_heat_capacity(unsigned int args_len, Value* args, Value src)
+{
+	get_gas_mixture(src)->set_min_heat_capacity(args_len > 0 ? args[0].valuef : 0);
+	return Value::Null();
+}
+
 trvh gasmixture_total_moles(unsigned int args_len, Value* args, Value src)
 {
 	return Value(get_gas_mixture(src)->total_moles());
@@ -338,7 +344,7 @@ int str_id_is_openturf;
 int str_id_x, str_id_y, str_id_z;
 int str_id_current_cycle, str_id_archived_cycle, str_id_planetary_atmos, str_id_initial_gas_mix;
 int str_id_active_turfs;
-int str_id_react, str_id_consider_pressure_difference, str_id_update_visuals;
+int str_id_react, str_id_consider_pressure_difference, str_id_update_visuals, str_id_floor_rip;
 
 const char* enable_monstermos()
 {
@@ -358,6 +364,7 @@ const char* enable_monstermos()
 	str_id_react = Core::GetStringId("react", true);
 	str_id_consider_pressure_difference = Core::GetStringId("consider pressure difference", true); // byond replaces "_" with " " in proc names. thanks BYOND.
 	str_id_update_visuals = Core::GetStringId("update visuals", true);
+	str_id_floor_rip = Core::GetStringId("handle decompression floor rip", true);
 	str_id_extools_pointer = Core::GetStringId("_extools_pointer_gasmixture", true);
 
 	SSair = Value::Global().get("SSair");
@@ -380,6 +387,7 @@ const char* enable_monstermos()
 	Core::get_proc("/datum/gas_mixture/proc/__gasmixture_register").hook(gasmixture_register);
 	Core::get_proc("/datum/gas_mixture/proc/__gasmixture_unregister").hook(gasmixture_unregister);
 	Core::get_proc("/datum/gas_mixture/proc/heat_capacity").hook(gasmixture_heat_capacity);
+	Core::get_proc("/datum/gas_mixture/proc/set_min_heat_capacity").hook(gasmixture_set_min_heat_capacity);
 	Core::get_proc("/datum/gas_mixture/proc/total_moles").hook(gasmixture_total_moles);
 	Core::get_proc("/datum/gas_mixture/proc/return_pressure").hook(gasmixture_return_pressure);
 	Core::get_proc("/datum/gas_mixture/proc/return_temperature").hook(gasmixture_return_temperature);

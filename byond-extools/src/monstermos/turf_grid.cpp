@@ -687,6 +687,7 @@ void Tile::explosively_depressurize(int cyclenum) {
 		}
 		tile->air->clear();
 		tile->turf_ref.invoke_by_id(str_id_update_visuals, {});
+		tile->turf_ref.invoke_by_id(str_id_floor_rip, { Value(sum) });
 	}
 	if ((total_gases_deleted / turfs.size()) > 20 && turfs.size() > 10) { // logging I guess
 

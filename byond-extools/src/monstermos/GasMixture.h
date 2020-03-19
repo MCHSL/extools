@@ -18,6 +18,7 @@ class GasMixture
 
         float heat_capacity() const;
         float heat_capacity_archived() const;
+		void set_min_heat_capacity(float n);
         float total_moles() const;
         float return_pressure() const;
         float thermal_energy() const;
@@ -48,6 +49,7 @@ class GasMixture
         float temperature_archived;
         float volume;
         float last_share = 0;
+		float min_heat_capacity = 0;
         bool immutable = false;
 	// you might thing, "damn, all the gases, wont that use up more memory"?
 	// well no. Let's look at the average gas mixture containing both oxygen and nitrogen:
