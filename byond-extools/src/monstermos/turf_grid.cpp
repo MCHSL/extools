@@ -597,6 +597,7 @@ void Tile::explosively_depressurize(int cyclenum) {
 	else
 		monstermos_info = std::make_shared<MonstermosInfo>();
 	monstermos_info->last_queue_cycle = queue_cycle;
+	monstermos_info->curr_transfer_dir = 6;
 	bool warned_about_planet_atmos = false;
 	for (int i = 0; i < turfs.size(); i++) {
 		Tile *tile = turfs[i];
@@ -640,6 +641,7 @@ void Tile::explosively_depressurize(int cyclenum) {
 		Tile *tile = space_turfs[i];
 		progression_order.push_back(tile);
 		tile->monstermos_info->last_slow_queue_cycle = queue_cycle_slow;
+		tile->monstermos_info->curr_transfer_dir = 6;
 	}
 	for (int i = 0; i < progression_order.size(); i++) {
 		Tile* tile = progression_order[i];
