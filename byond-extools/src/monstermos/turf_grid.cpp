@@ -355,6 +355,9 @@ void Tile::equalize_pressure_in_zone(int cyclenum) {
 		}
 	}
 	if (turfs.size() > MONSTERMOS_TURF_LIMIT) {
+		for (int i = MONSTERMOS_TURF_LIMIT; i < turfs.size(); i++) {
+			turfs[i]->monstermos_info->last_queue_cycle = 0; // unmark them because we shouldn't be pushing/pulling gases to/from them
+		}
 		turfs.resize(MONSTERMOS_TURF_LIMIT);
 	}
 	float average_moles = total_moles / (turfs.size() - planet_turfs.size());
@@ -389,14 +392,15 @@ void Tile::equalize_pressure_in_zone(int cyclenum) {
 					// skip anything that isn't part of our current processing block. Original one didn't do this unfortunately, which probably cause some massive lag.
 					if (!tile2->monstermos_info || tile2->monstermos_info->fast_done || tile2->monstermos_info->last_queue_cycle != queue_cycle) continue;
 					eligible_adj_bits |= (1 << j);
+					amt_eligible_adj++;
 				}
-				if (amt_eligible_adj < 0) continue; // Oof we've painted ourselves into a corner. Bad luck. Next part will handle this.
+				if (amt_eligible_adj <= 0) continue; // Oof we've painted ourselves into a corner. Bad luck. Next part will handle this.
 				float moles_to_move = tile->monstermos_info->mole_delta / amt_eligible_adj;
-				for (int j = 0; j < amt_eligible_adj; j++) {
-					if (!(eligible_adj_bits & (1 << j))) continue;
-					adjust_eq_movement(j, moles_to_move);
-					monstermos_info->mole_delta -= moles_to_move;
-					adjacent[j]->monstermos_info->mole_delta += moles_to_move;
+				for (int j = 0; j < 6; j++) {
+					if (!(eligible_adj_bits & (1 << j))) continue;	
+					tile->adjust_eq_movement(j, moles_to_move);
+					tile->monstermos_info->mole_delta -= moles_to_move;
+					tile->adjacent[j]->monstermos_info->mole_delta += moles_to_move;
 				}
 			}
 		}
