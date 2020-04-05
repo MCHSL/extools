@@ -314,7 +314,7 @@ void Tile::equalize_pressure_in_zone(int cyclenum) {
 	// it has been deemed necessary. Now to figure out which turfs are involved.
 
 	uint64_t queue_cycle = ++eq_queue_cycle_ctr;
-	int total_moles = 0;
+	float total_moles = 0;
 	std::vector<Tile*> turfs;
 	turfs.push_back(this);
 	monstermos_info->last_queue_cycle = queue_cycle;
@@ -571,7 +571,6 @@ void Tile::equalize_pressure_in_zone(int cyclenum) {
 			tile->monstermos_info->mole_delta = target_delta;
 		}
 	}
-
 	for (int i = 0; i < turfs.size(); i++) {
 		turfs[i]->finalize_eq();
 	}
