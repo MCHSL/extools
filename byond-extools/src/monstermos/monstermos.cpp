@@ -17,6 +17,8 @@ TurfGrid all_turfs;
 Value SSair;
 int str_id_extools_pointer;
 int gas_mixture_count = 0;
+float gas_moles_visible[TOTAL_NUM_GASES];
+std::vector<Value> gas_overlays[TOTAL_NUM_GASES];
 
 std::shared_ptr<GasMixture> &get_gas_mixture(Value val)
 {
@@ -180,6 +182,29 @@ trvh gasmixture_set_moles(unsigned int args_len, Value* args, Value src)
 	return Value::Null();
 }
 
+trvh gasmixture_scrub_into(unsigned int args_len, Value* args, Value src)
+{
+	if (args_len < 2)
+		return Value::Null();
+	// DecRefCount(args[0].type, args[0].value); // Since we're returning it we don't want to decrement the reference count
+	DecRefCount(args[1].type, args[1].value);
+	GasMixture &src_gas = *get_gas_mixture(src);
+	GasMixture &dest_gas = *get_gas_mixture(args[0]);
+	Container gases_to_scrub = args[1];
+	int num_gases = gases_to_scrub.length();
+	GasMixture buffer(CELL_VOLUME);
+	buffer.set_temperature(src_gas.get_temperature());
+	for (int i = 0; i < num_gases; i++) {
+		Value typepath = gases_to_scrub[i];
+		if (typepath.type != DATUM_TYPEPATH) continue;
+		int index = gas_ids[typepath.value];
+		buffer.set_moles(index, buffer.get_moles(index) + src_gas.get_moles(index));
+		src_gas.set_moles(index, 0);
+	}
+	dest_gas.merge(buffer);
+	return args[0];
+}
+
 trvh gasmixture_mark_immutable(unsigned int args_len, Value* args, Value src)
 {
 	get_gas_mixture(src)->mark_immutable();
@@ -297,6 +322,48 @@ trvh turf_eq(unsigned int args_len, Value* args, Value src) {
 	return Value::Null();
 }
 
+unsigned int str_id_atmos_overlay_types;
+trvh turf_update_visuals(unsigned int args_len, Value* args, Value src) {
+	if (src.type != TURF) { return Value::Null(); }
+	Tile* tile = all_turfs.get(src.value);
+	if (!tile->air) return Value::Null();
+	GasMixture& gm = *tile->air;
+	Value old_overlay_types_val = src.get_by_id(str_id_atmos_overlay_types);
+	std::vector<Value> overlay_types;
+
+	for (int i = 0; i < TOTAL_NUM_GASES; i++) {
+		if (!gas_overlays[i].size()) continue;
+		if (gm.get_moles(i) > gas_moles_visible[i]) {
+			// you know whats fun?
+			// getting cucked by BYOND arrays starting at 1. How did this not segfault before? Beats me! I love undefined behavior!    Bandaid: VV
+			overlay_types.push_back(gas_overlays[i][std::fmin(FACTOR_GAS_VISIBLE_MAX, (int)std::ceilf(gm.get_moles(i) / MOLES_GAS_VISIBLE_STEP))-1]);
+		}
+	}
+
+	if (!overlay_types.size() && !old_overlay_types_val) return Value::Null();
+	if (old_overlay_types_val) {
+		List old_overlay_types(old_overlay_types_val);
+		if (overlay_types.size() == old_overlay_types.list->length) {
+			bool is_different = false;
+			for (int i = 0; i < overlay_types.size(); i++) {
+				if (overlay_types[i] != old_overlay_types.at(i)) {
+					is_different = true; break;
+				}
+			}
+			if (!is_different) {
+				return Value::Null();
+			}
+		}
+	}
+	
+	List l(CreateList(0));
+	for (int i = 0; i < overlay_types.size(); i++) {
+		l.append(overlay_types[i]);
+	}
+	src.invoke("set_visuals", { Value(l) } );
+	return Value::Null();
+}
+
 std::vector<std::weak_ptr<ExcitedGroup>> excited_groups_currentrun;
 trvh SSair_process_excited_groups(unsigned int args_len, Value* args, Value src) {
 	auto start = std::chrono::high_resolution_clock::now();
@@ -327,14 +394,36 @@ trvh SSair_get_amt_excited_groups(unsigned int args_len, Value* args, Value src)
 	return Value(excited_groups.size());
 }
 
-trvh SSair_update_ssair(unsigned int args_len, Value* args, Value src) {
-	SSair = src;
-	return Value::Null();
-}
-
 trvh refresh_atmos_grid(unsigned int args_len, Value* args, Value src)
 {
 	all_turfs.refresh();
+	return Value::Null();
+}
+
+void initialize_gas_overlays() {
+	Value GLOB = Value::Global().get("GLOB");
+	if (!GLOB) return;
+	Container meta_gas_info = GLOB.get("meta_gas_info");
+	if (!meta_gas_info.type) return;
+	for (int i = 0; i < TOTAL_NUM_GASES; ++i)
+	{
+		Value v = gas_id_to_type[i];
+		Container gas_meta = meta_gas_info.at(v);
+		gas_moles_visible[i] = gas_meta.at(2);
+		gas_overlays[i].clear();
+		if (gas_meta.at(3)) {
+			Container gas_overlays_list = gas_meta.at(3);
+			int num_overlays = gas_overlays_list.length();
+			for (int j = 0; j < num_overlays; j++) {
+				gas_overlays[i].push_back(gas_overlays_list[j]);
+			}
+		}
+	}
+}
+
+trvh SSair_update_ssair(unsigned int args_len, Value* args, Value src) {
+	SSair = src;
+	initialize_gas_overlays();
 	return Value::Null();
 }
 
@@ -361,6 +450,7 @@ const char* enable_monstermos()
 	str_id_active_turfs = Core::GetStringId("active_turfs", true);
 	str_id_planetary_atmos = Core::GetStringId("planetary_atmos", true);
 	str_id_initial_gas_mix = Core::GetStringId("initial_gas_mix", true);
+	str_id_atmos_overlay_types = Core::GetStringId("atmos_overlay_types", true);
 	str_id_react = Core::GetStringId("react", true);
 	str_id_consider_pressure_difference = Core::GetStringId("consider pressure difference", true); // byond replaces "_" with " " in proc names. thanks BYOND.
 	str_id_update_visuals = Core::GetStringId("update visuals", true);
@@ -371,6 +461,7 @@ const char* enable_monstermos()
 	//Set up gas types map
 	std::vector<Value> nullvector = { Value(0.0f) };
 	Container gas_types_list = Core::get_proc("/proc/gas_types").call(nullvector);
+	Container meta_gas_info = Value::Global().get("meta_gas_info");
 	int gaslen = gas_types_list.length();
 	if (gaslen != TOTAL_NUM_GASES) {
 		return "TOTAL_NUM_GASES does not match the number of /datum/gas subtypes!!";
@@ -383,6 +474,7 @@ const char* enable_monstermos()
 		gas_specific_heat[i] = gas_types_list.at(v).valuef;
 		gas_id_to_type.push_back(v);
 	}
+	initialize_gas_overlays();
 	//Set up hooks
 	Core::get_proc("/datum/gas_mixture/proc/__gasmixture_register").hook(gasmixture_register);
 	Core::get_proc("/datum/gas_mixture/proc/__gasmixture_unregister").hook(gasmixture_unregister);
@@ -405,6 +497,7 @@ const char* enable_monstermos()
 	Core::get_proc("/datum/gas_mixture/proc/set_volume").hook(gasmixture_set_volume);
 	Core::get_proc("/datum/gas_mixture/proc/get_moles").hook(gasmixture_get_moles);
 	Core::get_proc("/datum/gas_mixture/proc/set_moles").hook(gasmixture_set_moles);
+	Core::get_proc("/datum/gas_mixture/proc/scrub_into").hook(gasmixture_scrub_into);
 	Core::get_proc("/datum/gas_mixture/proc/mark_immutable").hook(gasmixture_mark_immutable);
 	Core::get_proc("/datum/gas_mixture/proc/clear").hook(gasmixture_clear);
 	Core::get_proc("/datum/gas_mixture/proc/multiply").hook(gasmixture_multiply);
@@ -417,6 +510,7 @@ const char* enable_monstermos()
 	Core::get_proc("/turf/open/proc/set_excited").hook(turf_set_excited);
 	Core::get_proc("/turf/open/proc/process_cell").hook(turf_process_cell);
 	Core::get_proc("/turf/open/proc/equalize_pressure_in_zone").hook(turf_eq);
+	Core::get_proc("/turf/open/proc/update_visuals").hook(turf_update_visuals);
 	Core::get_proc("/world/proc/refresh_atmos_grid").hook(refresh_atmos_grid);
 	Core::get_proc("/datum/controller/subsystem/air/proc/process_excited_groups_extools").hook(SSair_process_excited_groups);
 	Core::get_proc("/datum/controller/subsystem/air/proc/get_amt_excited_groups").hook(SSair_get_amt_excited_groups);

@@ -120,13 +120,14 @@ void Tile::process_cell(int fire_count) {
 		}
 
 		if (should_share_air) {
-			float difference = air->share(*enemy_tile.air, adjacent_turfs_length);
-			if (difference > 0) {
+			// if youre like not yogs and youre porting this shit and you hate monstermos and you want spacewind just uncomment this shizz
+			/*float difference = */air->share(*enemy_tile.air, adjacent_turfs_length);
+			/*if (difference > 0) {
 				turf_ref.invoke_by_id(str_id_consider_pressure_difference, { enemy_tile.turf_ref, difference });
 			}
 			else {
 				enemy_tile.turf_ref.invoke_by_id(str_id_consider_pressure_difference, { turf_ref, -difference });
-			}
+			}*/
 			last_share_check();
 		}
 
@@ -142,7 +143,7 @@ void Tile::process_cell(int fire_count) {
 				last_share_check();
 			}
 		}
-		turf_ref.get_by_id(str_id_air).invoke_by_id(str_id_react, {});
+		turf_ref.get_by_id(str_id_air).invoke_by_id(str_id_react, { turf_ref });
 		turf_ref.invoke_by_id(str_id_update_visuals, {});
 		if (atmos_cooldown > (EXCITED_GROUP_DISMANTLE_CYCLES * 2)) {
 			SSair.invoke("remove_from_active", { turf_ref });
@@ -207,8 +208,8 @@ bool cmp_monstermos_pushorder(Tile* a, Tile* b) {
 }
 
 uint64_t eq_queue_cycle_ctr = 0;
-const int MONSTERMOS_TURF_LIMIT = 100;
-const int MONSTERMOS_HARD_TURF_LIMIT = 300;
+const int MONSTERMOS_TURF_LIMIT = 200;
+const int MONSTERMOS_HARD_TURF_LIMIT = 2000;
 const int opp_dir_index[] = {1, 0, 3, 2, 5, 4, 6};
 
 void Tile::adjust_eq_movement(int dir_index, float amount) {
