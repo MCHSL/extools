@@ -2,6 +2,7 @@
 #include "../dmdism/opcodes.h"
 #include "var_ids.h"
 #include <algorithm>
+#include <cstring>
 
 Tile::Tile()
 {

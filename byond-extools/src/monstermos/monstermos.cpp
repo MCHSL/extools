@@ -321,7 +321,7 @@ trvh turf_set_excited(unsigned int args_len, Value* args, Value src)
 	if (src.type != TURF) { return Value::Null(); }
 	Tile *tile = all_turfs.get(src.value);
 	if (tile != nullptr) {
-		tile->excited = args_len > 0 ? args[0] : false;
+		tile->excited = args_len > 0 ? (bool)args[0] : false;
 	}
 	return Value::Null();
 }
