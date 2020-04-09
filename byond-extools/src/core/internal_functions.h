@@ -71,6 +71,7 @@ typedef Value(*GetGlobalByNamePtr)(unsigned int name_id);
 typedef TableHolderThingy*(*GetTableHolderThingyByIdPtr)(unsigned int id);
 typedef void(*IncRefCountPtr)(int type, int value);
 typedef void(*DecRefCountPtr)(int type, int value);
+typedef void(*DelDatumPtr)(unsigned int id);
 
 extern CrashProcPtr CrashProc;
 extern StartTimingPtr StartTiming;
@@ -111,3 +112,4 @@ extern GetGlobalByNamePtr GetGlobalByName;
 extern GetTableHolderThingyByIdPtr GetTableHolderThingyById;
 extern IncRefCountPtr IncRefCount;
 extern DecRefCountPtr DecRefCount;
+extern DelDatumPtr DelDatum;

@@ -49,6 +49,7 @@ GetGlobalByNamePtr GetGlobalByName;
 GetTableHolderThingyByIdPtr GetTableHolderThingyById;
 DecRefCountPtr DecRefCount;
 IncRefCountPtr IncRefCount;
+DelDatumPtr DelDatum;
 
 ExecutionContext** Core::current_execution_context_ptr;
 ExecutionContext** Core::parent_context_ptr_hack;
