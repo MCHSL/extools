@@ -69,7 +69,7 @@ std::vector<std::weak_ptr<ExcitedGroup>> excited_groups;
 void Tile::process_cell(int fire_count) {
 	if (!air) {
 		std::string message = (std::string("process_cell called on turf with no air! ") + std::to_string(turf_ref.value));
-		Runtime((char *)message.c_str()); // ree why doesn't it accept const
+		Runtime((char*)message.c_str()); // ree why doesn't it accept const
 		return;
 	}
 	if (turf_ref.get_by_id(str_id_archived_cycle) < fire_count) {
@@ -88,7 +88,7 @@ void Tile::process_cell(int fire_count) {
 	}
 	for (int i = 0; i < 6; i++) {
 		if (!(adjacent_bits & (1 << i))) continue;
-		Tile &enemy_tile = *adjacent[i];
+		Tile& enemy_tile = *adjacent[i];
 		if (!enemy_tile.air) continue; // having no air is bad I think or something.
 		if (fire_count <= enemy_tile.turf_ref.get_by_id(str_id_current_cycle)) continue;
 		enemy_tile.archive(fire_count);
@@ -145,7 +145,8 @@ void Tile::process_cell(int fire_count) {
 		}
 		turf_ref.get_by_id(str_id_air).invoke_by_id(str_id_react, { turf_ref });
 		turf_ref.invoke_by_id(str_id_update_visuals, {});
-		if (atmos_cooldown > (EXCITED_GROUP_DISMANTLE_CYCLES * 2)) {
+		if ((!excited_group && !(air->get_temperature() > MINIMUM_TEMPERATURE_START_SUPERCONDUCTION && turf_ref.invoke("consider_superconductivity", {Value::True()})))
+			|| (atmos_cooldown > (EXCITED_GROUP_DISMANTLE_CYCLES * 2))) {
 			SSair.invoke("remove_from_active", { turf_ref });
 		}
 	}
