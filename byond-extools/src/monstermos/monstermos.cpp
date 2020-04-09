@@ -45,8 +45,31 @@ trvh gasmixture_unregister(unsigned int args_len, Value* args, Value src)
 		std::shared_ptr<GasMixture> *gm = (std::shared_ptr<GasMixture> *)v;
 		delete gm;
 		gas_mixture_count--;
+		SetVariable(src.type, src.value, str_id_extools_pointer, Value::Null());
 	}
 	return Value::Null();
+}
+
+DelDatumPtr oDelDatum;
+void hDelDatum(unsigned int datum_id) {
+	RawDatum *datum = Core::GetDatumPointerById(datum_id);
+	if (datum != nullptr) {
+		std::shared_ptr<GasMixture> *gm = nullptr;
+		if (datum->len_vars < 10) { // if it has a whole bunch of vars it's probably not a gas mixture. Please don't add a whole bunch of vars to gas mixtures.
+			for (int i = 0; i < datum->len_vars; i++) {
+				if (datum->vars[i].id == str_id_extools_pointer) {
+					gm = (std::shared_ptr<GasMixture> *)datum->vars[i].value.value;
+					datum->vars[i].value = Value::Null();
+					break;
+				}
+			}
+		}
+		if (gm != nullptr) {
+			delete gm;
+			gas_mixture_count--;
+		}
+	}
+	oDelDatum(datum_id);
 }
 
 trvh gasmixture_heat_capacity(unsigned int args_len, Value* args, Value src)
@@ -437,6 +460,7 @@ int str_id_react, str_id_consider_pressure_difference, str_id_update_visuals, st
 
 const char* enable_monstermos()
 {
+	oDelDatum = (DelDatumPtr)Core::install_hook((void*)DelDatum, (void*)hDelDatum);
 	// get the var IDs for SANIC SPEED
 	str_id_air = Core::GetStringId("air", true);
 	str_id_atmosadj = Core::GetStringId("atmos_adjacent_turfs", true);
@@ -524,7 +548,7 @@ extern "C" EXPORT const char* init_monstermos(int a, const char** b)
 {
 	if (!Core::initialize())
 	{
-		return "no";
+		return "Extools Init Failed";
 	}
 	return enable_monstermos();
 }
