@@ -67,6 +67,7 @@ extern Value SSair;
 std::vector<std::weak_ptr<ExcitedGroup>> excited_groups;
 
 void Tile::process_cell(int fire_count) {
+	if (!SSair) return;
 	if (!air) {
 		std::string message = (std::string("process_cell called on turf with no air! ") + std::to_string(turf_ref.value));
 		Runtime((char*)message.c_str()); // ree why doesn't it accept const
