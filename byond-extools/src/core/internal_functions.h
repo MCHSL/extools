@@ -22,18 +22,32 @@ typedef int(*GetByondVersionPtr)();
 typedef int(*GetByondBuildPtr)();
 typedef void(*SetVariablePtr)(int datumType, int datumId, unsigned int varNameId, Value newvalue);
 typedef trvh(*GetVariablePtr)(int datumType, int datumId, unsigned int varNameId);
+#ifdef _WIN32
 typedef trvh(*CallProcByNamePtr)(char usrType, char usrValue, unsigned int proc_type, unsigned int proc_name, unsigned char datumType, unsigned int datumId, Value* argList, unsigned int argListLen, int unk4, int unk5);
+#else
+typedef trvh(REGPARM3 *CallProcByNamePtr)(char usrType, char usrValue, unsigned int proc_type, unsigned int proc_name, unsigned char datumType, unsigned int datumId, Value* argList, unsigned int argListLen, int unk4, int unk5);
+#endif
 typedef IDArrayEntry* (*GetIDArrayEntryPtr)(unsigned int index);
 typedef int(*ThrowDMErrorPtr)(const char* msg);
 typedef ProcArrayEntry* (*GetProcArrayEntryPtr)(unsigned int index);
+#ifdef _WIN32
 typedef RawList* (*GetListPointerByIdPtr)(unsigned int index);
 typedef void(*AppendToContainerPtr)(unsigned char containerType, int containerValue, unsigned char valueType, int newValue);
 typedef void(*RemoveFromContainerPtr)(unsigned char containerType, int containerValue, unsigned char valueType, int newValue);
+#else
+typedef RawList* (REGPARM3 *GetListPointerByIdPtr)(unsigned int index);
+typedef void(__attribute__((regparm(2))) *AppendToContainerPtr)(unsigned char containerType, int containerValue, unsigned char valueType, int newValue);
+typedef void(__attribute__((regparm(2))) *RemoveFromContainerPtr)(unsigned char containerType, int containerValue, unsigned char valueType, int newValue);
+#endif
 typedef String* (*GetStringTableEntryPtr)(int stringId);
 typedef unsigned int(*Path2TextPtr)(unsigned int pathType, unsigned int pathValue);
 typedef Type* (*GetTypeByIdPtr)(unsigned int typeIndex);
 typedef unsigned int* (*MobTableIndexToGlobalTableIndexPtr)(unsigned int mobTypeIndex);
+#ifdef _WIN32
 typedef trvh(*GetAssocElementPtr)(unsigned int listType, unsigned int listId, unsigned int keyType, unsigned int keyValue);
+#else
+typedef trvh(REGPARM3 *GetAssocElementPtr)(unsigned int listType, unsigned int listId, unsigned int keyType, unsigned int keyValue);
+#endif
 typedef void(*SetAssocElementPtr)(unsigned int listType, unsigned int listId, unsigned int keyType, unsigned int keyValue, unsigned int valueType, unsigned int valueValue);
 typedef unsigned int(*CreateListPtr)(unsigned int reserveSize);
 typedef trvh(*NewPtr)(Value* type, Value* args, unsigned int num_args, int unknown);

@@ -359,7 +359,7 @@ trvh turf_update_visuals(unsigned int args_len, Value* args, Value src) {
 		if (gm.get_moles(i) > gas_moles_visible[i]) {
 			// you know whats fun?
 			// getting cucked by BYOND arrays starting at 1. How did this not segfault before? Beats me! I love undefined behavior!    Bandaid: VV
-			overlay_types.push_back(gas_overlays[i][std::fmin(FACTOR_GAS_VISIBLE_MAX, (int)std::ceilf(gm.get_moles(i) / MOLES_GAS_VISIBLE_STEP))-1]);
+			overlay_types.push_back(gas_overlays[i][std::fmin(FACTOR_GAS_VISIBLE_MAX, (int)std::ceil(gm.get_moles(i) / MOLES_GAS_VISIBLE_STEP))-1]);
 		}
 	}
 
