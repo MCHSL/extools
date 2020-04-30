@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <vector>
 #include <cassert>
-#include <Windows.h>
 
 Value::Value(std::string s)
 {
