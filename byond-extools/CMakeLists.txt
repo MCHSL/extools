@@ -1,6 +1,6 @@
-set(CMAKE_GENERATOR_TOOLSET host=x86)
 if (WIN32)
     # Needed for MSVC_RUNTIME_LIBRARY
+    set(CMAKE_GENERATOR_TOOLSET host=x86)
     cmake_minimum_required(VERSION 3.15.0)
 else()
     cmake_minimum_required(VERSION 3.10.0)
