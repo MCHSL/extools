@@ -139,7 +139,7 @@ void init_testing()
 	//enable_crash_guard();
 	//optimizer_initialize();
 	//Core::Alert(Core::stringify({ 0x0C, 0x00 }));
-	//Core::Proc p = "/client/verb/crash";
+	//Core::Proc p = "/proc/pickdism";
 	//std::ofstream o("out.txt");
 	//for (Instruction& i : p.disassemble())
 	//{

@@ -107,5 +107,9 @@ bool Core::hook_custom_opcodes() {
 	oCrashProc = (CrashProcPtr)install_hook((void*)CrashProc, (void*)hCrashProc);
 	oCallGlobalProc = (CallGlobalProcPtr)install_hook((void*)CallGlobalProc, (void*)hCallGlobalProc);
 	oTopicFloodCheck = (TopicFloodCheckPtr)install_hook((void*)TopicFloodCheck, (void*)hTopicFloodCheck);
-	return oCrashProc && oCallGlobalProc && oTopicFloodCheck;
+	if (!(oCrashProc && oCallGlobalProc && oTopicFloodCheck)) {
+		Core::Alert("Failed to install hooks!");
+		return false;
+	}
+	return true;
 }

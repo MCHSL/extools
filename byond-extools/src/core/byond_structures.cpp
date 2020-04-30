@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <vector>
 #include <cassert>
+#include <Windows.h>
 
 Value::Value(std::string s)
 {
@@ -194,6 +195,9 @@ List::List()
 List::List(int _id) : id(_id)
 {
 	list = GetListPointerById(id);
+	if (!list) {
+		throw "Invalid list id";
+	}
 	IncRefCount(0x0F, id);
 }
 

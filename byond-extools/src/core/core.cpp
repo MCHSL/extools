@@ -305,7 +305,22 @@ extern "C" EXPORT const char* debug_initialize(int n_args, const char** args)
 		return "";
 	}
 
-	return (Core::initialize() && debugger_initialize() && debugger_enable(mode, port)) ? good : bad;
+	if (!Core::initialize()) {
+		Core::Alert("Core init failed!");
+		return bad;
+	}
+
+	if (!debugger_initialize()) {
+		Core::Alert("Debugger init failed!");
+		return bad;
+	}
+
+	if (!debugger_enable(mode, port)) {
+		Core::Alert("Failed to enable debugger!");
+		return bad;
+	}
+
+	return good;
 }
 
 extern "C" EXPORT void force_debug()

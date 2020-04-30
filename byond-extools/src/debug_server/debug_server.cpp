@@ -191,26 +191,33 @@ int DebugServer::handle_one_message()
 	else if (type == MESSAGE_GET_LIST_CONTENTS)
 	{
 		int ref = data.at("content");
-		List list(ref & 0xffffff);
-		std::vector<Value> elements = std::vector<Value>(list.list->vector_part, list.list->vector_part + list.list->length); //efficiency
-		std::vector<nlohmann::json> textual;
-		if (!list.is_assoc())
-		{
-			for (Value& val : elements)
+		try {
+			List list(ref & 0xffffff);
+
+			std::vector<Value> elements = std::vector<Value>(list.list->vector_part, list.list->vector_part + list.list->length); //efficiency
+			std::vector<nlohmann::json> textual;
+			if (!list.is_assoc())
 			{
-				textual.push_back(value_to_text(val));
+				for (Value& val : elements)
+				{
+					textual.push_back(value_to_text(val));
+				}
+				data["content"] = { { "linear", textual } };
 			}
-			data["content"] = { { "linear", textual } };
-		}
-		else
-		{
-			for (Value& val : elements)
+			else
 			{
-				textual.push_back(std::make_pair<nlohmann::json, nlohmann::json>(value_to_text(val), value_to_text(list.at(val))));
+				for (Value& val : elements)
+				{
+					textual.push_back(std::make_pair<nlohmann::json, nlohmann::json>(value_to_text(val), value_to_text(list.at(val))));
+				}
+				data["content"] = { { "associative", textual } };
 			}
-			data["content"] = { { "associative", textual } };
+			debugger.send(data);
 		}
-		debugger.send(data);
+		catch (const char* e) { //thrown by list constructor when trying to access an invalid list
+			data["content"] = { {"linear", std::vector<nlohmann::json>()} };
+			debugger.send(data);
+		}
 	}
 
 	else if (type == MESSAGE_GET_PROFILE)
