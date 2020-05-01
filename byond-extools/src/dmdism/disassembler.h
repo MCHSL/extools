@@ -5,11 +5,12 @@
 #include "../core/proc_management.h"
 #include "disassembly.h"
 #include <vector>
+#include <memory>
 
 
 #include "instruction.h"
+#include "context.h"
 
-class Context;
 
 class Disassembler
 {
@@ -18,16 +19,14 @@ public:
 	Disassembler(std::uint32_t* bc, unsigned int bc_len, std::vector<Core::Proc>& ps);
 	Disassembly disassemble();
 
-	~Disassembler();
-
-	Context* context() const { return context_; }
+	Context* context() const { return context_.get(); }
 
 	bool disassemble_var(Instruction& instr);
 	bool disassemble_var_alt(Instruction& instr);
 	void add_call_args(Instruction& instr, unsigned int num_args);
 
 private:
-	Context* context_;
+	std::unique_ptr<Context> context_;
 
 	Instruction disassemble_next();
 };

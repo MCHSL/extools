@@ -12,18 +12,13 @@
 
 Disassembler::Disassembler(std::vector<std::uint32_t> bc, std::vector<Core::Proc>& ps)
 {
-	context_ = new Context(bc, ps);
+	context_ = std::make_unique<Context>(bc, ps);
 }
 
 Disassembler::Disassembler(std::uint32_t* bc, unsigned int bc_len, std::vector<Core::Proc>& ps)
 {
 	std::vector<std::uint32_t> v(bc, bc + bc_len);
-	context_ = new Context(v, ps);
-}
-
-Disassembler::~Disassembler()
-{
-	delete context_;
+	context_ = std::make_unique<Context>(v, ps);
 }
 
 Disassembly Disassembler::disassemble()
@@ -54,7 +49,7 @@ Instruction Disassembler::disassemble_next()
 	context_->set_instr(instr);
 	instr->add_byte(root);
 
-	instr->Disassemble(context_, this);
+	instr->Disassemble(context(), this);
 
 	return *instr;
 }
