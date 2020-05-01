@@ -12,7 +12,7 @@ TopicFloodCheckPtr oTopicFloodCheck;
 
 TopicFilter current_topic_filter = nullptr;
 
-std::unordered_map<void*, subhook::Hook*> hooks;
+std::unordered_map<void*, std::unique_ptr<subhook::Hook>> hooks;
 
 //ExecutionContext* last_suspended_ec;
 
@@ -80,16 +80,16 @@ void Core::set_topic_filter(TopicFilter tf)
 
 void* Core::install_hook(void* original, void* hook)
 {
-	subhook::Hook* /*I am*/ shook = new subhook::Hook;
+	std::unique_ptr<subhook::Hook> /*I am*/ shook = std::make_unique<subhook::Hook>();
 	shook->Install(original, hook);
-	hooks[original] = shook;
-	return shook->GetTrampoline();
+	auto trampoline = shook->GetTrampoline();
+	hooks[original] = std::move(shook);
+	return trampoline;
 }
 
 void Core::remove_hook(void* func)
 {
 	hooks[func]->Remove();
-	delete hooks[func];
 	hooks.erase(func);
 }
 
@@ -98,7 +98,6 @@ void Core::remove_all_hooks()
 	for (auto iter = hooks.begin(); iter != hooks.end(); )
 	{
 		iter->second->Remove();
-		delete iter->second;
 		iter = hooks.erase(iter);
 	}
 }
