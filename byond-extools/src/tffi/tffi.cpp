@@ -35,7 +35,7 @@ bool TFFI::initialize()
 #ifdef _WIN32
 	std::uint32_t suspension_opcode = Core::register_opcode("TFFI_SUSPEND", tffi_suspend);
 	Core::Proc internal_resolve = Core::get_proc("/datum/promise/proc/__internal_resolve");
-	internal_resolve.set_bytecode(new std::vector<std::uint32_t>({ suspension_opcode, 0, 0, 0 }));
+	internal_resolve.set_bytecode({ suspension_opcode, 0, 0, 0 });
 #endif
 	result_string_id = Core::GetStringId("result");
 	completed_string_id = Core::GetStringId("completed");

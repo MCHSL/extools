@@ -12,7 +12,7 @@ public:
 	std::vector<Instruction> instructions;
 	Core::Proc proc;
 
-	std::vector<std::uint32_t>* assemble();
+	std::vector<std::uint32_t> assemble();
 	Instruction& at(std::size_t i);
 	Instruction& at_offset(std::size_t offset);
 	Instruction* next_from_offset(std::uint16_t offset);

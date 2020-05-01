@@ -30,9 +30,9 @@ namespace Core
 		std::uint16_t varcount_idx = 0;
 
 		std::uint32_t* original_bytecode_ptr = nullptr;
+		std::vector<std::uint32_t> bytecode;
 
-		void set_bytecode(std::vector<std::uint32_t>* new_bytecode);
-		void set_bytecode(std::uint32_t* new_bytecode);
+		void set_bytecode(std::vector<std::uint32_t>&& new_bytecode);
 		std::uint32_t* get_bytecode();
 		std::uint16_t get_bytecode_length();
 		void reset_bytecode();

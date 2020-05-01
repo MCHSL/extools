@@ -30,33 +30,25 @@ Core::Proc::Proc(std::uint32_t id)
 	*this = procs_by_id.at(id);
 }
 
-void Core::Proc::set_bytecode(std::vector<std::uint32_t>* new_bytecode)
+void Core::Proc::set_bytecode(std::vector<std::uint32_t>&& new_bytecode)
 {
-	if (original_bytecode_ptr)
-	{
-		delete setup_entry_bytecode->bytecode;
-	}
-	else
+	if (!original_bytecode_ptr)
 	{
 		original_bytecode_ptr = setup_entry_bytecode->bytecode;
 	}
-	setup_entry_bytecode->bytecode = new_bytecode->data();
-}
 
-void Core::Proc::set_bytecode(std::uint32_t* new_bytecode)
-{
-	setup_entry_bytecode->bytecode = new_bytecode;
+	bytecode = std::move(new_bytecode);
+	setup_entry_bytecode->bytecode = bytecode.data();
 }
 
 void Core::Proc::reset_bytecode()
 {
-	if (!original_bytecode_ptr)
+	if (original_bytecode_ptr)
 	{
-		return;
+		setup_entry_bytecode->bytecode = original_bytecode_ptr;
+		original_bytecode_ptr = nullptr;
+		bytecode.clear();
 	}
-	delete setup_entry_bytecode->bytecode;
-	setup_entry_bytecode->bytecode = original_bytecode_ptr;
-	original_bytecode_ptr = nullptr;
 }
 
 std::uint32_t* Core::Proc::get_bytecode()
@@ -112,9 +104,10 @@ Disassembly Core::Proc::disassemble()
 
 void Core::Proc::assemble(Disassembly disasm)
 {
-	std::vector<std::uint32_t>* bc = disasm.assemble();
-	set_bytecode(bc);
-	setup_entry_bytecode->bytecode_length = bc->size();
+	std::vector<std::uint32_t> bc = disasm.assemble();
+	auto size = bc.size();
+	set_bytecode(std::move(bc));
+	setup_entry_bytecode->bytecode_length = size;
 	//proc_table_entry->local_var_count_idx = Core::get_proc("/proc/twelve_locals").proc_table_entry->local_var_count_idx;
 }
 

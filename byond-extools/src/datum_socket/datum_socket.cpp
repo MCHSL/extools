@@ -133,7 +133,7 @@ bool enable_sockets()
 	Core::get_proc("/datum/socket/proc/send").hook(send_socket);
 	Core::get_proc("/datum/socket/proc/__deregister_socket").hook(deregister_socket);
 	recv_sleep_opcode = Core::register_opcode("RECV_SLEEP", recv_suspend);
-	Core::get_proc("/datum/socket/proc/__wait_for_data").set_bytecode(new std::vector<std::uint32_t>({ recv_sleep_opcode, 0, 0, 0 }));
+	Core::get_proc("/datum/socket/proc/__wait_for_data").set_bytecode({ recv_sleep_opcode, 0, 0, 0 });
 	return true;
 }
 

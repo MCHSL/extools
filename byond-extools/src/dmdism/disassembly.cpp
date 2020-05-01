@@ -28,13 +28,14 @@ ForwardIt local_lower_bound(ForwardIt first, ForwardIt last, const T& value, Com
 }
 #endif
 
-std::vector<std::uint32_t>* Disassembly::assemble()	{
-	std::vector<std::uint32_t>* ret = new std::vector<std::uint32_t>();
+std::vector<std::uint32_t> Disassembly::assemble()
+{
+	std::vector<std::uint32_t> ret;
 	for (Instruction i : instructions)
 	{
 		for (int op : i.bytes())
 		{
-			ret->push_back(op);
+			ret.push_back(op);
 		}
 	}
 	return ret;
