@@ -121,7 +121,7 @@ Value& Value::operator+=(const Value& rhs)
 	else
 	{
 		assert(false);
-		Runtime("Attempt to add invalid types in native code! (good luck)");
+		//Runtime("Attempt to add invalid types in native code! (good luck)");
 	}
 	return *this;
 }
@@ -133,7 +133,7 @@ Value& Value::operator-=(const Value& rhs)
 	else
 	{
 		assert(false);
-		Runtime("Attempt to subtract invalid types in native code! (good luck)");
+		//Runtime("Attempt to subtract invalid types in native code! (good luck)");
 	}
 	return *this;
 }
@@ -145,7 +145,7 @@ Value& Value::operator*=(const Value& rhs)
 	else
 	{
 		assert(false);
-		Runtime("Attempt to multiply invalid types in native code! (good luck)");
+		//Runtime("Attempt to multiply invalid types in native code! (good luck)");
 	}
 	return *this;
 }
@@ -157,7 +157,7 @@ Value& Value::operator/=(const Value& rhs)
 	else
 	{
 		assert(false);
-		Runtime("Attempt to divide invalid types in native code! (good luck)");
+		//Runtime("Attempt to divide invalid types in native code! (good luck)");
 	}
 	return *this;
 }
