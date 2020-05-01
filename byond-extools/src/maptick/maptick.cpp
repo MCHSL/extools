@@ -16,7 +16,7 @@ void hSendMaps()
 	Core::global_direct_set("internal_tick_usage", std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 100000.0f);
 #else
 	Value::Global().set("internal_tick_usage", std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 100000.0f);
-#endif;
+#endif
 }
 
 bool enable_maptick()
