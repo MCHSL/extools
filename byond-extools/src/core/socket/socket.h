@@ -28,13 +28,14 @@ class Socket
 	Socket& operator=(const Socket&) = delete;
 
 	SOCKET raw_socket = INVALID_SOCKET;
+	static Socket from_raw(int raw_socket);
+	friend class JsonListener;
+
 public:
 	Socket() {}
 	Socket(Socket&& other);
 	Socket& operator=(Socket&& other);
 	virtual ~Socket();
-
-	explicit Socket(int raw_socket) : raw_socket(raw_socket) {}
 
 	bool create(int family = AF_INET, int socktype = SOCK_STREAM, int protocol = IPPROTO_TCP);
 	void close();

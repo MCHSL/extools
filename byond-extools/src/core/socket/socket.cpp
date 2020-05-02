@@ -52,6 +52,13 @@ void Socket::close()
 	}
 }
 
+Socket Socket::from_raw(int raw_socket)
+{
+	Socket result;
+	result.raw_socket = raw_socket;
+	return result;
+}
+
 // Socket creation.
 bool Socket::create(int family, int socktype, int protocol)
 {
@@ -183,7 +190,7 @@ bool JsonListener::listen(const char* port, const char* iface)
 
 JsonStream JsonListener::accept()
 {
-	return JsonStream(Socket(::accept(socket.raw(), NULL, NULL)));
+	return JsonStream(Socket::from_raw(::accept(socket.raw(), NULL, NULL)));
 }
 
 bool JsonStream::connect(const char* port, const char* remote)
