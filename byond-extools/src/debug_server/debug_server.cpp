@@ -626,7 +626,7 @@ bool debugger_initialize()
 		return true;
 	}
 
-	oRuntime = (RuntimePtr)Core::install_hook((void*)Runtime, (void*)hRuntime);
+	oRuntime = Core::install_hook(Runtime, hRuntime);
 	install_singlestep_hook();
 	breakpoint_opcode = Core::register_opcode("DEBUG_BREAKPOINT", on_breakpoint);
 	nop_opcode = Core::register_opcode("DEBUG_NOP", on_nop);

@@ -92,7 +92,7 @@ Value Core::Proc::call(std::vector<Value> arguments, Value usr)
 	{
 		margs.emplace_back(v);
 	}
-	return CallGlobalProc(usr.type, usr.value, 2, id, 0, 0, 0, margs.data(), margs.size(), 0, 0);
+	return CallGlobalProc(usr.type, usr.value, 2, id, 0, DataType::NULL_D, 0, margs.data(), margs.size(), 0, 0);
 }
 
 Disassembly Core::Proc::disassemble()

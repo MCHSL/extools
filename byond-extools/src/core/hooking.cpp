@@ -78,7 +78,7 @@ void Core::set_topic_filter(TopicFilter tf)
 }
 
 
-void* Core::install_hook(void* original, void* hook)
+void* Core::untyped_install_hook(void* original, void* hook)
 {
 	std::unique_ptr<subhook::Hook> /*I am*/ shook = std::make_unique<subhook::Hook>();
 	shook->Install(original, hook);
@@ -103,9 +103,9 @@ void Core::remove_all_hooks()
 }
 
 bool Core::hook_custom_opcodes() {
-	oCrashProc = (CrashProcPtr)install_hook((void*)CrashProc, (void*)hCrashProc);
-	oCallGlobalProc = (CallGlobalProcPtr)install_hook((void*)CallGlobalProc, (void*)hCallGlobalProc);
-	oTopicFloodCheck = (TopicFloodCheckPtr)install_hook((void*)TopicFloodCheck, (void*)hTopicFloodCheck);
+	oCrashProc = install_hook(CrashProc, hCrashProc);
+	oCallGlobalProc = install_hook(CallGlobalProc, hCallGlobalProc);
+	oTopicFloodCheck = install_hook(TopicFloodCheck, hTopicFloodCheck);
 	if (!(oCrashProc && oCallGlobalProc && oTopicFloodCheck)) {
 		Core::Alert("Failed to install hooks!");
 		return false;

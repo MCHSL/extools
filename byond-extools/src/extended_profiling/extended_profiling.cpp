@@ -281,9 +281,9 @@ SuspendedProc* hSuspend(ExecutionContext* ctx, int unknown)
 bool actual_extended_profiling_initialize()
 {
 #ifdef _WIN32
-	oCreateContext = (CreateContextPtr)Core::install_hook((void*)CreateContext, (void*)hCreateContext);
-	oProcCleanup = (ProcCleanupPtr)Core::install_hook((void*)ProcCleanup, (void*)hProcCleanup);
-	oSuspend = (SuspendPtr)Core::install_hook((void*)Suspend, (void*)hSuspend);
+	oCreateContext = Core::install_hook(CreateContext, hCreateContext);
+	oProcCleanup = Core::install_hook(ProcCleanup, hProcCleanup);
+	oSuspend = Core::install_hook(Suspend, hSuspend);
 	return oCreateContext && oProcCleanup && oSuspend;
 #else
 	Core::alert_dd("The extools extended profiler is not supported on Linux.");

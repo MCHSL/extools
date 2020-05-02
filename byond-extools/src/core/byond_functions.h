@@ -9,7 +9,7 @@ struct variadic_arg_hack
 
 struct BSocket;
 
-typedef trvh(REGPARM3 *CallGlobalProcPtr)(char usr_type, int usr_value, int proc_type, unsigned int proc_id, int const_0, char src_type, int src_value, Value* argList, unsigned int argListLen, int const_0_2, int const_0_3);
+typedef trvh(REGPARM3 *CallGlobalProcPtr)(char usr_type, int usr_value, int proc_type, unsigned int proc_id, int const_0, DataType src_type, int src_value, Value* argList, unsigned int argListLen, int const_0_2, int const_0_3);
 typedef Value(*Text2PathPtr)(unsigned int text);
 #ifdef _WIN32
 typedef unsigned int(*GetStringTableIndexPtr)(const char* string, int handleEscapes, int duplicateString);
@@ -50,7 +50,7 @@ typedef void(REGPARM3 *StartTimingPtr)(SuspendedProc*);
 #endif
 typedef ProfileInfo* (*GetProfileInfoPtr)(unsigned int proc_id);
 #ifdef _WIN32
-typedef void(*CreateContextPtr)(void* unknown, ExecutionContext* new_ctx);
+typedef void(*CreateContextPtr)(ProcConstants* constants, ExecutionContext* new_ctx);
 typedef void(*ProcCleanupPtr)(ExecutionContext* thing_that_just_executed); //this one is hooked to help with extended profiling
 #else
 typedef void(REGPARM3 *CreateContextPtr)(void* unknown, ExecutionContext* new_ctx);

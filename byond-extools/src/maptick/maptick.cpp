@@ -21,6 +21,6 @@ void hSendMaps()
 
 bool enable_maptick()
 {
-	oSendMaps = (SendMapsPtr)Core::install_hook((void*)SendMaps, (void*)hSendMaps);
+	oSendMaps = Core::install_hook(SendMaps, hSendMaps);
 	return oSendMaps;
 }
