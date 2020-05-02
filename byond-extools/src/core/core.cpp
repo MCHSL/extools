@@ -217,20 +217,6 @@ extern "C" EXPORT const char* core_initialize(int n_args, const char** args)
 	return good;
 }
 
-extern "C" EXPORT const char* tffi_initialize(int n_args, const char** args)
-{
-	if (!(Core::initialize() && TFFI::initialize()))
-		return bad;
-	return good;
-}
-
-extern "C" EXPORT const char* proxy_initialize(int n_args, const char** args)
-{
-	if (!(Core::initialize() && Proxy::initialize()))
-		return bad;
-	return good;
-}
-
 void init_testing();
 void run_tests();
 extern "C" EXPORT const char* run_tests(int n_args, const char** args)
