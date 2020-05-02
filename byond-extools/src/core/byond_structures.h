@@ -149,11 +149,17 @@ struct IDArrayEntry
 	int refcountMaybe;
 };
 
+enum class RbtColor : bool
+{
+	Black = false,
+	Red = true,
+};
+
 struct AssociativeListEntry
 {
 	Value key;
 	Value value;
-	bool red_black; //0 - black
+	RbtColor color;
 	AssociativeListEntry* left;
 	AssociativeListEntry* right;
 };
@@ -187,7 +193,7 @@ struct ContainerProxy
 };
 
 struct Container //All kinds of lists, including magical snowflake lists like contents
-{ 
+{
 
 	Container(char type, int id);
 	Container(Value val);
@@ -270,7 +276,7 @@ struct ProcArrayEntry
 	int procFlags;
 	int unknown1;
 	unsigned short bytecode_idx; // ProcSetupEntry index
-	unsigned short local_var_count_idx; // ProcSetupEntry index 
+	unsigned short local_var_count_idx; // ProcSetupEntry index
 	int unknown2;
 };
 
@@ -381,7 +387,7 @@ struct NetMsg //named after the struct ThreadedNetMsg - unsure if it's actually 
 	std::uint32_t raw_header;
 };
 
-struct BSocket //or client?		   
+struct BSocket //or client?
 {
 	std::uint32_t unk1;
 	std::uint32_t addr_string_id;
