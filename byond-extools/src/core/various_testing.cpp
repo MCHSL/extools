@@ -183,7 +183,7 @@ void init_testing()
 	if (find_unknowns)
 	{
 		std::ofstream log("unknown_opcodes.txt");
-		for (Core::Proc& p : procs_by_id)
+		for (Core::Proc& p : Core::get_all_procs())
 		{
 			if (!p.name.empty() && p.name.back() == ')')
 			{
@@ -212,7 +212,7 @@ void init_testing()
 	//Core::get_proc("/proc/laugh").hook(show_profiles);
 
 	/*int hypotenuse_opcode = Core::register_opcode("CHEAP_HYPOTENUSE", cheap_hypotenuse_opcode);
-	Core::Proc hypotenuse_bench = Core::get_proc("/proc/bench_cheap_hypotenuse_native");
+	Core::Proc& hypotenuse_bench = Core::get_proc("/proc/bench_cheap_hypotenuse_native");
 	Disassembly dis = hypotenuse_bench.disassemble();
 	for (Instruction& instr : dis)
 	{

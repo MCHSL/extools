@@ -111,10 +111,10 @@ void Disassembly::recalculate_offsets()
 	}
 }
 
-Disassembly Core::get_disassembly(std::string _proc, unsigned int override_id)
+Disassembly Disassembly::from_proc(Core::Proc& proc)
 {
-	Core::Proc proc = Core::get_proc(_proc, override_id);
 	std::uint32_t* bytecode = proc.get_bytecode();
-	return Disassembler(std::vector<uint32_t>(bytecode, bytecode + proc.get_bytecode_length()), procs_by_id).disassemble();
+	Disassembly dis = Disassembler(std::vector<uint32_t>(bytecode, bytecode + proc.get_bytecode_length()), Core::get_all_procs()).disassemble();
+	dis.proc = &proc;
+	return dis;
 }
-

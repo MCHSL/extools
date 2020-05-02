@@ -31,7 +31,7 @@ enum StepMode
 
 struct Breakpoint
 {
-	Core::Proc proc;
+	Core::Proc* proc;
 
 	std::uint32_t replaced_opcode;
 	std::uint16_t offset;

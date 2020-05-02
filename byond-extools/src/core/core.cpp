@@ -172,7 +172,7 @@ std::string Core::stringify(Value val)
 	unsigned int actual_count = 0;
 	for (int i = 0; i < Core::codecov_executed_procs.size(); i++)
 	{
-		Core::Proc p = Core::get_proc(i);
+		Core::Proc& p = Core::get_proc(i);
 		if (!p.name.empty() && p.name.back() != ')')
 		{
 			o << p.name << ": " << Core::codecov_executed_procs[i] << "\n";
@@ -292,7 +292,7 @@ void Core::cleanup()
 {
 	Core::remove_all_hooks();
 	Core::opcode_handlers.clear();
-	procs_by_id.clear();
+	Core::get_all_procs().clear();
 	procs_by_name.clear();
 	procs_to_profile.clear();
 	proc_hooks.clear();

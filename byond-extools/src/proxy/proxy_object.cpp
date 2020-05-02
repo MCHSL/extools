@@ -12,8 +12,8 @@ SetVariablePtr oSetVariable;
 
 std::unordered_map<int, bool> proxies;
 
-std::unordered_map<int, Core::Proc> getters;
-std::unordered_map<int, Core::Proc> setters;
+std::unordered_map<int, Core::Proc*> getters;
+std::unordered_map<int, Core::Proc*> setters;
 
 std::unordered_map<int, std::unordered_map<int, std::unordered_set<unsigned int>>> data_breakpoints;
 

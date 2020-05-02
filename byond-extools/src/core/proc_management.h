@@ -11,11 +11,18 @@ class Disassembly;
 
 namespace Core
 {
-	struct Proc
+	class Proc
 	{
-		Proc() {};
-		Proc(std::string name, unsigned int override_id=0);
-		Proc(std::uint32_t id);
+		Proc(const Proc&) = delete;
+		Proc& operator=(const Proc&) = delete;
+
+		Proc() {}
+		friend bool populate_proc_list();
+
+	public:
+		Proc(Proc&& rhs) noexcept = default;
+		Proc& operator=(Proc&& rhs) noexcept = default;
+
 		std::string raw_path;
 		std::string name;
 		std::string simple_name;
@@ -77,8 +84,7 @@ namespace Core
 	Disassembly disassemble_raw(std::vector<int> bytecode);
 }
 
-extern std::vector<Core::Proc> procs_by_id;
-extern std::unordered_map<std::string, std::vector<Core::Proc>> procs_by_name;
+extern std::unordered_map<std::string, std::vector<unsigned int>> procs_by_name;
 extern std::unordered_map<unsigned int, ProcHook> proc_hooks;
 extern std::unordered_map<unsigned int, bool> extended_profiling_procs;
 

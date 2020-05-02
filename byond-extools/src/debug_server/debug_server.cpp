@@ -72,7 +72,7 @@ int DebugServer::handle_one_message()
 	else if (type == MESSAGE_PROC_LIST)
 	{
 		std::vector<nlohmann::json> procs;
-		for (Core::Proc& proc : procs_by_id)
+		for (Core::Proc& proc : Core::get_all_procs())
 		{
 			procs.push_back({ {"proc", proc.name}, {"override_id", proc.override_id} });
 		}
@@ -83,7 +83,7 @@ int DebugServer::handle_one_message()
 		auto content = data.at("content");
 		const std::string& proc_name = content.at("proc");
 		int override_id = content.at("override_id");
-		Core::Proc proc = Core::get_proc(proc_name, override_id);
+		Core::Proc& proc = Core::get_proc(proc_name, override_id);
 		Disassembly disassembly = proc.disassemble();
 		nlohmann::json disassembled_proc;
 		disassembled_proc["proc"] = proc_name;
@@ -212,7 +212,7 @@ int DebugServer::handle_one_message()
 	else if (type == MESSAGE_GET_PROFILE)
 	{
 		const std::string& name = data.at("content");
-		Core::Proc p = Core::get_proc(name);
+		Core::Proc& p = Core::get_proc(name);
 		ProfileInfo* entry = p.profile();
 
 		nlohmann::json resp;
@@ -301,9 +301,10 @@ void DebugServer::set_breakpoint(int proc_id, int offset, bool singleshot)
 	{
 		return;
 	}
-	std::uint32_t* bytecode = Core::get_proc(proc_id).get_bytecode();
+	Core::Proc& proc = Core::get_proc(proc_id);
+	std::uint32_t* bytecode = proc.get_bytecode();
 	Breakpoint bp = { //Directly writing to bytecode rather than using set_bytecode,
-		Core::get_proc(proc_id), //because this will ensure any running procs will also hit this
+		&proc, //because this will ensure any running procs will also hit this
 		bytecode[offset],
 		(unsigned short)offset,
 		singleshot
@@ -350,7 +351,7 @@ void DebugServer::restore_breakpoint()
 		Core::Alert("Restore() called with no breakpoint to restore");
 		return;
 	}
-	std::uint32_t* bytecode = breakpoint_to_restore->proc.get_bytecode();
+	std::uint32_t* bytecode = breakpoint_to_restore->proc->get_bytecode();
 	std::swap(bytecode[breakpoint_to_restore->offset], breakpoint_to_restore->replaced_opcode);
 	breakpoint_to_restore = {};
 }
@@ -364,14 +365,14 @@ void DebugServer::on_breakpoint(ExecutionContext* ctx)
 		breakpoint_to_restore = bp;
 	}
 	send_call_stack(ctx);
-	send(MESSAGE_BREAKPOINT_HIT, { {"proc", bp->proc.name }, {"offset", bp->offset }, {"override_id", Core::get_proc(ctx).override_id}, {"reason", "breakpoint opcode"} });
+	send(MESSAGE_BREAKPOINT_HIT, { {"proc", bp->proc->name }, {"offset", bp->offset }, {"override_id", Core::get_proc(ctx).override_id}, {"reason", "breakpoint opcode"} });
 	on_break(ctx);
 	ctx->current_opcode--;
 }
 
 void DebugServer::on_step(ExecutionContext* ctx)
 {
-	auto proc = Core::get_proc(ctx);
+	auto& proc = Core::get_proc(ctx);
 	send_call_stack(ctx);
 	send(MESSAGE_BREAKPOINT_HIT, { {"proc", proc.name }, {"offset", ctx->current_opcode }, {"override_id", proc.override_id}, {"reason", "step"} });
 	on_break(ctx);
@@ -397,7 +398,7 @@ void DebugServer::on_break(ExecutionContext* ctx)
 
 void DebugServer::on_error(ExecutionContext* ctx, char* error)
 {
-	Core::Proc p = Core::get_proc(ctx);
+	Core::Proc& p = Core::get_proc(ctx);
 	send_call_stack(ctx);
 	debug_server.send(MESSAGE_RUNTIME, { {"proc", p.name }, {"offset", ctx->current_opcode }, {"override_id", p.override_id}, {"message", std::string(error)} });
 	debug_server.wait_for_action();
@@ -477,7 +478,7 @@ void DebugServer::send_call_stack(ExecutionContext* ctx)
 	do
 	{
 		nlohmann::json j;
-		Core::Proc p = Core::get_proc(ctx);
+		Core::Proc& p = Core::get_proc(ctx);
 
 		j["proc"] = p.name;
 		j["override_id"] = p.override_id;
