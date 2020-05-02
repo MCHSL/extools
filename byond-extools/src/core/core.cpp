@@ -1,11 +1,7 @@
 #include "core.h"
 #include "find_functions.h"
-#include "../tffi/tffi.h"
-#include "../proxy/proxy_object.h"
-#include "../optimizer/optimizer.h"
 #include "../extended_profiling/extended_profiling.h"
-#include "../debug_server/debug_server.h"
-#include "../maptick/maptick.h"
+#include "socket/socket.h"
 #include <fstream>
 #include <unordered_set>
 #include <chrono>
