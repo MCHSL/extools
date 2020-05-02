@@ -67,7 +67,7 @@ bool Core::initialize()
 	return initialized;
 }
 
-void Core::Alert(std::string what) {
+void Core::Alert(const std::string& what) {
 #ifdef _WIN32
 	MessageBoxA(NULL, what.c_str(), "Ouch!", MB_OK);
 #else

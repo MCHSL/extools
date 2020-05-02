@@ -97,7 +97,7 @@ namespace Core
 	ExecutionContext* get_context();
 	ExecutionContext* _get_parent_context();
 	unsigned int register_opcode(std::string name, opcode_handler handler);
-	void Alert(std::string what);
+	void Alert(const std::string& what);
 	void Alert(int what);
 	bool initialize();
 	extern bool initialized;
