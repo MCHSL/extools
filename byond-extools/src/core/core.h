@@ -31,9 +31,12 @@ extern int ByondBuild;
 
 namespace Core
 {
+	static const char* SUCCESS = "SUCCESS";
+	static const char* FAIL = "FAIL";
+
 	//not exactly a byond structure so it's here for now
 
-	class ManagedString 
+	class ManagedString
 	{
 		// Represents a BYOND string. Refcount gets updated when created and destroyed,
 		// which should help with memory usage and premature string deletion.

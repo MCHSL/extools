@@ -228,8 +228,8 @@ std::string Core::stringify(Value val)
 	return "";
 }*/
 
-const char* good = "SUCCESS";
-const char* bad = "FAIL";
+static const char* good = Core::SUCCESS;
+static const char* bad = Core::FAIL;
 
 extern "C" EXPORT const char* enable_profiling(int n_args, const char** args)
 {
@@ -439,15 +439,6 @@ void Core::cleanup()
 extern "C" EXPORT const char* cleanup(int n_args, const char** args)
 {
 	Core::cleanup();
-	return good;
-}
-
-extern "C" EXPORT const char* maptick_initialize(int n_args, const char** args)
-{
-	if (!(Core::initialize() && enable_maptick()))
-	{
-		return bad;
-	}
 	return good;
 }
 
