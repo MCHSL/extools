@@ -28,7 +28,7 @@ else()
         "${SRC_DIR}/*.hpp"
     )
 endif()
-set(SRC_FILES ${SRC_FILES} "${SRC_DIR}/core/subhook/subhook.c")
+set(SRC_FILES ${SRC_FILES} "${SRC_DIR}/third_party/subhook/subhook.c")
 
 add_library(byond-extools SHARED ${SRC_FILES})
 source_group(TREE ${SRC_DIR} FILES ${SRC_FILES})

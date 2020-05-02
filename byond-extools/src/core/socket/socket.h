@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../core.h"
-#include "../json.hpp"
+#include "../../third_party/json.hpp"
 #include <string>
 
 #ifdef _WIN32

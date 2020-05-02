@@ -2,7 +2,7 @@
 #include "../tffi/tffi.h"
 #include <chrono>
 #include <fstream>
-#include "json.hpp"
+#include "../third_party/json.hpp"
 #include <stack>
 #include "../extended_profiling/extended_profiling.h"
 

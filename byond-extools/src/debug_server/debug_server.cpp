@@ -2,7 +2,7 @@
 #include "../dmdism/disassembly.h"
 #include "../dmdism/disassembler.h"
 #include "../dmdism/opcodes.h"
-#include "../core/json.hpp"
+#include "../third_party/json.hpp"
 #include <utility>
 
 #include <thread>

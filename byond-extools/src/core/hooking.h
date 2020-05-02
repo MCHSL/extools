@@ -7,7 +7,7 @@
 #include <headers/CapstoneDisassembler.hpp>
 #include <headers/Detour/x86Detour.hpp>
 #else*/
-#include "subhook/subhook.h"
+#include "../third_party/subhook/subhook.h"
 //#endif
 
 typedef bool(*TopicFilter)(BSocket* socket, int socket_id);

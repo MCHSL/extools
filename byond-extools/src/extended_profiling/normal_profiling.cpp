@@ -3,7 +3,7 @@
 #include "../core/byond_structures.h"
 #include <string>
 #include "../dmdism/opcodes.h"
-#include "../core/json.hpp"
+#include "../third_party/json.hpp"
 #include <fstream>
 #include <chrono>
 
