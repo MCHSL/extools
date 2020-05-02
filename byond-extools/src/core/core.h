@@ -1,7 +1,7 @@
 #pragma once
 #include "sigscan/sigscan.h"
 #include "byond_structures.h"
-#include "internal_functions.h"
+#include "byond_functions.h"
 #include "hooking.h"
 #include "proc_management.h"
 #ifndef _WIN32

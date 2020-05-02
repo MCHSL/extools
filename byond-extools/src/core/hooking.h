@@ -1,6 +1,6 @@
 #pragma once
 
-#include "internal_functions.h"
+#include "byond_functions.h"
 #include "core.h"
 #include "proc_management.h"
 /*#ifdef _WIN32
