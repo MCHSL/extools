@@ -6,19 +6,19 @@
 
 Value::Value(std::string s)
 {
-	type = 0x06;
+	type = DataType::STRING;
 	value = Core::GetStringId(s);
 }
 
 Value::Value(const char* s)
 {
-	type = 0x06;
+	type = DataType::STRING;
 	value = Core::GetStringId(s);
 }
 
 Value::Value(Core::ManagedString& ms)
 {
-	type = 0x06;
+	type = DataType::STRING;
 	value = ms;
 }
 
@@ -212,7 +212,7 @@ List::~List()
 	DecRefCount(0x0F, id);
 }
 
-Container::Container(char type, int id) : type(type), id(id)
+Container::Container(DataType type, int id) : type(type), id(id)
 {
 	IncRefCount(type, id);
 }
@@ -265,7 +265,7 @@ ManagedValue::ManagedValue(Value val)
 	IncRefCount(type, value);
 }
 
-ManagedValue::ManagedValue(char type, int value) : Value(type, value)
+ManagedValue::ManagedValue(DataType type, int value) : Value(type, value)
 {
 	IncRefCount(type, value);
 }

@@ -51,8 +51,8 @@ void ffi_thread(byond_ffi_func* proc, int promise_id, int n_args, std::vector<st
 		a.push_back(args[i].c_str());
 	}
 	const char* res = proc(n_args, a.data());
-	SetVariable( 0x21, promise_id , result_string_id, { 0x06, (int)Core::GetStringId(res) });
-	SetVariable( 0x21, promise_id , completed_string_id, { 0x2A, 1 });
+	SetVariable( 0x21, promise_id , result_string_id, { DataType::STRING, (int)Core::GetStringId(res) });
+	SetVariable( 0x21, promise_id , completed_string_id, { DataType::NUMBER, 1 });
 	float internal_id = GetVariable( 0x21, promise_id , internal_id_string_id).valuef;
 	std::unique_lock<std::mutex> lk(unsuspend_ready_mutex);
 	unsuspend_ready_cv.wait(lk, [internal_id] { return suspended_procs.find(internal_id) != suspended_procs.end();  });

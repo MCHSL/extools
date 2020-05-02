@@ -7,7 +7,7 @@
 void Instr_PUSHVAL::Disassemble(Context* context, Disassembler* dism)
 {
 	std::uint32_t type = context->eat();
-	if (type == NUMBER)
+	if (type == DataType::NUMBER)
 	{
 		typedef union
 		{
@@ -31,7 +31,7 @@ void Instr_PUSHVAL::Disassemble(Context* context, Disassembler* dism)
 		opcode().add_info(" ??? ");
 	}
 	std::uint32_t value = context->eat();
-	if (type == STRING)
+	if (type == DataType::STRING)
 	{
 		comment_ += '"' + byond_tostring(value) + '"';
 	}

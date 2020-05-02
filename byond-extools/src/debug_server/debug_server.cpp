@@ -41,7 +41,7 @@ void stripUnicode(std::string& str)
 
 nlohmann::json value_to_text(Value val);
 
-int datatype_name_to_val(std::string name)
+DataType datatype_name_to_val(std::string name)
 {
 	for (auto it = datatype_names.begin(); it != datatype_names.end(); ++it)
 		if (it->second == name)
@@ -152,13 +152,13 @@ int DebugServer::handle_one_message()
 	{
 		auto content = data.at("content");
 		int ref = content.at("ref");
-		data["content"] = value_to_text(Value(ref >> 24, ref & 0xffffff).get_safe(content.at("field_name")));
+		data["content"] = value_to_text(Value((DataType)(ref >> 24), ref & 0xffffff).get_safe(content.at("field_name")));
 		debugger.send(data);
 	}
 	else if (type == MESSAGE_GET_ALL_FIELDS)
 	{
 		int ref = data.at("content");
-		Value datum = Value(ref >> 24, ref & 0xffffff);
+		Value datum = Value((DataType)(ref >> 24), ref & 0xffffff);
 		nlohmann::json vals;
 		for (const std::pair<std::string, Value>& v: datum.get_all_vars())
 		{
@@ -416,34 +416,34 @@ nlohmann::json value_to_text(Value val)
 	nlohmann::json literal;
 	switch (val.type)
 	{
-	case NUMBER:
+	case DataType::NUMBER:
 		literal = { { "number", val.valuef } };
 		break;
-	case STRING:
+	case DataType::STRING:
 		literal = { { "string", GetStringTableEntry(val.value)->stringData } };
 		break;
-	case MOB_TYPEPATH:
+	case DataType::MOB_TYPEPATH:
 		literal = { { "typepath", Core::type_to_text(*MobTableIndexToGlobalTableIndex(val.value)) } };
 		break;
-	case OBJ_TYPEPATH:
-	case TURF_TYPEPATH:
-	case AREA_TYPEPATH:
-	case DATUM_TYPEPATH:
+	case DataType::OBJ_TYPEPATH:
+	case DataType::TURF_TYPEPATH:
+	case DataType::AREA_TYPEPATH:
+	case DataType::DATUM_TYPEPATH:
 		literal = { { "typepath", Core::type_to_text(val.value) } };
 		break;
-	case LIST_TYPEPATH:
+	case DataType::LIST_TYPEPATH:
 		// Not subtypeable
 		literal = { { "typepath", "/list" } };
 		break;
-	case CLIENT_TYPEPATH:
+	case DataType::CLIENT_TYPEPATH:
 		// Not subtypeable
 		literal = { { "typepath", "/client" } };
 		break;
-	case SAVEFILE_TYPEPATH:
+	case DataType::SAVEFILE_TYPEPATH:
 		// Not subtypeable
 		literal = { { "typepath", "/savefile" } };
 		break;
-	case RESOURCE:
+	case DataType::RESOURCE:
 		literal = { {"resource", Core::stringify(val) } };
 		break;
 	default:
@@ -453,21 +453,21 @@ nlohmann::json value_to_text(Value val)
 
 	switch (val.type)
 	{
-	case TURF:
-	case OBJ:
-	case MOB:
-	case AREA:
-	case CLIENT:
-	case IMAGE:
-	case WORLD_D:
-	case DATUM:
-	case SAVEFILE:
+	case DataType::TURF:
+	case DataType::OBJ:
+	case DataType::MOB:
+	case DataType::AREA:
+	case DataType::CLIENT:
+	case DataType::IMAGE:
+	case DataType::WORLD_D:
+	case DataType::DATUM:
+	case DataType::SAVEFILE:
 		result["has_vars"] = true;
 	}
 
 	switch (val.type)
 	{
-	case LIST:
+	case DataType::LIST:
 	/*case LIST_ARGS: //uncomment when handled in GET_LIST_CONTENTS
 	case LIST_VERBS:
 	case LIST_CONTENTS_2:
