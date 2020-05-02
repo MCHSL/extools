@@ -237,14 +237,17 @@ int DebugServer::handle_one_message()
 		data["content"] = resp;
 		debugger.send(data);
 	}
-	else if (type == MESSAGE_ENABLE_PROFILER)
+	else if (type == MESSAGE_TOGGLE_PROFILER)
 	{
-		Core::enable_profiling();
-		debugger.send(data);
-	}
-	else if (type == MESSAGE_DISABLE_PROFILER)
-	{
-		Core::disable_profiling();
+		bool enable = data.at("content");
+		if (enable)
+		{
+			Core::enable_profiling();
+		}
+		else
+		{
+			Core::disable_profiling();
+		}
 		debugger.send(data);
 	}
 	else if (type == MESSAGE_CONFIGURATION_DONE)

@@ -178,11 +178,9 @@ interface MessageDeclarations {
         request: ProcId,
         response: ProfileEntry,
     },
-    "enable profiler": {
-        request: {},
-    },
-    "disable profiler": {
-        request: {},
+    "toggle profiler": {
+        request: boolean,
+        response: boolean,
     },
     // response only
     "breakpoint hit": {

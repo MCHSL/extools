@@ -12,8 +12,6 @@
 #define MESSAGE_BREAKPOINT_RESUME "breakpoint resume"
 #define MESSAGE_BREAKPOINT_PAUSE "breakpoint pause"
 #define MESSAGE_CONFIGURATION_DONE "configuration done"
-#define MESSAGE_ENABLE_PROFILER "enable profiler"
-#define MESSAGE_DISABLE_PROFILER "disable profiler"
 
 // request + response pair
 #define MESSAGE_RAW "raw message"
@@ -25,6 +23,7 @@
 #define MESSAGE_GET_ALL_FIELDS "get all fields"
 #define MESSAGE_GET_GLOBAL "get global"
 #define MESSAGE_TOGGLE_BREAK_ON_RUNTIME "break on runtimes"
+#define MESSAGE_TOGGLE_PROFILER "toggle profiler"
 #define MESSAGE_GET_TYPE "get type"
 #define MESSAGE_GET_LIST_CONTENTS "get list contents"
 #define MESSAGE_GET_PROFILE "get profile"
