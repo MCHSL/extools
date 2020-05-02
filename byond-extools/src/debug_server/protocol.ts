@@ -82,7 +82,7 @@ type Literal =
     { number: number } |
     { string: string } |
     { typepath: string } |
-    { file: string };
+    { resource: string };
     // TODO: proc references
     // TODO: pops
 
