@@ -169,7 +169,7 @@ bool Core::populate_proc_list()
 			procs_by_name[p.name] = std::vector<unsigned int>();
 		}
 		p.override_id = procs_by_name.at(p.name).size();
-		procs_by_name[p.name].push_back(p);
+		procs_by_name[p.name].push_back(p.id);
 		procs_by_id.push_back(std::move(p));
 		i++;
 	}

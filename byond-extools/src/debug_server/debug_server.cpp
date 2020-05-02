@@ -114,7 +114,7 @@ int DebugServer::handle_one_message()
 		const std::string& proc = content.at("proc");
 		const int& override_id = content.at("override_id");
 		//Core::Alert("Setting breakpoint in " + proc);
-		set_breakpoint(Core::get_proc(proc, override_id), content.at("offset"));
+		set_breakpoint(Core::get_proc(proc, override_id).id, content.at("offset"));
 		debugger.send(data);
 	}
 	else if (type == MESSAGE_BREAKPOINT_UNSET)
@@ -123,7 +123,7 @@ int DebugServer::handle_one_message()
 		const std::string& proc = content.at("proc");
 		const int& override_id = content.at("override_id");
 		//Core::Alert("Setting breakpoint in " + proc);
-		remove_breakpoint(Core::get_proc(proc, override_id), content.at("offset"));
+		remove_breakpoint(Core::get_proc(proc, override_id).id, content.at("offset"));
 		debugger.send(data);
 	}
 	else if (type == MESSAGE_BREAKPOINT_STEP_INTO)

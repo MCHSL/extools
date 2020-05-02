@@ -62,11 +62,6 @@ namespace Core
 		{
 			return id == rhs.id;
 		}
-
-		operator int()
-		{
-			return id;
-		}
 	};
 
 	Proc& get_proc(std::string name, unsigned int override_id=0);
