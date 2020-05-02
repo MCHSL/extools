@@ -157,6 +157,7 @@ __forceinline Instruction* get_instr(std::uint32_t op) {
 		ADD_CALLBACK(ISOBJ)
 		ADD_CALLBACK(ISTEXT)
 		ADD_CALLBACK(CKEY)
+		ADD_CALLBACK(BROWSE_RSC)
 	}
 	return new Instr_UNK;
 }

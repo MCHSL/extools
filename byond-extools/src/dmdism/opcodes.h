@@ -40,6 +40,8 @@ enum Bytecode
 	SLEEP = 0x24,
 	SPAWN = 0x25,
 
+	BROWSE_RSC = 0x27,
+
 	CALL = 0x29,
 	CALLNR = 0x2A,
 	CALLPATH = 0x2B,
@@ -382,5 +384,6 @@ const std::unordered_map<Bytecode, std::string> mnemonics = {
 	{ ISTURF, "ISTURF" },
 	{ISOBJ, "ISOBJ"},
 	{ISTEXT, "ISTEXT"},
-	{CKEY, "CKEY"}
+	{CKEY, "CKEY"},
+	{ BROWSE_RSC, "BROWSE_RSC" },
 };
