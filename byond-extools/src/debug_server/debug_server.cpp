@@ -172,17 +172,6 @@ int DebugServer::handle_one_message()
 		data["content"] = value_to_text(GetVariable(DataType::WORLD_D, 0x01, Core::GetStringId(data.at("content"))));
 		debugger.send(data);
 	}
-	else if (type == MESSAGE_GET_TYPE)
-	{
-		int ref = data.at("content");
-		Value typeval = GetVariable(ref >> 24, ref & 0xffffff, Core::GetStringId("type"));
-		if (typeval.type == DataType::MOB_TYPEPATH)
-		{
-			typeval.value = *MobTableIndexToGlobalTableIndex(typeval.value);
-		}
-		data["content"] = Core::type_to_text(typeval.value);
-		debugger.send(data);
-	}
 	else if (type == MESSAGE_TOGGLE_BREAK_ON_RUNTIME)
 	{
 		break_on_runtimes = data.at("content"); //runtimes funtimes

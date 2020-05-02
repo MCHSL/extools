@@ -24,7 +24,6 @@
 #define MESSAGE_GET_GLOBAL "get global"
 #define MESSAGE_TOGGLE_BREAK_ON_RUNTIME "break on runtimes"
 #define MESSAGE_TOGGLE_PROFILER "toggle profiler"
-#define MESSAGE_GET_TYPE "get type"
 #define MESSAGE_GET_LIST_CONTENTS "get list contents"
 #define MESSAGE_GET_PROFILE "get profile"
 
