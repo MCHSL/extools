@@ -309,7 +309,7 @@ extern "C" EXPORT const char* cleanup(int n_args, const char** args)
 std::unordered_set<std::string> blacklist;
 std::unordered_set<std::string> whitelist;
 std::unordered_map<std::string, std::chrono::steady_clock::time_point> last_packets;
-std::optional<Core::Proc> ban_callback;
+Core::Proc* ban_callback;
 
 bool flood_topic_filter(BSocket* socket, int socket_id)
 {
@@ -374,7 +374,7 @@ extern "C" EXPORT const char* install_flood_topic_filter(int n_args, const char*
 	{
 		return bad;
 	}
-	ban_callback = {};
+	ban_callback = nullptr;
 	if (n_args == 1)
 	{
 		ban_callback = Core::try_get_proc(args[0]);

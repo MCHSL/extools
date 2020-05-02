@@ -111,34 +111,34 @@ void Core::Proc::assemble(Disassembly disasm)
 	//proc_table_entry->local_var_count_idx = Core::get_proc("/proc/twelve_locals").proc_table_entry->local_var_count_idx;
 }
 
-Core::Proc Core::get_proc(std::string name, unsigned int override_id)
+Core::Proc& Core::get_proc(std::string name, unsigned int override_id)
 {
 	strip_proc_path(name);
 	//Core::Alert("Attempting to get proc " + name + ", override " + std::to_string(override_id));
 	return procs_by_name.at(name).at(override_id);
 }
 
-std::optional<Core::Proc> Core::try_get_proc(std::string name, unsigned int override_id)
+Core::Proc* Core::try_get_proc(std::string name, unsigned int override_id)
 {
 	strip_proc_path(name);
 	if (procs_by_name.find(name) == procs_by_name.end())
 	{
-		return {};
+		return nullptr;
 	}
 	auto v = procs_by_name[name];
 	if (override_id >= v.size())
 	{
-		return {};
+		return nullptr;
 	}
-	return v[override_id];
+	return &v[override_id];
 }
 
-Core::Proc Core::get_proc(unsigned int id)
+Core::Proc& Core::get_proc(unsigned int id)
 {
 	return procs_by_id.at(id);
 }
 
-Core::Proc Core::get_proc(ExecutionContext* ctx)
+Core::Proc& Core::get_proc(ExecutionContext* ctx)
 {
 	return get_proc(ctx->constants->proc_id);
 }
