@@ -67,11 +67,6 @@ namespace Core
 		{
 			return id;
 		}
-
-		operator std::string()
-		{
-			return name;
-		}
 	};
 
 	Proc& get_proc(std::string name, unsigned int override_id=0);

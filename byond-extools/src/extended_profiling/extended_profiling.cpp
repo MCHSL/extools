@@ -89,7 +89,7 @@ void dump_extended_profile(ExtendedProfile* profile)
 {
 	//Core::Alert(std::to_string(TOMICROS(real_end - real_start)));
 	//Core::Alert(std::to_string(TOMICROS(profile->end_time - profile->start_time)));
-	std::string procname = Core::get_proc(profile->proc_id);
+	std::string procname = Core::get_proc(profile->proc_id).name;
 	std::replace(procname.begin(), procname.end(), '/', '.');
 #ifdef _WIN32
 	CreateDirectoryA("profiling", NULL);
