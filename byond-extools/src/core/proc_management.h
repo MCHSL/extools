@@ -81,10 +81,10 @@ namespace Core
 	std::vector<Proc>& get_all_procs();
 
 	bool populate_proc_list();
+	void destroy_proc_list();
 	Disassembly disassemble_raw(std::vector<int> bytecode);
 }
 
-extern std::unordered_map<std::string, std::vector<unsigned int>> procs_by_name;
 extern std::unordered_map<unsigned int, ProcHook> proc_hooks;
 extern std::unordered_map<unsigned int, bool> extended_profiling_procs;
 

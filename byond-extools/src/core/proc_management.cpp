@@ -175,3 +175,9 @@ bool Core::populate_proc_list()
 	}
 	return true;
 }
+
+void Core::destroy_proc_list()
+{
+	procs_by_id.clear();
+	procs_by_name.clear();
+}

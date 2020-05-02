@@ -292,8 +292,7 @@ void Core::cleanup()
 {
 	Core::remove_all_hooks();
 	Core::opcode_handlers.clear();
-	Core::get_all_procs().clear();
-	procs_by_name.clear();
+	Core::destroy_proc_list();
 	procs_to_profile.clear();
 	proc_hooks.clear();
 	global_direct_cache.clear();
