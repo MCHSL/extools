@@ -111,3 +111,6 @@ extern GetGlobalByNamePtr GetGlobalByName;
 extern GetTableHolderThingyByIdPtr GetTableHolderThingyById;
 extern IncRefCountPtr IncRefCount;
 extern DecRefCountPtr DecRefCount;
+
+typedef const char* StddefDmPtr;
+extern StddefDmPtr StddefDm;

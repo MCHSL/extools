@@ -39,3 +39,5 @@ GetGlobalByNamePtr GetGlobalByName;
 GetTableHolderThingyByIdPtr GetTableHolderThingyById;
 DecRefCountPtr DecRefCount;
 IncRefCountPtr IncRefCount;
+
+StddefDmPtr StddefDm;

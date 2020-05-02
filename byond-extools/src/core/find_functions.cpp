@@ -33,7 +33,7 @@ bool Core::verify_compat()
 }
 
 bool Core::find_functions()
-{	
+{
 	bool failed = false;
 #ifdef _WIN32
 	FIND_OR_DIE(Suspend, "55 8B EC 53 56 57 8B 7D 08 57 E8 ?? ?? ?? ?? 8B 1F 8B F0 8A 4F 63 83 C4 04 8B 56 18 88 4A 63 8B 4B 20 89 4E 20 8B 43 24 89 46 24 8B 45 0C C6 47 63 00 C7 43 ?? ?? ?? ?? ?? C7 43 ?? ?? ?? ?? ?? 8B 4E 18 89 41 04 F6 43 04 10");
@@ -160,5 +160,8 @@ bool Core::find_functions()
 	proc_setup_table = **(ProcSetupEntry * ***)Pocket::Sigscan::FindPattern(BYONDCORE, "A1 ?? ?? ?? ?? 8B 04 98 85 C0 74 ?? 89 04 24 E8 ?? ?? ?? ?? 8B 15 ?? ?? ?? ??", 1);
 	some_flags_including_profile = *(unsigned int**)Pocket::Sigscan::FindPattern(BYONDCORE, "A1 ?? ?? ?? ?? A8 ?? 0F 85 ?? ?? ?? ??", 2);
 #endif
+
+	FIND_OR_DIE(StddefDm, "2F 2A 0A 09 53 74 61 6E 64 61 72 64 20 64 65 66 69 6E 69 74 69 6F 6E 73");
+
 	return !failed;
 }
