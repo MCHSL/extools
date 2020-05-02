@@ -135,6 +135,9 @@ enum Bytecode
 
 	ISINLIST = 0xA9,
 
+	BROWSE = 0xAA,
+	BROWSE_OPT = 0xAB,
+
 	JMP_OR = 0xB2,
 	JMP_AND = 0xB3,
 
@@ -386,4 +389,6 @@ const std::unordered_map<Bytecode, std::string> mnemonics = {
 	{ISTEXT, "ISTEXT"},
 	{CKEY, "CKEY"},
 	{ BROWSE_RSC, "BROWSE_RSC" },
+	{ BROWSE, "BROWSE" },
+	{ BROWSE_OPT, "BROWSE_OPT" },
 };

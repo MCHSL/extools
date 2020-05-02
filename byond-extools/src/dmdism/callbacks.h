@@ -158,6 +158,8 @@ __forceinline Instruction* get_instr(std::uint32_t op) {
 		ADD_CALLBACK(ISTEXT)
 		ADD_CALLBACK(CKEY)
 		ADD_CALLBACK(BROWSE_RSC)
+		ADD_CALLBACK(BROWSE)
+		ADD_CALLBACK(BROWSE_OPT)
 	}
 	return new Instr_UNK;
 }
