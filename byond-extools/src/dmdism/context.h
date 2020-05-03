@@ -19,6 +19,8 @@ public:
 	std::uint32_t eat(Instruction* instr);
 	std::uint32_t eat_add(Instruction* instr);
 
+	std::uint32_t current_offset() const { return current_offset_; };
+
 private:
 	std::vector<std::uint32_t> buffer_;
 	std::uint32_t current_offset_ = 0;

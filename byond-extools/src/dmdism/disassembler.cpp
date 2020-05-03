@@ -34,6 +34,7 @@ Disassembly Disassembler::disassemble()
 
 Instruction Disassembler::disassemble_next()
 {
+	auto offset = context_->current_offset();
 	auto root = context_->eat(nullptr);
 	std::unique_ptr<Instruction> instr = get_instr(root);
 	/*auto cb = callbacks.find(static_cast<Bytecode>(root));
@@ -46,6 +47,7 @@ Instruction Disassembler::disassemble_next()
 		instr = new Instr_UNK;
 	}*/
 
+	instr->set_offset(offset);
 	instr->add_byte(root);
 	instr->Disassemble(context(), this);
 
