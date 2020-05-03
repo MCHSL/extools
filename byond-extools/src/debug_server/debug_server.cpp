@@ -129,13 +129,13 @@ int DebugServer::handle_one_message()
 	else if (type == MESSAGE_BREAKPOINT_STEP_INTO)
 	{
 		std::lock_guard<std::mutex> lk(notifier_mutex);
-		next_action = STEP_INTO;
+		next_action = NextAction::STEP_INTO;
 		notifier.notify_all();
 	}
 	else if (type == MESSAGE_BREAKPOINT_STEP_OVER)
 	{
 		std::lock_guard<std::mutex> lk(notifier_mutex);
-		next_action = STEP_OVER;
+		next_action = NextAction::STEP_OVER;
 		notifier.notify_all();
 	}
 	else if (type == MESSAGE_BREAKPOINT_PAUSE)
@@ -145,7 +145,7 @@ int DebugServer::handle_one_message()
 	else if (type == MESSAGE_BREAKPOINT_RESUME)
 	{
 		std::lock_guard<std::mutex> lk(notifier_mutex);
-		next_action = RESUME;
+		next_action = NextAction::RESUME;
 		notifier.notify_all();
 	}
 	else if (type == MESSAGE_GET_FIELD)
@@ -279,9 +279,9 @@ bool DebugServer::loop_until_configured()
 NextAction DebugServer::wait_for_action()
 {
 	std::unique_lock<std::mutex> lk(notifier_mutex);
-	notifier.wait(lk, [this] { return next_action != WAIT; });
+	notifier.wait(lk, [this] { return next_action != NextAction::WAIT; });
 	NextAction res = next_action;
-	next_action = WAIT;
+	next_action = NextAction::WAIT;
 	return res;
 }
 
@@ -382,15 +382,15 @@ void DebugServer::on_break(ExecutionContext* ctx)
 {
 	switch (wait_for_action())
 	{
-	case STEP_INTO:
+	case NextAction::STEP_INTO:
 		step_mode = StepMode::INTO;
 		break;
-	case STEP_OVER:
+	case NextAction::STEP_OVER:
 		step_mode = StepMode::PRE_OVER;
 		step_over_context = ctx;
 		step_over_parent_context = ctx->parent_context;
 		break;
-	case RESUME:
+	case NextAction::RESUME:
 		step_mode = StepMode::NONE;
 		break;
 	}

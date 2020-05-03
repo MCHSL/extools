@@ -12,7 +12,7 @@ const char* const DBG_MODE_LAUNCHED = "LAUNCHED";
 const char* const DBG_MODE_BACKGROUND = "BACKGROUND";
 const char* const DBG_MODE_BLOCK = "BLOCK";
 
-enum NextAction
+enum class NextAction
 {
 	WAIT,
 	STEP_INTO,
@@ -66,7 +66,7 @@ class DebugServer
 {
 	JsonStream debugger;
 public:
-	NextAction next_action = WAIT;
+	NextAction next_action = NextAction::WAIT;
 	StepMode step_mode = StepMode::NONE;
 	bool break_on_runtimes = false;
 	ExecutionContext* step_over_context = nullptr;
