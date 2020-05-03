@@ -437,8 +437,13 @@ nlohmann::json value_to_text(Value val)
 		literal = { { "typepath", "/savefile" } };
 		break;
 	case DataType::RESOURCE:
-		literal = { {"resource", Core::stringify(val) } };
+		literal = { { "resource", Core::stringify(val) } };
 		break;
+	case DataType::PROCPATH: {
+		Core::Proc& p = Core::get_proc(val.value);
+		literal = { { "proc", p.name } };
+		break;
+	}
 	default:
 		literal = { { "ref", (val.type << 24) | val.value } };
 	}

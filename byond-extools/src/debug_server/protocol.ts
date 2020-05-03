@@ -82,8 +82,8 @@ type Literal =
     { number: number } |
     { string: string } |
     { typepath: string } |
-    { resource: string };
-    // TODO: proc references
+    { resource: string } |
+    { proc: string };
     // TODO: pops
 
 // A literal with additional applicable information. Returned when retrieving
