@@ -9,9 +9,9 @@
 class Context
 {
 public:
-	Context(std::vector<std::uint32_t> bc, std::vector<Core::Proc>& ps) : buffer_(bc), procs_(ps) {}
+	Context(std::vector<std::uint32_t> bc, const std::vector<Core::Proc>& ps) : buffer_(bc), procs_(ps) {}
 	std::vector<std::uint32_t> buffer() const { return buffer_; }
-	std::vector<Core::Proc>& procs() const { return procs_; }
+	const std::vector<Core::Proc>& procs() const { return procs_; }
 	bool more() const { return current_offset_ < buffer_.size(); }
 
 	std::uint32_t peek();
@@ -27,7 +27,7 @@ private:
 	std::vector<std::uint32_t> buffer_;
 	std::uint32_t last_opcode_ = 0;
 	std::uint32_t current_offset_ = 0;
-	std::vector<Core::Proc>& procs_;
+	const std::vector<Core::Proc>& procs_;
 	std::vector<Instruction> instructions_;
 	Instruction* instr_ = nullptr;
 };

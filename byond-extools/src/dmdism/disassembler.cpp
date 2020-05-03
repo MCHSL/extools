@@ -10,12 +10,12 @@
 #include "context.h"
 
 
-Disassembler::Disassembler(std::vector<std::uint32_t> bc, std::vector<Core::Proc>& ps)
+Disassembler::Disassembler(std::vector<std::uint32_t> bc, const std::vector<Core::Proc>& ps)
 {
 	context_ = std::make_unique<Context>(bc, ps);
 }
 
-Disassembler::Disassembler(std::uint32_t* bc, unsigned int bc_len, std::vector<Core::Proc>& ps)
+Disassembler::Disassembler(std::uint32_t* bc, unsigned int bc_len, const std::vector<Core::Proc>& ps)
 {
 	std::vector<std::uint32_t> v(bc, bc + bc_len);
 	context_ = std::make_unique<Context>(v, ps);

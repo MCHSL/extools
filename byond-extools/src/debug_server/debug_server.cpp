@@ -72,7 +72,7 @@ int DebugServer::handle_one_message()
 	else if (type == MESSAGE_PROC_LIST)
 	{
 		std::vector<nlohmann::json> procs;
-		for (Core::Proc& proc : Core::get_all_procs())
+		for (const Core::Proc& proc : Core::get_all_procs())
 		{
 			procs.push_back({ {"proc", proc.name}, {"override_id", proc.override_id} });
 		}

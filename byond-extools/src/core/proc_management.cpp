@@ -58,7 +58,7 @@ std::uint16_t Core::Proc::get_local_varcount() //TODO: this is broken
 	return setup_entry_varcount->local_var_count;
 }
 
-ProfileInfo* Core::Proc::profile()
+ProfileInfo* Core::Proc::profile() const
 {
 	return GetProfileInfo(id);
 }
