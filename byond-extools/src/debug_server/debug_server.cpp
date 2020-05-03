@@ -208,6 +208,11 @@ int DebugServer::handle_one_message()
 			debugger.send(data);
 		}
 	}
+	else if (type == MESSAGE_GET_SOURCE)
+	{
+		data["content"] = StdDefDM ? std::string(StdDefDM(nullptr)) : "";
+		debugger.send(data);
+	}
 
 	else if (type == MESSAGE_GET_PROFILE)
 	{

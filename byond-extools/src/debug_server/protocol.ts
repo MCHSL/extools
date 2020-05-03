@@ -182,6 +182,10 @@ interface MessageDeclarations {
         request: boolean,
         response: boolean,
     },
+    "get source": {
+        request: 'stddef.dm',
+        response: string,
+    },
     // response only
     "breakpoint hit": {
         response: BreakpointHit,
