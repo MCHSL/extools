@@ -383,15 +383,15 @@ void DebugServer::on_break(ExecutionContext* ctx)
 	switch (wait_for_action())
 	{
 	case STEP_INTO:
-		step_mode = INTO;
+		step_mode = StepMode::INTO;
 		break;
 	case STEP_OVER:
-		step_mode = PRE_OVER;
+		step_mode = StepMode::PRE_OVER;
 		step_over_context = ctx;
 		step_over_parent_context = ctx->parent_context;
 		break;
 	case RESUME:
-		step_mode = NONE;
+		step_mode = StepMode::NONE;
 		break;
 	}
 }
@@ -528,15 +528,15 @@ extern "C" void on_singlestep()
 	{
 		debug_server.restore_breakpoint();
 	}
-	if (debug_server.step_mode == INTO)
+	if (debug_server.step_mode == StepMode::INTO)
 	{
 		debug_server.on_step(Core::get_context());
 	}
-	else if (debug_server.step_mode == OVER)
+	else if (debug_server.step_mode == StepMode::OVER)
 	{
 		if (!debug_server.step_over_context)
 		{
-			debug_server.step_mode = NONE;
+			debug_server.step_mode = StepMode::NONE;
 			return;
 		}
 		ExecutionContext* ctx = Core::get_context();
@@ -550,12 +550,12 @@ extern "C" void on_singlestep()
 		{
 			debug_server.step_over_context = nullptr; //there is nothing to return to, we missed our chance
 			debug_server.step_over_parent_context = nullptr;
-			debug_server.step_mode = NONE;
+			debug_server.step_mode = StepMode::NONE;
 		}
 	}
-	else if (debug_server.step_mode == PRE_OVER)
+	else if (debug_server.step_mode == StepMode::PRE_OVER)
 	{
-		debug_server.step_mode = OVER;
+		debug_server.step_mode = StepMode::OVER;
 	}
 }
 

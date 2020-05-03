@@ -20,7 +20,7 @@ enum NextAction
 	RESUME
 };
 
-enum StepMode
+enum class StepMode
 {
 	NONE,
 	PRE_INTO,
@@ -67,7 +67,7 @@ class DebugServer
 	JsonStream debugger;
 public:
 	NextAction next_action = WAIT;
-	StepMode step_mode = NONE;
+	StepMode step_mode = StepMode::NONE;
 	bool break_on_runtimes = false;
 	ExecutionContext* step_over_context = nullptr;
 	ExecutionContext* step_over_parent_context = nullptr;
