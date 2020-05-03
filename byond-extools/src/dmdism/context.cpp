@@ -24,8 +24,7 @@ std::uint32_t Context::take()
 		return END;
 	}
 
-	last_opcode_ = buffer_[current_offset_++];
-	return last_opcode_;
+	return buffer_[current_offset_++];
 }
 
 std::uint32_t Context::eat(Instruction* instr)
@@ -44,7 +43,7 @@ std::uint32_t Context::eat_add(Instruction* instr)
 	std::uint32_t val = eat(instr);
 	if (instr != nullptr)
 	{
-		instr->opcode().add_info(" " + tohex(last_opcode_));
+		instr->opcode().add_info(" " + tohex(val));
 	}
 
 	return val;

@@ -21,8 +21,6 @@ public:
 
 private:
 	std::vector<std::uint32_t> buffer_;
-	std::uint32_t last_opcode_ = 0;
 	std::uint32_t current_offset_ = 0;
 	const std::vector<Core::Proc>& procs_;
-	std::vector<Instruction> instructions_;
 };
