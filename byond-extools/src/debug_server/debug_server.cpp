@@ -59,7 +59,7 @@ int DebugServer::handle_one_message()
 	//Core::Alert("Message!!");
 	if (data.is_null())
 	{
-		Core::Alert("null message, leaving");
+		//Core::Alert("null message, leaving");
 		return RES_BREAK;
 	}
 	const std::string& type = data.at("type");
