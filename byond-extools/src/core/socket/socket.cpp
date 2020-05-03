@@ -219,7 +219,7 @@ bool JsonStream::send(nlohmann::json j)
 	data.push_back(0);
 	while (!data.empty())
 	{
-		int sent_bytes = ::send(socket.raw(), data.c_str(), data.size(), 0);
+		int sent_bytes = ::send(socket.raw(), data.data(), data.size(), 0);
 		if (sent_bytes == SOCKET_ERROR)
 		{
 			return false;
@@ -275,7 +275,7 @@ bool TcpStream::send(std::string data)
 {
 	while (!data.empty())
 	{
-		int sent_bytes = ::send(socket.raw(), data.c_str(), data.size(), 0);
+		int sent_bytes = ::send(socket.raw(), data.data(), data.size(), 0);
 		if (sent_bytes == SOCKET_ERROR)
 		{
 			return false;

@@ -40,7 +40,7 @@ trvh show_profiles(Value* args, unsigned int argcount)
 	unsigned long long dm = Core::get_proc("/proc/measure_dm").profile()->total.microseconds;
 	unsigned long long native = Core::get_proc("/proc/measure_native").profile()->total.microseconds;
 	std::string woo = "DM proc took " + std::to_string(dm) + " microseconds while native took " + std::to_string(native) + " microseconds.";
-	Core::Alert(woo.c_str());
+	Core::Alert(woo);
 	return Value::Null();
 }
 

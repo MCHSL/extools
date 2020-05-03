@@ -22,7 +22,7 @@ trvh handle_proxy(int id, int name_id)
 	std::ifstream fin("wack.txt");
 	std::string wack;
 	fin >> wack;
-	return { DataType::STRING, (int)Core::GetStringId(wack.c_str()) };
+	return { DataType::STRING, (int)Core::GetStringId(wack) };
 }
 
 trvh hGetVariable(int datumType, int datumId, unsigned int name_id)
