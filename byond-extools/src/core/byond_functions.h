@@ -8,6 +8,7 @@ struct variadic_arg_hack
 };
 
 struct BSocket;
+struct DungBuilder;
 
 typedef trvh(REGPARM3 *CallGlobalProcPtr)(char usr_type, int usr_value, int proc_type, unsigned int proc_id, int const_0, DataType src_type, int src_value, Value* argList, unsigned int argListLen, int const_0_2, int const_0_3);
 typedef Value(*Text2PathPtr)(unsigned int text);
@@ -71,6 +72,7 @@ typedef Value(*GetGlobalByNamePtr)(unsigned int name_id);
 typedef TableHolderThingy*(*GetTableHolderThingyByIdPtr)(unsigned int id);
 typedef void(*IncRefCountPtr)(int type, int value);
 typedef void(*DecRefCountPtr)(int type, int value);
+typedef const char* (__thiscall *StdDefDMPtr)(DungBuilder* this_);
 
 extern CrashProcPtr CrashProc;
 extern StartTimingPtr StartTiming;
@@ -111,6 +113,4 @@ extern GetGlobalByNamePtr GetGlobalByName;
 extern GetTableHolderThingyByIdPtr GetTableHolderThingyById;
 extern IncRefCountPtr IncRefCount;
 extern DecRefCountPtr DecRefCount;
-
-typedef const char* StddefDmPtr;
-extern StddefDmPtr StddefDm;
+extern StdDefDMPtr StdDefDM;

@@ -18,9 +18,11 @@ bool Core::verify_compat()
 #ifdef _WIN32
 	IMPORT_OR_DIE(GetByondVersion, "?GetByondVersion@ByondLib@@QAEJXZ");
 	IMPORT_OR_DIE(GetByondBuild, "?GetByondBuild@ByondLib@@QAEJXZ");
+	IMPORT_OR_DIE(StdDefDM, "?StdDefDM@DungBuilder@@QAEPADXZ");
 #else
 	IMPORT_OR_DIE(GetByondVersion, "_ZN8ByondLib15GetByondVersionEv");
 	IMPORT_OR_DIE(GetByondBuild, "_ZN8ByondLib13GetByondBuildEv");
+	IMPORT_OR_DIE(StdDefDM, "_ZN11DungBuilder8StdDefDMEv");
 #endif
 	ByondVersion = GetByondVersion();
 	ByondBuild = GetByondBuild();
@@ -160,8 +162,6 @@ bool Core::find_functions()
 	proc_setup_table = **(ProcSetupEntry * ***)Pocket::Sigscan::FindPattern(BYONDCORE, "A1 ?? ?? ?? ?? 8B 04 98 85 C0 74 ?? 89 04 24 E8 ?? ?? ?? ?? 8B 15 ?? ?? ?? ??", 1);
 	some_flags_including_profile = *(unsigned int**)Pocket::Sigscan::FindPattern(BYONDCORE, "A1 ?? ?? ?? ?? A8 ?? 0F 85 ?? ?? ?? ??", 2);
 #endif
-
-	FIND_OR_DIE(StddefDm, "2F 2A 0A 09 53 74 61 6E 64 61 72 64 20 64 65 66 69 6E 69 74 69 6F 6E 73");
 
 	return !failed;
 }
