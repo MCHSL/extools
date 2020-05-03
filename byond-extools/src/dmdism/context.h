@@ -16,12 +16,8 @@ public:
 
 	std::uint32_t peek();
 	std::uint32_t take();
-	std::uint32_t eat();
-	std::uint32_t eat_add();
-
-
-	void set_instr(Instruction* instr);
-	void finish_instr();
+	std::uint32_t eat(Instruction* instr);
+	std::uint32_t eat_add(Instruction* instr);
 
 private:
 	std::vector<std::uint32_t> buffer_;
@@ -29,5 +25,4 @@ private:
 	std::uint32_t current_offset_ = 0;
 	const std::vector<Core::Proc>& procs_;
 	std::vector<Instruction> instructions_;
-	Instruction* instr_ = nullptr;
 };

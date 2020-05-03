@@ -17,11 +17,11 @@ void Instr_CALL::Disassemble(Context* context, Disassembler* dism)
 		return;
 	}
 
-	std::uint32_t procid = context->eat();
+	std::uint32_t procid = context->eat(this);
 	std::string name = byond_tostring(procid);
 	std::replace(name.begin(), name.end(), ' ', '_');
 	comment_ += name;
-	std::uint32_t num_args = context->eat();
+	std::uint32_t num_args = context->eat(this);
 
 	dism->add_call_args(*this, num_args);
 }
@@ -34,19 +34,19 @@ void Instr_CALLNR::Disassemble(Context* context, Disassembler* dism)
 		return;
 	}
 
-	std::uint32_t procid = context->eat();
+	std::uint32_t procid = context->eat(this);
 	std::string name = byond_tostring(procid);
 	std::replace(name.begin(), name.end(), ' ', '_');
 	comment_ += name;
-	std::uint32_t num_args = context->eat();
+	std::uint32_t num_args = context->eat(this);
 
 	dism->add_call_args(*this, num_args);
 }
 
 void Instr_CALLGLOB::Disassemble(Context* context, Disassembler* dism)
 {
-	std::uint32_t num_args = context->eat();
-	std::uint32_t proc_id = context->eat();
+	std::uint32_t num_args = context->eat(this);
+	std::uint32_t proc_id = context->eat(this);
 
 	if (proc_id < context->procs().size())
 	{
@@ -61,7 +61,7 @@ void Instr_CALLGLOB::Disassemble(Context* context, Disassembler* dism)
 
 void Instr_CALL_GLOBAL_ARGLIST::Disassemble(Context* context, Disassembler* dism)
 {
-	std::uint32_t proc_id = context->eat();
+	std::uint32_t proc_id = context->eat(this);
 
 	if (proc_id < context->procs().size())
 	{
@@ -75,7 +75,7 @@ void Instr_CALL_GLOBAL_ARGLIST::Disassemble(Context* context, Disassembler* dism
 
 void Instr_SWITCH::Disassemble(Context* context, Disassembler* dism)
 {
-	std::uint32_t case_count = context->eat();
+	std::uint32_t case_count = context->eat(this);
 	comment_ += std::to_string(case_count) + " cases, default jump to ";
 	add_info("Cases");
 	for (int i = 0; i < case_count; i++)

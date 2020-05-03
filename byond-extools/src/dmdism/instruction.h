@@ -100,7 +100,7 @@ public:
 	class Instr_##op : public Instruction																\
 {																										\
 	using Instruction::Instruction;																		\
-	void Disassemble(Context* context, Disassembler* dism) override { add_jump(context->eat()); for (unsigned int i = 1; i < arguments(); i++) std::uint32_t val = context->eat_add(); }	\
+	void Disassemble(Context* context, Disassembler* dism) override { add_jump(context->eat(this)); for (unsigned int i = 1; i < arguments(); i++) std::uint32_t val = context->eat_add(this); }	\
 	unsigned int arguments() const override { return argcount; }												\
 };
 //absolutely barbaric
