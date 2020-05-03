@@ -54,7 +54,7 @@ ManagedValue Value::get_by_id(int id)
 
 std::unordered_map<std::string, Value> Value::get_all_vars()
 {
-	Container vars = get("vars");
+	Container vars = *this == Global() ? Value { DataType::LIST_GLOBAL_VARS, 0 } : get("vars");
 	int len = vars.length();
 	std::unordered_map<std::string, Value> vals;
 	for (int i = 0; i < len; i++)
