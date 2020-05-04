@@ -29,26 +29,26 @@ std::unordered_map<std::string, Value*> Core::global_direct_cache;
 Core::ManagedString::ManagedString(unsigned int id) : string_id(id)
 {
 	string_entry = GetStringTableEntry(string_id);
-	string_entry->refcount++;
+	IncRefCount(DataType::STRING, string_id);
 }
 
 Core::ManagedString::ManagedString(std::string str)
 {
 	string_id = GetStringId(str);
-	string_entry = GetStringTableEntry(string_id);
-	string_entry->refcount++;
+	string_entry = GetStringTableEntry(string_id); //leaving it like this for now, not feeling like reversing the new structure when we have refcount functions
+	IncRefCount(DataType::STRING, string_id);
 }
 
 Core::ManagedString::ManagedString(const ManagedString& other)
 {
 	string_id = other.string_id;
 	string_entry = other.string_entry;
-	string_entry->refcount++;
+	IncRefCount(DataType::STRING, string_id);
 }
 
 Core::ManagedString::~ManagedString()
 {
-	string_entry->refcount--;
+	DecRefCount(DataType::STRING, string_id);
 }
 
 Core::ManagedString Core::GetManagedString(std::string str)
@@ -93,7 +93,7 @@ unsigned int Core::GetStringId(std::string str, bool increment_refcount) {
 			return idx; //this could cause memory problems with a lot of long strings but otherwise they get garbage collected after first use.
 		}
 		case 513:
-			return GetStringTableIndexUTF8(str.c_str(), 0, 0, 1);
+			return GetStringTableIndexUTF8(str.c_str(), 0xFFFFFFFF, 0, 1);
 		default: break;
 	}
 	return 0;
