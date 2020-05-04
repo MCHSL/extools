@@ -118,8 +118,8 @@ trvh gasmixture_merge(unsigned int args_len, Value* args, Value src)
 {
 	if (args_len < 1)
 		return Value::Null();
-	DecRefCount(args[0].type, args[0].value); // super hacky memory leak fix  (and others) - arguments automatically have refcounts incremented, but not decremented.
 	get_gas_mixture(src)->merge(*get_gas_mixture(args[0]));
+	DecRefCount(args[0].type, args[0].value); // super hacky memory leak fix  (and others) - arguments automatically have refcounts incremented, but not decremented.
 	return Value::Null();
 }
 
@@ -127,8 +127,8 @@ trvh gasmixture_remove_ratio(unsigned int args_len, Value* args, Value src)
 {
 	if (args_len < 2)
 		return Value::Null();
-	DecRefCount(args[0].type, args[0].value);
 	get_gas_mixture(args[0])->copy_from_mutable(get_gas_mixture(src)->remove_ratio(args[1].valuef));
+	DecRefCount(args[0].type, args[0].value);
 	return Value::Null();
 }
 
@@ -136,8 +136,8 @@ trvh gasmixture_remove(unsigned int args_len, Value* args, Value src)
 {
 	if (args_len < 2)
 		return Value::Null();
-	DecRefCount(args[0].type, args[0].value);
 	get_gas_mixture(args[0])->copy_from_mutable(get_gas_mixture(src)->remove(args[1].valuef));
+	DecRefCount(args[0].type, args[0].value);
 	return Value::Null();
 }
 
@@ -145,8 +145,8 @@ trvh gasmixture_copy_from(unsigned int args_len, Value* args, Value src)
 {
 	if (args_len < 1)
 		return Value::Null();
-	DecRefCount(args[0].type, args[0].value);
 	get_gas_mixture(src)->copy_from_mutable(*get_gas_mixture(args[0]));
+	DecRefCount(args[0].type, args[0].value);
 	return Value::Null();
 }
 
@@ -154,8 +154,9 @@ trvh gasmixture_share(unsigned int args_len, Value* args, Value src)
 {
 	if (args_len < 1)
 		return Value::Null();
+	Value ret = Value(get_gas_mixture(src)->share(*get_gas_mixture(args[0]), args_len >= 2 ? args[1].valuef : 4));
 	DecRefCount(args[0].type, args[0].value);
-	return Value(get_gas_mixture(src)->share(*get_gas_mixture(args[0]), args_len >= 2 ? args[1].valuef : 4));
+	return ret;
 }
 
 trvh gasmixture_get_last_share(unsigned int args_len, Value* args, Value src)
@@ -210,7 +211,6 @@ trvh gasmixture_scrub_into(unsigned int args_len, Value* args, Value src)
 	if (args_len < 2)
 		return Value::Null();
 	// DecRefCount(args[0].type, args[0].value); // Since we're returning it we don't want to decrement the reference count
-	DecRefCount(args[1].type, args[1].value);
 	GasMixture &src_gas = *get_gas_mixture(src);
 	GasMixture &dest_gas = *get_gas_mixture(args[0]);
 	Container gases_to_scrub = args[1];
@@ -225,6 +225,7 @@ trvh gasmixture_scrub_into(unsigned int args_len, Value* args, Value src)
 		src_gas.set_moles(index, 0);
 	}
 	dest_gas.merge(buffer);
+	DecRefCount(args[1].type, args[1].value);
 	return args[0];
 }
 
