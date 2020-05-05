@@ -10,6 +10,10 @@ struct variadic_arg_hack
 struct BSocket;
 struct DungBuilder;
 
+#ifndef _WIN32
+#define __thiscall __attribute__((thiscall))
+#endif
+
 typedef trvh(REGPARM3 *CallGlobalProcPtr)(char usr_type, int usr_value, int proc_type, unsigned int proc_id, int const_0, DataType src_type, int src_value, Value* argList, unsigned int argListLen, int const_0_2, int const_0_3);
 typedef Value(*Text2PathPtr)(unsigned int text);
 #ifdef _WIN32
