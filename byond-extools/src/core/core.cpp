@@ -184,35 +184,6 @@ std::string Core::stringify(Value val)
 	return "";
 }*/
 
-static const char* good = Core::SUCCESS;
-static const char* bad = Core::FAIL;
-
-extern "C" EXPORT const char* enable_profiling(int n_args, const char** args)
-{
-	Core::initialize() && Core::enable_profiling();
-	return good;
-}
-
-extern "C" EXPORT const char* disable_profiling(int n_args, const char** args)
-{
-	Core::initialize() && Core::disable_profiling();
-	return good;
-}
-
-extern "C" EXPORT const char* core_initialize(int n_args, const char** args)
-{
-	if (!Core::initialize())
-	{
-		Core::Alert("Core init failed!");
-		return bad;
-	}
-	//optimizer_initialize();
-#ifdef _WIN32 // i ain't fixing this awful Linux situation anytime soon
-	//extended_profiling_initialize();
-#endif
-	return good;
-}
-
 std::uint32_t Core::get_socket_from_client(unsigned int id)
 {
 	int str = (int)GetSocketHandleStruct(id);
@@ -284,10 +255,4 @@ void Core::cleanup()
 	proc_hooks.clear();
 	global_direct_cache.clear();
 	Core::initialized = false; // add proper modularization already
-}
-
-extern "C" EXPORT const char* cleanup(int n_args, const char** args)
-{
-	Core::cleanup();
-	return good;
 }
