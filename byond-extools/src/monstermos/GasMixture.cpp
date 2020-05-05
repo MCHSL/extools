@@ -38,14 +38,6 @@ void GasMixture::set_min_heat_capacity(float n) {
 	min_heat_capacity = n;
 }
 
-float GasMixture::total_moles() const {
-    float capacity = 0;
-    for(int i = 0; i < TOTAL_NUM_GASES; i++) {
-        capacity += moles[i];
-    }
-    return capacity;
-}
-
 float GasMixture::return_pressure() const {
     if(volume <= 0) return 0;
     return total_moles() * R_IDEAL_GAS_EQUATION * temperature / volume;

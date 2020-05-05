@@ -14,12 +14,18 @@ class GasMixture
     public:
         GasMixture(float volume);
         void mark_immutable();
-        bool is_immutable() {return immutable;}
+        inline bool is_immutable() const {return immutable;}
 
         float heat_capacity() const;
         float heat_capacity_archived() const;
 		void set_min_heat_capacity(float n);
-        float total_moles() const;
+        inline float total_moles() const { // inlined for debugging reasons
+            float capacity = 0;
+            for (int i = 0; i < TOTAL_NUM_GASES; i++) {
+                capacity += moles[i];
+            }
+            return capacity;
+        }
         float return_pressure() const;
         float thermal_energy() const;
         void archive();
@@ -33,13 +39,13 @@ class GasMixture
 		void clear();
 		void multiply(float multiplier);
 
-        float get_temperature() const { return temperature; }
-        void set_temperature(float new_temp) { if(!immutable) temperature = new_temp; }
-        float get_moles(int gas_type) const {return moles[gas_type] >= GAS_MIN_MOLES ? moles[gas_type] : 0;}
-        void set_moles(int gas_type, float new_moles) { if(!immutable) moles[gas_type] = new_moles; }
-		float get_volume() const { return volume; }
-		void set_volume(float new_vol) { volume = new_vol; }
-		float get_last_share() const { return last_share; }
+        inline float get_temperature() const { return temperature; }
+        inline void set_temperature(float new_temp) { if(!immutable) temperature = new_temp; }
+        inline float get_moles(int gas_type) const {return moles[gas_type] >= GAS_MIN_MOLES ? moles[gas_type] : 0;}
+        inline void set_moles(int gas_type, float new_moles) { if(!immutable) moles[gas_type] = new_moles; }
+		inline float get_volume() const { return volume; }
+		inline void set_volume(float new_vol) { volume = new_vol; }
+		inline float get_last_share() const { return last_share; }
 
     private:
         GasMixture();
@@ -52,7 +58,7 @@ class GasMixture
 		float min_heat_capacity = 0;
         bool immutable = false;
 	// you might thing, "damn, all the gases, wont that use up more memory"?
-	// well no. Let's look at the average gas mixture containing both oxygen and nitrogen:
+	// well no. Let's look at the average gas mixture in BYOND land containing both oxygen and nitrogen:
 	// gases (28+8 bytes)
 	//   oxygen (28+8 bytes)
 	//     MOLES (8 bytes)

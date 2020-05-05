@@ -558,9 +558,12 @@ void Tile::equalize_pressure_in_zone(int cyclenum) {
 				if (!tile2->monstermos_info || tile2->monstermos_info->last_queue_cycle != queue_cycle) continue;
 				if (tile2->monstermos_info->last_slow_queue_cycle == queue_cycle_slow) continue;
 				if (tile2->monstermos_info->is_planet) continue;
-				tile2->monstermos_info->last_slow_queue_cycle = queue_cycle_slow;
-				tile2->monstermos_info->curr_transfer_dir = opp_dir_index[j];
-				progression_order.push_back(tile2);
+				tile->turf_ref.invoke("consider_firelocks", { tile2->turf_ref });
+				if (tile->adjacent_bits & (1 << j)) {
+					tile2->monstermos_info->last_slow_queue_cycle = queue_cycle_slow;
+					tile2->monstermos_info->curr_transfer_dir = opp_dir_index[j];
+					progression_order.push_back(tile2);
+				}
 			}
 		}
 		// apply airflow to turfs.
