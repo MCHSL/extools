@@ -229,3 +229,14 @@ void run_tests()
 {
 
 }
+
+extern "C" EXPORT const char* run_tests(int n_args, const char** args)
+{
+	if (!Core::initialize())
+	{
+		return Core::FAIL;
+	}
+	init_testing();
+	run_tests();
+	return Core::SUCCESS;
+}
