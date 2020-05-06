@@ -56,6 +56,32 @@ Core::ManagedString Core::GetManagedString(std::string str)
 	return ManagedString(str);
 }
 
+Core::ResumableProc::ResumableProc(const ResumableProc& other)
+{
+	proc = other.proc;
+}
+
+Core::ResumableProc Core::ResumableProc::FromCurrent()
+{
+	return ResumableProc(Suspend(Core::get_context(), 0));
+}
+
+void Core::ResumableProc::resume()
+{
+	if (!proc)
+	{
+		return;
+	}
+	proc->time_to_resume = 1;
+	StartTiming(proc);
+	proc = nullptr;
+}
+
+Core::ResumableProc Core::SuspendCurrentProc()
+{
+	return ResumableProc::FromCurrent();
+}
+
 bool Core::initialize()
 {
 	if (initialized)

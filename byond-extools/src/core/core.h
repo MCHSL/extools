@@ -71,6 +71,22 @@ namespace Core
 		unsigned int string_id;
 		String* string_entry;
 	};
+
+	class ResumableProc
+	{
+	public:
+		ResumableProc(const ResumableProc& other);
+		static ResumableProc FromCurrent();
+		void resume();
+
+	protected:
+		SuspendedProc* proc;
+
+	private:
+		ResumableProc(SuspendedProc* sp) : proc(sp) {}
+
+	};
+
 	extern std::map<unsigned int, opcode_handler> opcode_handlers;
 	extern std::map<std::string, unsigned int> name_to_opcode;
 	extern ExecutionContext** current_execution_context_ptr;
@@ -112,4 +128,5 @@ namespace Core
 	std::uint32_t get_socket_from_client(unsigned int id);
 	void cleanup();
 	void alert_dd(std::string msg);
+	ResumableProc SuspendCurrentProc();
 }
