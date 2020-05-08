@@ -83,7 +83,7 @@ namespace Core
 		SuspendedProc* proc;
 
 	private:
-		ResumableProc(SuspendedProc* sp) : proc(sp) {}
+		ResumableProc(SuspendedProc* sp) : proc(sp) { sp->time_to_resume = 1; }
 
 	};
 

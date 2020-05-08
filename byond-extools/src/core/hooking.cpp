@@ -5,10 +5,12 @@
 #include "../third_party/json.hpp"
 #include <stack>
 #include "../extended_profiling/extended_profiling.h"
+#include <mutex>
 
 CrashProcPtr oCrashProc;
 CallGlobalProcPtr oCallGlobalProc;
 TopicFloodCheckPtr oTopicFloodCheck;
+StartTimingPtr oStartTiming;
 
 TopicFilter current_topic_filter = nullptr;
 
@@ -23,7 +25,7 @@ trvh REGPARM3 hCallGlobalProc(char usr_type, int usr_value, int proc_type, unsig
 {
 	//if(proc_id < Core::codecov_executed_procs.size())
 	//	Core::codecov_executed_procs[proc_id] = true;
-	if (!queued_calls.empty() && !calling_queue)
+	/*if (!queued_calls.empty() && !calling_queue)
 	{
 		calling_queue = true;
 		while(!queued_calls.empty())
@@ -40,7 +42,7 @@ trvh REGPARM3 hCallGlobalProc(char usr_type, int usr_value, int proc_type, unsig
 			}
 		}
 		calling_queue = false;
-	}
+	}*/
 	Core::extended_profiling_insanely_hacky_check_if_its_a_new_call_or_resume = proc_id;
 	if (proc_hooks.find((unsigned short)proc_id) != proc_hooks.end())
 	{
@@ -70,6 +72,13 @@ bool hTopicFloodCheck(int socket_id)
 		return !current_topic_filter(GetBSocket(socket_id), socket_id); //inverting here cause it seems that the function is more like "CheckIsBanned" where it returns true if byond needs to ignore the client
 	}
 	return oTopicFloodCheck(socket_id);
+}
+
+std::recursive_mutex timing_mutex;
+void hStartTiming(SuspendedProc* sp)
+{
+	std::lock_guard<std::recursive_mutex> lk(timing_mutex);
+	oStartTiming(sp);
 }
 
 void Core::set_topic_filter(TopicFilter tf)
@@ -106,7 +115,8 @@ bool Core::hook_custom_opcodes() {
 	oCrashProc = install_hook(CrashProc, hCrashProc);
 	oCallGlobalProc = install_hook(CallGlobalProc, hCallGlobalProc);
 	oTopicFloodCheck = install_hook(TopicFloodCheck, hTopicFloodCheck);
-	if (!(oCrashProc && oCallGlobalProc && oTopicFloodCheck)) {
+	oStartTiming = install_hook(StartTiming, hStartTiming);
+	if (!(oCrashProc && oCallGlobalProc && oTopicFloodCheck && oStartTiming)) {
 		Core::Alert("Failed to install hooks!");
 		return false;
 	}

@@ -30,6 +30,7 @@ class Socket
 	SOCKET raw_socket = INVALID_SOCKET;
 	static Socket from_raw(int raw_socket);
 	friend class JsonListener;
+	friend class TcpListener;
 
 public:
 	Socket() {}
@@ -73,8 +74,24 @@ class TcpStream
 {
 	Socket socket;
 public:
+	TcpStream() {}
+	explicit TcpStream(Socket&& socket) : socket(std::move(socket)) {}
+
 	bool connect(const char* port, const char* remote); //augh, why port first?! damn it spaceman
+
 	bool send(std::string data);
 	std::string recv();
 	void close() { socket.close(); }
+	bool valid() { return socket.raw() != INVALID_SOCKET; }
+};
+
+class TcpListener
+{
+	Socket socket;
+public:
+	TcpListener() {}
+	bool listen(const char* port, const char* iface);
+	TcpStream accept();
+	void close() { socket.close(); }
+	bool valid() { return socket.raw() != INVALID_SOCKET; }
 };

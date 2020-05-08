@@ -118,8 +118,7 @@ bool connect_socket(Socket& socket, const char* port, const char* remote, bool y
 	return true;
 }
 
-// Listening.
-bool JsonListener::listen(const char* port, const char* iface)
+bool listen_on_socket(Socket& socket, const char* port, const char* iface)
 {
 	struct addrinfo* result = NULL;
 	struct addrinfo hints;
@@ -130,6 +129,7 @@ bool JsonListener::listen(const char* port, const char* iface)
 	// Initialize Winsock
 	if (!InitOnce())
 	{
+		Core::Alert("Winsock init failed");
 		return false;
 	}
 
@@ -159,7 +159,7 @@ bool JsonListener::listen(const char* port, const char* iface)
 	// Set SO_REUSEADDR so if the process is killed, the port becomes reusable
 	// immediately rather than after a 60-second delay.
 	int opt = 1;
-	setsockopt(socket.raw(), SOL_SOCKET, SO_REUSEADDR, (const char*) &opt, sizeof(int));
+	setsockopt(socket.raw(), SOL_SOCKET, SO_REUSEADDR, (const char*)&opt, sizeof(int));
 
 	// Setup the TCP listening socket
 	iResult = bind(socket.raw(), result->ai_addr, (int)result->ai_addrlen);
@@ -186,6 +186,16 @@ bool JsonListener::listen(const char* port, const char* iface)
 	}
 
 	return true;
+}
+
+// Listening.
+bool JsonListener::listen(const char* port, const char* iface)
+{
+	if (!InitOnce())
+	{
+		return false;
+	}
+	return listen_on_socket(socket, port, iface);
 }
 
 JsonStream JsonListener::accept()
@@ -283,4 +293,19 @@ bool TcpStream::send(std::string data)
 		data.erase(data.begin(), data.begin() + sent_bytes);
 	}
 	return true;
+}
+
+bool TcpListener::listen(const char* port, const char* iface)
+{
+	if (!InitOnce()) // I feel like both TcpStream and JsonStream should inherit from some BaseStream that implements connecting and listening
+	{
+		Core::Alert("InitOnce failed!");
+		return false;
+	}
+	return listen_on_socket(socket, port, iface);
+}
+
+TcpStream TcpListener::accept()
+{
+	return TcpStream(Socket::from_raw(::accept(socket.raw(), NULL, NULL)));
 }

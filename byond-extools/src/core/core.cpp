@@ -63,7 +63,11 @@ Core::ResumableProc::ResumableProc(const ResumableProc& other)
 
 Core::ResumableProc Core::ResumableProc::FromCurrent()
 {
-	return ResumableProc(Suspend(Core::get_context(), 0));
+	auto ctx = Core::get_context();
+	ctx->current_opcode++;
+	auto ret = ResumableProc(Suspend(ctx, 0));
+	ctx->current_opcode--;
+	return ret;
 }
 
 void Core::ResumableProc::resume()
