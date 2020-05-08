@@ -2,8 +2,8 @@
 External tools for BYOND. Used to fiddle with the game engine's internals.
 
 <table>
-<tr><td align="right"><a href="https://ci.appveyor.com/project/MCHSL/extools"><img src="https://ci.appveyor.com/api/projects/status/github/MCHSL/extools?svg=true" alt="Appveyor status" /></a></td><td>Windows build (with <a href="https://ci.appveyor.com/project/MCHSL/extools/build/artifacts">binaries</a>)</td></tr>
-<tr><td align="right"><a href="https://travis-ci.org/MCHSL/extools"><img src="https://travis-ci.org/MCHSL/extools.svg?branch=master" alt="Travis status" /></td><td>Linux build (work in progress)</td></tr>
+<tr><td align="right" valign="middle"><a href="https://ci.appveyor.com/project/MCHSL/extools"><img src="https://ci.appveyor.com/api/projects/status/github/MCHSL/extools?svg=true" alt="Appveyor status" /></a></td><td>Windows build (with <a href="https://ci.appveyor.com/project/MCHSL/extools/build/artifacts">binaries</a>)</td></tr>
+<tr><td align="right" valign="middle"><a href="https://travis-ci.org/MCHSL/extools"><img src="https://travis-ci.org/MCHSL/extools.svg?branch=master" alt="Travis status" /></td><td>Linux build (work in progress)</td></tr>
 </table>
 
 ## Isn't there a project just like this already?
