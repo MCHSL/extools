@@ -51,4 +51,5 @@ protected:
 	SocketMode mode = SocketMode::NONE;
 };
 
+void clean_sockets();
 extern std::unordered_map<unsigned int, std::unique_ptr<DatumSocket>> sockets;

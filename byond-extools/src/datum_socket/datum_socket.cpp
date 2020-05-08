@@ -112,7 +112,19 @@ std::string DatumSocket::recv(int len)
 
 void DatumSocket::close()
 {
-	stream.close();
+	if (mode == SocketMode::CLIENT)
+	{
+		data_awaiter.reset();
+		stream.close();
+		buffer = {};
+	}
+	else if (mode == SocketMode::SERVER)
+	{
+		accept_awaiter.reset();
+		listener.close();
+		accepts = {};
+	}
+	
 	open = false;
 }
 
@@ -221,6 +233,11 @@ bool enable_sockets()
 	Core::get_proc("/datum/socket/proc/__check_can_accept").hook(check_accept_socket);
 	Core::get_proc("/datum/socket/proc/__accept").hook(accept_socket);
 	return true;
+}
+
+void clean_sockets()
+{
+	sockets.clear();
 }
 
 extern "C" EXPORT const char* init_sockets(int a, const char** b)
