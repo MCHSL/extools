@@ -1,4 +1,6 @@
+os: linux
 dist: bionic
+language: generic
 branches:
   only:
     - master
@@ -7,7 +9,7 @@ addons:
   apt:
     - g++-multilib
 
-matrix:
+jobs:
   include:
     - name: 'Windows version (cross-compiled from Linux)'
       env:
