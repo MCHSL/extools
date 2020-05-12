@@ -1,3 +1,4 @@
+#include "monstermos.h"
 #include "../core/core.h"
 #include "GasMixture.h"
 #include "turf_grid.h"
@@ -543,13 +544,4 @@ const char* enable_monstermos()
 
 	all_turfs.refresh();
 	return "ok";
-}
-
-extern "C" EXPORT const char* init_monstermos(int a, const char** b)
-{
-	if (!Core::initialize())
-	{
-		return "Extools Init Failed";
-	}
-	return enable_monstermos();
 }
