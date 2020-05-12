@@ -1,55 +1,11 @@
 #include "core.h"
 #include "find_functions.h"
-#include "../tffi/tffi.h"
-#include "../proxy/proxy_object.h"
-#include "../optimizer/optimizer.h"
 #include "../extended_profiling/extended_profiling.h"
-#include "../debug_server/debug_server.h"
-#include "../maptick/maptick.h"
+#include "socket/socket.h"
+#include "../datum_socket/datum_socket.h"
 #include <fstream>
 #include <unordered_set>
 #include <chrono>
-
-CrashProcPtr CrashProc;
-SuspendPtr Suspend;
-StartTimingPtr StartTiming;
-SetVariablePtr SetVariable;
-GetVariablePtr GetVariable;
-GetStringTableIndexPtr GetStringTableIndex;
-GetStringTableIndexUTF8Ptr GetStringTableIndexUTF8;
-GetProcArrayEntryPtr GetProcArrayEntry;
-GetStringTableEntryPtr GetStringTableEntry;
-CallGlobalProcPtr CallGlobalProc;
-GetProfileInfoPtr GetProfileInfo;
-GetByondVersionPtr GetByondVersion;
-GetByondBuildPtr GetByondBuild;
-ProcCleanupPtr ProcCleanup;
-CreateContextPtr CreateContext;
-GetTypeByIdPtr GetTypeById;
-MobTableIndexToGlobalTableIndexPtr MobTableIndexToGlobalTableIndex;
-RuntimePtr Runtime;
-GetTurfPtr GetTurf;
-AppendToContainerPtr AppendToContainer;
-GetAssocElementPtr GetAssocElement;
-GetListPointerByIdPtr GetListPointerById;
-SetAssocElementPtr SetAssocElement;
-CreateListPtr CreateList;
-LengthPtr Length;
-IsInContainerPtr IsInContainer;
-ToStringPtr ToString;
-TopicFloodCheckPtr TopicFloodCheck;
-PrintToDDPtr PrintToDD;
-GetBSocketPtr GetBSocket;
-DisconnectClient1Ptr DisconnectClient1;
-DisconnectClient2Ptr DisconnectClient2;
-GetSocketHandleStructPtr GetSocketHandleStruct;
-CallProcByNamePtr CallProcByName;
-SendMapsPtr SendMaps;
-GetGlobalByNamePtr GetGlobalByName;
-GetTableHolderThingyByIdPtr GetTableHolderThingyById;
-DecRefCountPtr DecRefCount;
-IncRefCountPtr IncRefCount;
-DelDatumPtr DelDatum;
 
 ExecutionContext** Core::current_execution_context_ptr;
 ExecutionContext** Core::parent_context_ptr_hack;
@@ -77,31 +33,61 @@ std::unordered_map<std::string, Value*> Core::global_direct_cache;
 Core::ManagedString::ManagedString(unsigned int id) : string_id(id)
 {
 	string_entry = GetStringTableEntry(string_id);
-	string_entry->refcount++;
+	IncRefCount(DataType::STRING, string_id);
 }
 
 Core::ManagedString::ManagedString(std::string str)
 {
 	string_id = GetStringId(str);
-	string_entry = GetStringTableEntry(string_id);
-	string_entry->refcount++;
+	string_entry = GetStringTableEntry(string_id); //leaving it like this for now, not feeling like reversing the new structure when we have refcount functions
+	IncRefCount(DataType::STRING, string_id);
 }
 
 Core::ManagedString::ManagedString(const ManagedString& other)
 {
 	string_id = other.string_id;
 	string_entry = other.string_entry;
-	string_entry->refcount++;
+	IncRefCount(DataType::STRING, string_id);
 }
 
 Core::ManagedString::~ManagedString()
 {
-	string_entry->refcount--;
+	DecRefCount(DataType::STRING, string_id);
 }
 
 Core::ManagedString Core::GetManagedString(std::string str)
 {
 	return ManagedString(str);
+}
+
+Core::ResumableProc::ResumableProc(const ResumableProc& other)
+{
+	proc = other.proc;
+}
+
+Core::ResumableProc Core::ResumableProc::FromCurrent()
+{
+	auto ctx = Core::get_context();
+	ctx->current_opcode++;
+	auto ret = ResumableProc(Suspend(ctx, 0));
+	ctx->current_opcode--;
+	return ret;
+}
+
+void Core::ResumableProc::resume()
+{
+	if (!proc)
+	{
+		return;
+	}
+	proc->time_to_resume = 1;
+	StartTiming(proc);
+	proc = nullptr;
+}
+
+Core::ResumableProc Core::SuspendCurrentProc()
+{
+	return ResumableProc::FromCurrent();
 }
 
 bool Core::initialize()
@@ -115,7 +101,7 @@ bool Core::initialize()
 	return initialized;
 }
 
-void Core::Alert(std::string what) {
+void Core::Alert(const std::string& what) {
 #ifdef _WIN32
 	MessageBoxA(NULL, what.c_str(), "Ouch!", MB_OK);
 #else
@@ -141,7 +127,7 @@ unsigned int Core::GetStringId(std::string str, bool increment_refcount) {
 			return idx; //this could cause memory problems with a lot of long strings but otherwise they get garbage collected after first use.
 		}
 		case 513:
-			return GetStringTableIndexUTF8(str.c_str(), 0, 0, 1);
+			return GetStringTableIndexUTF8(str.c_str(), 0xFFFFFFFF, 0, 1);
 		default: break;
 	}
 	return 0;
@@ -226,7 +212,7 @@ std::string Core::stringify(Value val)
 	unsigned int actual_count = 0;
 	for (int i = 0; i < Core::codecov_executed_procs.size(); i++)
 	{
-		Core::Proc p = Core::get_proc(i);
+		Core::Proc& p = Core::get_proc(i);
 		if (!p.name.empty() && p.name.back() != ')')
 		{
 			o << p.name << ": " << Core::codecov_executed_procs[i] << "\n";
@@ -237,125 +223,6 @@ std::string Core::stringify(Value val)
 	o << "Coverage: " << (called / (float)actual_count) * 100.0f << "% (" << called << "/" << actual_count << ")\n";
 	return "";
 }*/
-
-const char* good = "SUCCESS";
-const char* bad = "FAIL";
-
-extern "C" EXPORT const char* enable_profiling(int n_args, const char** args)
-{
-	Core::initialize() && Core::enable_profiling();
-	return good;
-}
-
-extern "C" EXPORT const char* disable_profiling(int n_args, const char** args)
-{
-	Core::initialize() && Core::disable_profiling();
-	return good;
-}
-
-extern "C" EXPORT const char* core_initialize(int n_args, const char** args)
-{
-	if (!Core::initialize())
-	{
-		Core::Alert("Core init failed!");
-		return bad;
-	}
-	//optimizer_initialize();
-#ifdef _WIN32 // i ain't fixing this awful Linux situation anytime soon
-	//extended_profiling_initialize();
-#endif
-	return good;
-}
-
-extern "C" EXPORT const char* tffi_initialize(int n_args, const char** args)
-{
-	if (!(Core::initialize() && TFFI::initialize()))
-		return bad;
-	return good;
-}
-
-extern "C" EXPORT const char* proxy_initialize(int n_args, const char** args)
-{
-	if (!(Core::initialize() && Proxy::initialize()))
-		return bad;
-	return good;
-}
-
-extern "C" EXPORT const char* debug_initialize(int n_args, const char** args)
-{
-	// Fallback values if called
-	const char* mode = DBG_MODE_NONE;
-	const char* port = DBG_DEFAULT_PORT;
-
-	// Read from environment, set from shell or from DAP-controlled launch
-	const char* env_mode = getenv("EXTOOLS_MODE");
-	const char* env_port = getenv("EXTOOLS_PORT");
-	if (env_mode)
-	{
-		mode = env_mode;
-	}
-	if (env_port)
-	{
-		port = env_port;
-	}
-
-	// Read from args, for maximum customizability
-	if (n_args > 0 && *args[0])
-	{
-		mode = args[0];
-	}
-	if (n_args > 1 && *args[1])
-	{
-		port = args[1];
-	}
-
-	// Return early if debugging is not enabled by config.
-	if (!strcmp(mode, DBG_MODE_NONE))
-	{
-		return "";
-	}
-
-	return (Core::initialize() && debugger_initialize() && debugger_enable(mode, port)) ? good : bad;
-}
-
-extern "C" EXPORT void force_debug()
-{
-	Core::initialize() && debugger_initialize() && debugger_enable(DBG_MODE_BACKGROUND, DBG_DEFAULT_PORT);
-}
-
-void init_testing();
-void run_tests();
-extern "C" EXPORT const char* run_tests(int n_args, const char** args)
-{
-	if (!Core::initialize())
-	{
-		return bad;
-	}
-	init_testing();
-	run_tests();
-	return good;
-}
-
-// TODO: make this work on Linux. -steamport
-extern "C" EXPORT const char* extended_profiling_initialize(int n_args, const char** args)
-{
-	if (!(Core::initialize() && actual_extended_profiling_initialize()))
-		return bad;
-	return good;
-}
-
-extern "C" EXPORT const char* enable_extended_profiling(int n_args, const char** args)
-{
-	//Core::Alert("Enabling logging for " + std::string(args[0]));
-	Core::get_proc(args[0]).extended_profile();
-	return good;
-}
-
-extern "C" EXPORT const char* disable_extended_profiling(int n_args, const char** args)
-{
-	procs_to_profile.erase(Core::get_proc(args[0]).id); //TODO: improve consistency and reconsider how initialization works
-	return good;
-}
 
 std::uint32_t Core::get_socket_from_client(unsigned int id)
 {
@@ -423,108 +290,10 @@ void Core::cleanup()
 {
 	Core::remove_all_hooks();
 	Core::opcode_handlers.clear();
-	procs_by_id.clear();
-	procs_by_name.clear();
+	Core::destroy_proc_list();
 	procs_to_profile.clear();
 	proc_hooks.clear();
 	global_direct_cache.clear();
+	clean_sockets();
 	Core::initialized = false; // add proper modularization already
-}
-
-extern "C" EXPORT const char* cleanup(int n_args, const char** args)
-{
-	Core::cleanup();
-	return good;
-}
-
-extern "C" EXPORT const char* maptick_initialize(int n_args, const char** args)
-{
-	if (!(Core::initialize() && enable_maptick()))
-	{
-		return bad;
-	}
-	return good;
-}
-
-std::unordered_set<std::string> blacklist;
-std::unordered_set<std::string> whitelist;
-std::unordered_map<std::string, std::chrono::steady_clock::time_point> last_packets;
-std::optional<Core::Proc> ban_callback;
-
-bool flood_topic_filter(BSocket* socket, int socket_id)
-{
-	std::string addr = socket->addr();
-	if (blacklist.find(addr) != blacklist.end())
-	{
-		Core::disconnect_client(socket_id);
-		return false;
-	}
-	if (addr == "127.0.0.1") //this can be optimized further but whatever
-	{
-		return true;
-	}
-	if (whitelist.find(addr) != whitelist.end())
-	{
-		return true;
-	}
-	auto now = std::chrono::steady_clock::now();
-	if (last_packets.find(addr) == last_packets.end())
-	{
-		last_packets[addr] = now;
-		return true;
-	}
-	auto last = last_packets[addr];
-	if (std::chrono::duration_cast<std::chrono::milliseconds>(now - last).count() < 50)
-	{
-		Core::alert_dd("Blacklisting " + addr + " for this session.");
-		blacklist.emplace(addr);
-		last_packets.erase(addr);
-		Core::disconnect_client(socket_id);
-		if (ban_callback)
-		{
-			ban_callback->call({ addr });
-		}
-		return false;
-	}
-	last_packets[addr] = now;
-	return true;
-}
-
-void read_filter_config(std::string filename, std::unordered_set<std::string>& set)
-{
-	std::ifstream conf("config/extools/" + filename);
-	if (!conf.is_open())
-	{
-		Core::alert_dd("Failed to open config/extools/" + filename);
-		return;
-	}
-	std::string line;
-	while (std::getline(conf, line))
-	{
-		line.erase(line.find_last_not_of(" \t") + 1);
-		line.erase(0, line.find_first_not_of(" \t"));
-		Core::alert_dd("Read " + line + " from " + filename);
-		set.emplace(line);
-	}
-}
-
-extern "C" EXPORT const char* install_flood_topic_filter(int n_args, const char** args)
-{
-	if (!Core::initialize())
-	{
-		return bad;
-	}
-	ban_callback = {};
-	if (n_args == 1)
-	{
-		ban_callback = Core::try_get_proc(args[0]);
-	}
-	Core::alert_dd("Installing flood topic filter");
-	whitelist.clear();
-	blacklist.clear();
-	last_packets.clear();
-	read_filter_config("blacklist.txt", blacklist);
-	read_filter_config("whitelist.txt", whitelist);
-	Core::set_topic_filter(flood_topic_filter);
-	return good;
 }

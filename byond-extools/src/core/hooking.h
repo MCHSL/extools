@@ -1,13 +1,13 @@
 #pragma once
 
-#include "internal_functions.h"
+#include "byond_functions.h"
 #include "core.h"
 #include "proc_management.h"
 /*#ifdef _WIN32
 #include <headers/CapstoneDisassembler.hpp>
 #include <headers/Detour/x86Detour.hpp>
 #else*/
-#include "subhook/subhook.h"
+#include "../third_party/subhook/subhook.h"
 //#endif
 
 typedef bool(*TopicFilter)(BSocket* socket, int socket_id);
@@ -28,7 +28,15 @@ struct QueuedCall
 
 namespace Core
 {
-	void* install_hook(void* original, void* hook);
+	void* untyped_install_hook(void* original, void* hook);
+
+	// Used to ensure everything is the same function pointer type.
+	template<typename FnPtr>
+	FnPtr install_hook(FnPtr original, FnPtr hook)
+	{
+		return (FnPtr) untyped_install_hook((void*) original, (void*) hook);
+	}
+
 	void remove_hook(void* func);
 	void remove_all_hooks();
 	bool hook_custom_opcodes();

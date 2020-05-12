@@ -1,7 +1,7 @@
 #pragma once
 #include "sigscan/sigscan.h"
 #include "byond_structures.h"
-#include "internal_functions.h"
+#include "byond_functions.h"
 #include "hooking.h"
 #include "proc_management.h"
 #ifndef _WIN32
@@ -31,9 +31,12 @@ extern int ByondBuild;
 
 namespace Core
 {
+	static const char* SUCCESS = "SUCCESS";
+	static const char* FAIL = "FAIL";
+
 	//not exactly a byond structure so it's here for now
 
-	class ManagedString 
+	class ManagedString
 	{
 		// Represents a BYOND string. Refcount gets updated when created and destroyed,
 		// which should help with memory usage and premature string deletion.
@@ -68,6 +71,22 @@ namespace Core
 		unsigned int string_id;
 		String* string_entry;
 	};
+
+	class ResumableProc
+	{
+	public:
+		ResumableProc(const ResumableProc& other);
+		static ResumableProc FromCurrent();
+		void resume();
+
+	protected:
+		SuspendedProc* proc;
+
+	private:
+		ResumableProc(SuspendedProc* sp) : proc(sp) { sp->time_to_resume = 1; }
+
+	};
+
 	extern std::map<unsigned int, opcode_handler> opcode_handlers;
 	extern std::map<std::string, unsigned int> name_to_opcode;
 	extern ExecutionContext** current_execution_context_ptr;
@@ -98,7 +117,7 @@ namespace Core
 	ExecutionContext* get_context();
 	ExecutionContext* _get_parent_context();
 	unsigned int register_opcode(std::string name, opcode_handler handler);
-	void Alert(std::string what);
+	void Alert(const std::string& what);
 	void Alert(int what);
 	bool initialize();
 	extern bool initialized;
@@ -113,4 +132,5 @@ namespace Core
 	std::uint32_t get_socket_from_client(unsigned int id);
 	void cleanup();
 	void alert_dd(std::string msg);
+	ResumableProc SuspendCurrentProc();
 }

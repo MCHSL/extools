@@ -6,8 +6,8 @@
 
 void Instr_OUTPUT_FORMAT::Disassemble(Context* context, Disassembler* dism)
 {
-	std::uint32_t str_id = context->eat();
-	context->eat();
+	std::uint32_t str_id = context->eat(this);
+	context->eat(this);
 	std::string woop = byond_tostring(str_id);
 	comment_ = '"';
 	int bruh = 0;

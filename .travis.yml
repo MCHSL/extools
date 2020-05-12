@@ -1,9 +1,23 @@
+os: linux
 dist: bionic
+language: generic
 branches:
   only:
     - master
+
+addons:
+  apt:
+    - g++-multilib
+
+jobs:
+  include:
+    - name: 'Windows version (cross-compiled from Linux)'
+      env:
+        - CMAKE_ARGS="-DCMAKE_TOOLCHAIN_FILE=../byond-extools/cmake/i686-w64-mingw32.cmake"
+    - name: 'Linux version'
+
 script:
   - mkdir build
   - cd build
-  - cmake ../byond-extools -DCMAKE_TOOLCHAIN_FILE=../byond-extools/cmake/i686-w64-mingw32.cmake
+  - cmake ../byond-extools $CMAKE_ARGS
   - cmake --build .

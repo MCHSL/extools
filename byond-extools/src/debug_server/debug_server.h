@@ -12,7 +12,7 @@ const char* const DBG_MODE_LAUNCHED = "LAUNCHED";
 const char* const DBG_MODE_BACKGROUND = "BACKGROUND";
 const char* const DBG_MODE_BLOCK = "BLOCK";
 
-enum NextAction
+enum class NextAction
 {
 	WAIT,
 	STEP_INTO,
@@ -20,7 +20,7 @@ enum NextAction
 	RESUME
 };
 
-enum StepMode
+enum class StepMode
 {
 	NONE,
 	PRE_INTO,
@@ -31,7 +31,7 @@ enum StepMode
 
 struct Breakpoint
 {
-	Core::Proc proc;
+	Core::Proc* proc;
 
 	std::uint32_t replaced_opcode;
 	std::uint16_t offset;
@@ -66,8 +66,8 @@ class DebugServer
 {
 	JsonStream debugger;
 public:
-	NextAction next_action = WAIT;
-	StepMode step_mode = NONE;
+	NextAction next_action = NextAction::WAIT;
+	StepMode step_mode = StepMode::NONE;
 	bool break_on_runtimes = false;
 	ExecutionContext* step_over_context = nullptr;
 	ExecutionContext* step_over_parent_context = nullptr;

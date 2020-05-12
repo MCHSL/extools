@@ -28,13 +28,14 @@ ForwardIt local_lower_bound(ForwardIt first, ForwardIt last, const T& value, Com
 }
 #endif
 
-std::vector<std::uint32_t>* Disassembly::assemble()	{
-	std::vector<std::uint32_t>* ret = new std::vector<std::uint32_t>();
+std::vector<std::uint32_t> Disassembly::assemble()
+{
+	std::vector<std::uint32_t> ret;
 	for (Instruction i : instructions)
 	{
 		for (int op : i.bytes())
 		{
-			ret->push_back(op);
+			ret.push_back(op);
 		}
 	}
 	return ret;
@@ -110,10 +111,10 @@ void Disassembly::recalculate_offsets()
 	}
 }
 
-Disassembly Core::get_disassembly(std::string _proc, unsigned int override_id)
+Disassembly Disassembly::from_proc(Core::Proc& proc)
 {
-	Core::Proc proc = Core::get_proc(_proc, override_id);
 	std::uint32_t* bytecode = proc.get_bytecode();
-	return Disassembler(std::vector<uint32_t>(bytecode, bytecode + proc.get_bytecode_length()), procs_by_id).disassemble();
+	Disassembly dis = Disassembler(std::vector<uint32_t>(bytecode, bytecode + proc.get_bytecode_length()), Core::get_all_procs()).disassemble();
+	dis.proc = &proc;
+	return dis;
 }
-

@@ -4,16 +4,7 @@
 std::string byond_tostring(int idx)
 {
 	String* s = GetStringTableEntry(idx);
-	s->refcount++;
-	return std::string(s->stringData);
-}
-
-int intern_string(std::string str)
-{
-	int idx = Core::GetStringId(str.c_str());
-	String* s = GetStringTableEntry(idx);
-	s->refcount++;
-	return idx;
+	return s ? std::string(s->stringData) : "";
 }
 
 std::string tohex(int numero) {

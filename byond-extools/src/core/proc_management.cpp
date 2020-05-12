@@ -5,7 +5,7 @@
 #include <optional>
 
 std::vector<Core::Proc> procs_by_id;
-std::unordered_map<std::string, std::vector<Core::Proc>> procs_by_name;
+std::unordered_map<std::string, std::vector<unsigned int>> procs_by_name;
 std::unordered_map<unsigned int, bool> extended_profiling_procs;
 std::unordered_map<unsigned int, ProcHook> proc_hooks;
 
@@ -19,44 +19,25 @@ void strip_proc_path(std::string& name)
 	}
 }
 
-Core::Proc::Proc(std::string name, unsigned int override_id)
+void Core::Proc::set_bytecode(std::vector<std::uint32_t>&& new_bytecode)
 {
-	strip_proc_path(name);
-	*this = procs_by_name.at(name).at(override_id);
-}
-
-Core::Proc::Proc(std::uint32_t id)
-{
-	*this = procs_by_id.at(id);
-}
-
-void Core::Proc::set_bytecode(std::vector<std::uint32_t>* new_bytecode)
-{
-	if (original_bytecode_ptr)
-	{
-		delete setup_entry_bytecode->bytecode;
-	}
-	else
+	if (!original_bytecode_ptr)
 	{
 		original_bytecode_ptr = setup_entry_bytecode->bytecode;
 	}
-	setup_entry_bytecode->bytecode = new_bytecode->data();
-}
 
-void Core::Proc::set_bytecode(std::uint32_t* new_bytecode)
-{
-	setup_entry_bytecode->bytecode = new_bytecode;
+	bytecode = std::move(new_bytecode);
+	setup_entry_bytecode->bytecode = bytecode.data();
 }
 
 void Core::Proc::reset_bytecode()
 {
-	if (!original_bytecode_ptr)
+	if (original_bytecode_ptr)
 	{
-		return;
+		setup_entry_bytecode->bytecode = original_bytecode_ptr;
+		original_bytecode_ptr = nullptr;
+		bytecode.clear();
 	}
-	delete setup_entry_bytecode->bytecode;
-	setup_entry_bytecode->bytecode = original_bytecode_ptr;
-	original_bytecode_ptr = nullptr;
 }
 
 std::uint32_t* Core::Proc::get_bytecode()
@@ -77,7 +58,7 @@ std::uint16_t Core::Proc::get_local_varcount() //TODO: this is broken
 	return setup_entry_varcount->local_var_count;
 }
 
-ProfileInfo* Core::Proc::profile()
+ProfileInfo* Core::Proc::profile() const
 {
 	return GetProfileInfo(id);
 }
@@ -100,52 +81,49 @@ Value Core::Proc::call(std::vector<Value> arguments, Value usr)
 	{
 		margs.emplace_back(v);
 	}
-	return CallGlobalProc(usr.type, usr.value, 2, id, 0, 0, 0, margs.data(), margs.size(), 0, 0);
+	return CallGlobalProc(usr.type, usr.value, 2, id, 0, DataType::NULL_D, 0, margs.data(), margs.size(), 0, 0);
 }
 
 Disassembly Core::Proc::disassemble()
 {
-	Disassembly d = Core::get_disassembly(name, override_id);
-	d.proc = *this;
-	return d;
+	return Disassembly::from_proc(*this);
 }
 
 void Core::Proc::assemble(Disassembly disasm)
 {
-	std::vector<std::uint32_t>* bc = disasm.assemble();
-	set_bytecode(bc);
-	setup_entry_bytecode->bytecode_length = bc->size();
+	std::vector<std::uint32_t> bc = disasm.assemble();
+	auto size = bc.size();
+	set_bytecode(std::move(bc));
+	setup_entry_bytecode->bytecode_length = size;
 	//proc_table_entry->local_var_count_idx = Core::get_proc("/proc/twelve_locals").proc_table_entry->local_var_count_idx;
 }
 
-Core::Proc Core::get_proc(std::string name, unsigned int override_id)
+Core::Proc& Core::get_proc(std::string name, unsigned int override_id)
 {
 	strip_proc_path(name);
 	//Core::Alert("Attempting to get proc " + name + ", override " + std::to_string(override_id));
-	return procs_by_name.at(name).at(override_id);
+	return procs_by_id.at(procs_by_name.at(name).at(override_id));
 }
 
-std::optional<Core::Proc> Core::try_get_proc(std::string name, unsigned int override_id)
+Core::Proc* Core::try_get_proc(std::string name, unsigned int override_id)
 {
 	strip_proc_path(name);
-	if (procs_by_name.find(name) == procs_by_name.end())
+	if (auto ptr = procs_by_name.find(name); ptr != procs_by_name.end())
 	{
-		return {};
+		if (override_id < ptr->second.size())
+		{
+			return &procs_by_id[ptr->second[override_id]];
+		}
 	}
-	auto v = procs_by_name[name];
-	if (override_id >= v.size())
-	{
-		return {};
-	}
-	return v[override_id];
+	return nullptr;
 }
 
-Core::Proc Core::get_proc(unsigned int id)
+Core::Proc& Core::get_proc(unsigned int id)
 {
 	return procs_by_id.at(id);
 }
 
-Core::Proc Core::get_proc(ExecutionContext* ctx)
+Core::Proc& Core::get_proc(ExecutionContext* ctx)
 {
 	return get_proc(ctx->constants->proc_id);
 }
@@ -170,7 +148,7 @@ bool Core::populate_proc_list()
 		{
 			break;
 		}
-		Proc p = Proc();
+		Proc p {};
 		p.id = i;
 		p.name = GetStringTableEntry(entry->procPath)->stringData;
 		p.raw_path = p.name;
@@ -188,12 +166,18 @@ bool Core::populate_proc_list()
 		p.varcount_idx = entry->local_var_count_idx;
 		if (procs_by_name.find(p.name) == procs_by_name.end())
 		{
-			procs_by_name[p.name] = std::vector<Core::Proc>();
+			procs_by_name[p.name] = std::vector<unsigned int>();
 		}
 		p.override_id = procs_by_name.at(p.name).size();
-		procs_by_name[p.name].push_back(p);
-		procs_by_id.push_back(p);
+		procs_by_name[p.name].push_back(p.id);
+		procs_by_id.push_back(std::move(p));
 		i++;
 	}
 	return true;
+}
+
+void Core::destroy_proc_list()
+{
+	procs_by_id.clear();
+	procs_by_name.clear();
 }

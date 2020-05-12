@@ -137,7 +137,7 @@ bool enable_crash_guard()
 extern "C" EXPORT const char* enable_resource_leak_locator(int arg_n, const char** c)
 {
 	Core::initialize();
-	oRuntimeLL = (RuntimePtr)Core::install_hook((void*)Runtime, (void*)hRuntimeLL);
+	oRuntimeLL = Core::install_hook(Runtime, hRuntimeLL);
 	return "";
 }
 

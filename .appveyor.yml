@@ -10,6 +10,7 @@ build_script:
   - mkdir build
   - cd build
   - cmake ../byond-extools
-  - cmake --build . --config Release
+  - cmake --build . --config RelWithDebInfo
 artifacts:
-  - path: build/Release/byond-extools.dll
+  - path: build/RelWithDebInfo/byond-extools.dll
+  - path: build/RelWithDebInfo/byond-extools.pdb

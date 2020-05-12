@@ -4,8 +4,8 @@
 #include <fstream>
 #include <algorithm>
 
-std::map<Core::Proc, bool> has_been_optimized;
-std::vector<Core::Proc> inlineable_procs;
+std::map<Core::Proc*, bool> has_been_optimized;
+std::vector<Core::Proc*> inlineable_procs;
 
 void inline_into(Disassembly& recipient, Disassembly& donor, int which_instruction, int local_count)
 {
@@ -109,16 +109,16 @@ void inline_into(Disassembly& recipient, Disassembly& donor, int which_instructi
 	recipient.instructions.insert(recipient.instructions.end(), plop_after_inlining.begin(), plop_after_inlining.end());
 }
 
-void optimize_proc(Core::Proc recipient);
+void optimize_proc(Core::Proc& recipient);
 
-void optimize_inline(Core::Proc recipient, Disassembly& recipient_code)
+void optimize_inline(Core::Proc& recipient, Disassembly& recipient_code)
 {
 	for (int i = 0; i < recipient_code.size(); i++)
 	{
 		Instruction& instr = recipient_code.at(i);
 		if (instr == Bytecode::CALLGLOB)
 		{
-			Core::Proc donor = Core::get_proc(instr.bytes()[2]);
+			Core::Proc& donor = Core::get_proc(instr.bytes()[2]);
 			if (donor == recipient)
 			{
 				continue;
@@ -131,16 +131,16 @@ void optimize_inline(Core::Proc recipient, Disassembly& recipient_code)
 	}
 }
 
-void optimize_proc(Core::Proc victim)
+void optimize_proc(Core::Proc& victim)
 {
-	if (has_been_optimized[victim])
+	if (has_been_optimized[&victim])
 	{
 		return;
 	}
 	Disassembly victim_code = victim.disassemble();
 	optimize_inline(victim, victim_code);
 	victim.assemble(victim_code);
-	has_been_optimized[victim] = true;
+	has_been_optimized[&victim] = true;
 }
 
 void dump_proc_to_file(Core::Proc p, std::string name)
@@ -156,16 +156,16 @@ void dump_proc_to_file(Core::Proc p, std::string name)
 
 void optimizer_initialize()
 {
-	const std::vector<Core::Proc> all_procs = Core::get_all_procs();
-	for (Core::Proc p : all_procs)
+	std::vector<Core::Proc>& all_procs = Core::get_all_procs();
+	for (Core::Proc& p : all_procs)
 	{
-		has_been_optimized[p] = false;
+		has_been_optimized[&p] = false;
 		if (!p.raw_path.empty() && p.raw_path.back() != ')' && p.raw_path.rfind("/proc/", 0) == 0) //find all global procs
 		{
-			inlineable_procs.push_back(p);
+			inlineable_procs.push_back(&p);
 		}
 	}
-	for (Core::Proc p : all_procs)
+	for (Core::Proc& p : all_procs)
 	{
 		optimize_proc(p);
 	}

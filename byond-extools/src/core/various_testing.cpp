@@ -10,13 +10,13 @@
 
 trvh cheap_hypotenuse(Value* args, unsigned int argcount)
 {
-	return { 0x2A, (int)sqrt((args[0].valuef - args[2].valuef) * (args[0].valuef - args[2].valuef) + (args[1].valuef - args[3].valuef) * (args[1].valuef - args[3].valuef)) };
+	return { DataType::NUMBER, (int)sqrt((args[0].valuef - args[2].valuef) * (args[0].valuef - args[2].valuef) + (args[1].valuef - args[3].valuef) * (args[1].valuef - args[3].valuef)) };
 }
 
 trvh measure_get_variable(Value* args, unsigned int argcount)
 {
 	int name_string_id = Core::GetStringId("name");
-	int type = args[0].type;
+	DataType type = args[0].type;
 	int value = args[0].value;
 	//long long duration = 0;
 	//for (int j = 0; j < 1000; j++)
@@ -32,7 +32,7 @@ trvh measure_get_variable(Value* args, unsigned int argcount)
 //}
 
 //Core::Alert(std::to_string(duration/1000).c_str());
-	return { 0, 0 };
+	return Value::Null();
 }
 
 trvh show_profiles(Value* args, unsigned int argcount)
@@ -40,8 +40,8 @@ trvh show_profiles(Value* args, unsigned int argcount)
 	unsigned long long dm = Core::get_proc("/proc/measure_dm").profile()->total.microseconds;
 	unsigned long long native = Core::get_proc("/proc/measure_native").profile()->total.microseconds;
 	std::string woo = "DM proc took " + std::to_string(dm) + " microseconds while native took " + std::to_string(native) + " microseconds.";
-	Core::Alert(woo.c_str());
-	return { 0, 0 };
+	Core::Alert(woo);
+	return Value::Null();
 }
 
 void cheap_hypotenuse_opcode(ExecutionContext* ctx) //for testing purposes, remove later
@@ -52,7 +52,7 @@ void cheap_hypotenuse_opcode(ExecutionContext* ctx) //for testing purposes, remo
 	const float Bx = Core::get_stack_value(2).valuef;
 	const float By = Core::get_stack_value(1).valuef;
 	Core::stack_pop(4);
-	Core::stack_push({ 0x2A, (int)std::sqrt((Ax - Bx) * (Ax - Bx) + (Ay - By) * (Ay - By)) });
+	Core::stack_push({ DataType::NUMBER, (int)std::sqrt((Ax - Bx) * (Ax - Bx) + (Ay - By) * (Ay - By)) });
 }
 
 
@@ -104,13 +104,13 @@ extern "C" EXPORT void add_subvars_of_locals(ExecutionContext* ctx)
 {
 	Value a = ctx->local_variables[0];
 	Value b = ctx->local_variables[1];
-	ctx->local_variables[2].valuef = GetVariable(a.type, a.value, 0x33).valuef + GetVariable(b.type, b.value, 0x33).valuef;
+	ctx->local_variables[2].valuef = GetVariable(a.type, a.value, 0x33).valuef + GetVariable((int)b.type, b.value, 0x33).valuef;
 }
 
 trvh toggle_verb_hidden(unsigned int argcount, Value* args, Value src)
 {
 	Core::get_proc("/client/verb/hidden").proc_table_entry->procFlags = 4;
-	return { 0, 0 };
+	return Value::Null();
 }
 
 trvh test_invoke(unsigned int argcount, Value* args, Value src)
@@ -139,7 +139,7 @@ void init_testing()
 	//enable_crash_guard();
 	//optimizer_initialize();
 	//Core::Alert(Core::stringify({ 0x0C, 0x00 }));
-	//Core::Proc p = "/client/verb/crash";
+	//Core::Proc p = "/proc/pickdism";
 	//std::ofstream o("out.txt");
 	//for (Instruction& i : p.disassemble())
 	//{
@@ -183,7 +183,7 @@ void init_testing()
 	if (find_unknowns)
 	{
 		std::ofstream log("unknown_opcodes.txt");
-		for (Core::Proc& p : procs_by_id)
+		for (Core::Proc& p : Core::get_all_procs())
 		{
 			if (!p.name.empty() && p.name.back() == ')')
 			{
@@ -212,7 +212,7 @@ void init_testing()
 	//Core::get_proc("/proc/laugh").hook(show_profiles);
 
 	/*int hypotenuse_opcode = Core::register_opcode("CHEAP_HYPOTENUSE", cheap_hypotenuse_opcode);
-	Core::Proc hypotenuse_bench = Core::get_proc("/proc/bench_cheap_hypotenuse_native");
+	Core::Proc& hypotenuse_bench = Core::get_proc("/proc/bench_cheap_hypotenuse_native");
 	Disassembly dis = hypotenuse_bench.disassemble();
 	for (Instruction& instr : dis)
 	{
@@ -228,4 +228,15 @@ void init_testing()
 void run_tests()
 {
 
+}
+
+extern "C" EXPORT const char* run_tests(int n_args, const char** args)
+{
+	if (!Core::initialize())
+	{
+		return Core::FAIL;
+	}
+	init_testing();
+	run_tests();
+	return Core::SUCCESS;
 }
