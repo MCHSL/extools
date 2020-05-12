@@ -290,7 +290,7 @@ void Tile::equalize_pressure_in_zone(int cyclenum) {
 	if (monstermos_info)
 		*monstermos_info = MonstermosInfo(); // null it out.
 	else
-		monstermos_info = std::make_shared<MonstermosInfo>();
+		monstermos_info = std::make_unique<MonstermosInfo>();
 
 	float starting_moles = air->total_moles();
 	bool run_monstermos = false;
@@ -345,7 +345,7 @@ void Tile::equalize_pressure_in_zone(int cyclenum) {
 				if (adj->monstermos_info->last_queue_cycle == queue_cycle) continue;
 				*adj->monstermos_info = MonstermosInfo();
 			} else {
-				adj->monstermos_info = std::make_shared<MonstermosInfo>();
+				adj->monstermos_info = std::make_unique<MonstermosInfo>();
 			}
 			adj->monstermos_info->last_queue_cycle = queue_cycle;
 			turfs.push_back(adj);
@@ -605,7 +605,7 @@ void Tile::explosively_depressurize(int cyclenum) {
 	if (monstermos_info)
 		*monstermos_info = MonstermosInfo(); // null it out.
 	else
-		monstermos_info = std::make_shared<MonstermosInfo>();
+		monstermos_info = std::make_unique<MonstermosInfo>();
 	monstermos_info->last_queue_cycle = queue_cycle;
 	monstermos_info->curr_transfer_dir = 6;
 	bool warned_about_planet_atmos = false;
@@ -636,7 +636,7 @@ void Tile::explosively_depressurize(int cyclenum) {
 					if (tile2->monstermos_info)
 						*tile2->monstermos_info = MonstermosInfo(); // null it out.
 					else
-						tile2->monstermos_info = std::make_shared<MonstermosInfo>();
+						tile2->monstermos_info = std::make_unique<MonstermosInfo>();
 					tile2->monstermos_info->last_queue_cycle = queue_cycle;
 					turfs.push_back(tile2);
 				}
@@ -733,7 +733,7 @@ void TurfGrid::refresh() {
 				int index = (x - 1) + new_maxx * (y - 1 + new_maxy * (z - 1));
 				Tile &tile = new_tiles[index];
 				if (x <= maxx && y <= maxy && z <= maxz) {
-					tile = *get(x,y,z);
+					tile = std::move(*get(x,y,z));
 					tile.excited_group.reset(); // excited group contains hanging pointers now (well they're not hanging yet, but they *will* be!)
 					tile.monstermos_info.reset(); // this also has hanging pointers.
 				}

@@ -8,7 +8,7 @@
 
 typedef const char* (byond_ffi_func)(int, const char**);
 
-std::map<float, SuspendedProc*> suspended_procs;
+std::map<float, Core::ResumableProc> suspended_procs;
 std::map<std::string, std::map<std::string, byond_ffi_func*>> library_cache;
 
 std::uint32_t result_string_id = 0;
@@ -20,13 +20,10 @@ std::mutex unsuspend_ready_mutex;
 
 void tffi_suspend(ExecutionContext* ctx)
 {
-	ctx->current_opcode++;
-	SuspendedProc* proc = Suspend(ctx, 0);
 	float promise_id = ctx->constants->args[1].valuef;
 	std::lock_guard<std::mutex> lk(unsuspend_ready_mutex);
-	suspended_procs[promise_id] = proc;
+	suspended_procs.insert({promise_id, Core::SuspendCurrentProc()});
 	unsuspend_ready_cv.notify_all();
-	ctx->current_opcode--;
 }
 
 bool TFFI::initialize()
@@ -34,8 +31,8 @@ bool TFFI::initialize()
 	// the CrashProc hook is currently super broken on Linux. It hooks but doesn't stop the crash.
 #ifdef _WIN32
 	std::uint32_t suspension_opcode = Core::register_opcode("TFFI_SUSPEND", tffi_suspend);
-	Core::Proc internal_resolve = Core::get_proc("/datum/promise/proc/__internal_resolve");
-	internal_resolve.set_bytecode(new std::vector<std::uint32_t>({ suspension_opcode, 0, 0, 0 }));
+	Core::Proc& internal_resolve = Core::get_proc("/datum/promise/proc/__internal_resolve");
+	internal_resolve.set_bytecode({ suspension_opcode, 0, 0, 0 });
 #endif
 	result_string_id = Core::GetStringId("result");
 	completed_string_id = Core::GetStringId("completed");
@@ -51,13 +48,12 @@ void ffi_thread(byond_ffi_func* proc, int promise_id, int n_args, std::vector<st
 		a.push_back(args[i].c_str());
 	}
 	const char* res = proc(n_args, a.data());
-	SetVariable( 0x21, promise_id , result_string_id, { 0x06, (int)Core::GetStringId(res) });
-	SetVariable( 0x21, promise_id , completed_string_id, { 0x2A, 1 });
-	float internal_id = GetVariable( 0x21, promise_id , internal_id_string_id).valuef;
+	SetVariable( DataType::DATUM, promise_id, result_string_id, { DataType::STRING, (int)Core::GetStringId(res) });
+	SetVariable( DataType::DATUM, promise_id, completed_string_id, { DataType::NUMBER, 1 });
+	float internal_id = GetVariable( DataType::DATUM, promise_id , internal_id_string_id).valuef;
 	std::unique_lock<std::mutex> lk(unsuspend_ready_mutex);
 	unsuspend_ready_cv.wait(lk, [internal_id] { return suspended_procs.find(internal_id) != suspended_procs.end();  });
-	suspended_procs[internal_id]->time_to_resume = 0;
-	StartTiming(suspended_procs[internal_id]);
+	suspended_procs.at(internal_id).resume();
 	suspended_procs.erase(internal_id);
 }
 

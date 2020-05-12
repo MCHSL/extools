@@ -1,6 +1,7 @@
 if (WIN32)
     # Needed for MSVC_RUNTIME_LIBRARY
     cmake_minimum_required(VERSION 3.15.0)
+    set(CMAKE_GENERATOR_TOOLSET host=x86)
 else()
     cmake_minimum_required(VERSION 3.10.0)
 endif()
@@ -27,7 +28,7 @@ else()
         "${SRC_DIR}/*.hpp"
     )
 endif()
-set(SRC_FILES ${SRC_FILES} "${SRC_DIR}/core/subhook/subhook.c")
+set(SRC_FILES ${SRC_FILES} "${SRC_DIR}/third_party/subhook/subhook.c")
 
 add_library(byond-extools SHARED ${SRC_FILES})
 source_group(TREE ${SRC_DIR} FILES ${SRC_FILES})

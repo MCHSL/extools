@@ -13,5 +13,3 @@ namespace TFFI
 {
 	bool initialize();
 }
-
-void cheap_hypotenuse(ExecutionContext* ctx);

@@ -33,9 +33,9 @@ struct Tile
 	bool excited = false;
 	std::shared_ptr<GasMixture> air;
 	Value turf_ref; // not managed because turf refcounts are very unimportant and don't matter
-	std::shared_ptr<PlanetAtmosInfo> planet_atmos_info; // shared_ptr because uhhh reasons.
+	std::unique_ptr<PlanetAtmosInfo> planet_atmos_info;
 	std::shared_ptr<ExcitedGroup> excited_group; // shared_ptr for an actuall good reason this time.
-	std::shared_ptr<MonstermosInfo> monstermos_info; // I'd make these unique_ptrs but then I wouldn't be able to copy the thing.
+	std::unique_ptr<MonstermosInfo> monstermos_info;
 };
 
 struct PlanetAtmosInfo

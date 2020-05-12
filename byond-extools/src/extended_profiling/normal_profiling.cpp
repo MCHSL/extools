@@ -3,7 +3,7 @@
 #include "../core/byond_structures.h"
 #include <string>
 #include "../dmdism/opcodes.h"
-#include "../core/json.hpp"
+#include "../third_party/json.hpp"
 #include <fstream>
 #include <chrono>
 
@@ -24,7 +24,7 @@ trvh dump_all_profiles(unsigned int args_len, Value* args, Value src)
 {
 	auto start = std::chrono::high_resolution_clock::now();
 	std::vector<nlohmann::json> interresult;
-	for (Core::Proc& p : Core::get_all_procs())
+	for (const Core::Proc& p : Core::get_all_procs())
 	{
 		if (!p.raw_path.empty() && p.raw_path.back() == ')')
 		{

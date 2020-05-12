@@ -12,8 +12,8 @@ SetVariablePtr oSetVariable;
 
 std::unordered_map<int, bool> proxies;
 
-std::unordered_map<int, Core::Proc> getters;
-std::unordered_map<int, Core::Proc> setters;
+std::unordered_map<int, Core::Proc*> getters;
+std::unordered_map<int, Core::Proc*> setters;
 
 std::unordered_map<int, std::unordered_map<int, std::unordered_set<unsigned int>>> data_breakpoints;
 
@@ -22,15 +22,15 @@ trvh handle_proxy(int id, int name_id)
 	std::ifstream fin("wack.txt");
 	std::string wack;
 	fin >> wack;
-	return { DataType::STRING, (int)Core::GetStringId(wack.c_str()) };
+	return { DataType::STRING, (int)Core::GetStringId(wack) };
 }
 
 trvh hGetVariable(int datumType, int datumId, unsigned int name_id)
 {
 	/*if (proxies.find(datumId) != proxies.end())
 	{
-		return handle_proxy(datumId, name_id); 
-	} 
+		return handle_proxy(datumId, name_id);
+	}
 	else if (getters.find(name_id) != getters.end())
 	{
 		auto tmp = getters.at(name_id);
@@ -49,7 +49,7 @@ trvh hGetVariable(int datumType, int datumId, unsigned int name_id)
 void hSetVariable(int datumType, int datumId, unsigned int name_id, Value new_value)
 {
 	/*if (setters.find(name_id) != setters.end())
-	{	
+	{
 		auto tmp = setters.at(name_id);
 		setters.erase(name_id);
 		tmp.call({ new_value }, Value::Null(), Value(datumType, datumId));
@@ -87,12 +87,12 @@ void on_data_write(int datumId, int datumType, std::string varName, Value new_va
 
 bool Proxy::initialize()
 {
-	oGetVariable = (GetVariablePtr)Core::install_hook((void*)GetVariable, (void*)hGetVariable);
-	oSetVariable = (SetVariablePtr)Core::install_hook((void*)SetVariable, (void*)hSetVariable);
+	oGetVariable = Core::install_hook(GetVariable, hGetVariable);
+	oSetVariable = Core::install_hook(SetVariable, hSetVariable);
 	if (false)
 	{
 		Core::get_proc("/datum/proxy_object/proc/__install").hook(install_proxy);
-		
+
 	}
 	return true;
 }

@@ -24,39 +24,27 @@ std::uint32_t Context::take()
 		return END;
 	}
 
-	last_opcode_ = buffer_[current_offset_++];
-	return last_opcode_;
+	return buffer_[current_offset_++];
 }
 
-std::uint32_t Context::eat()
+std::uint32_t Context::eat(Instruction* instr)
 {
 	std::uint32_t op = take();
-	if (instr_ != nullptr)
+	if (instr != nullptr)
 	{
-		instr_->add_byte(op);
+		instr->add_byte(op);
 	}
 
 	return op;
 }
 
-std::uint32_t Context::eat_add()
+std::uint32_t Context::eat_add(Instruction* instr)
 {
-	std::uint32_t val = eat();
-	if (instr_ != nullptr)
+	std::uint32_t val = eat(instr);
+	if (instr != nullptr)
 	{
-		instr_->opcode().add_info(" " + tohex(last_opcode_));
+		instr->opcode().add_info(" " + tohex(val));
 	}
 
 	return val;
-}
-
-void Context::set_instr(Instruction* instr)
-{
-	instr->set_offset(current_offset_ - 1);
-	instr_ = instr;
-}
-
-void Context::finish_instr()
-{
-	instr_ = nullptr;
 }

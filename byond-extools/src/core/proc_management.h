@@ -11,11 +11,18 @@ class Disassembly;
 
 namespace Core
 {
-	struct Proc
+	class Proc
 	{
-		Proc() {};
-		Proc(std::string name, unsigned int override_id=0);
-		Proc(std::uint32_t id);
+		Proc(const Proc&) = delete;
+		Proc& operator=(const Proc&) = delete;
+
+		Proc() {}
+		friend bool populate_proc_list();
+
+	public:
+		Proc(Proc&& rhs) noexcept = default;
+		Proc& operator=(Proc&& rhs) noexcept = default;
+
 		std::string raw_path;
 		std::string name;
 		std::string simple_name;
@@ -30,9 +37,9 @@ namespace Core
 		std::uint16_t varcount_idx = 0;
 
 		std::uint32_t* original_bytecode_ptr = nullptr;
+		std::vector<std::uint32_t> bytecode;
 
-		void set_bytecode(std::vector<std::uint32_t>* new_bytecode);
-		void set_bytecode(std::uint32_t* new_bytecode);
+		void set_bytecode(std::vector<std::uint32_t>&& new_bytecode);
 		std::uint32_t* get_bytecode();
 		std::uint16_t get_bytecode_length();
 		void reset_bytecode();
@@ -41,7 +48,7 @@ namespace Core
 		Disassembly disassemble();
 		void assemble(Disassembly disasm);
 
-		ProfileInfo* profile();
+		ProfileInfo* profile() const;
 		void extended_profile();
 		void hook(ProcHook hook_func);
 		Value call(std::vector<Value> arguments, Value usr = Value::Null());
@@ -55,30 +62,19 @@ namespace Core
 		{
 			return id == rhs.id;
 		}
-
-		operator int()
-		{
-			return id;
-		}
-
-		operator std::string()
-		{
-			return name;
-		}
 	};
 
-	Proc get_proc(std::string name, unsigned int override_id=0);
-	Proc get_proc(unsigned int id);
-	Proc get_proc(ExecutionContext* ctx);
-	std::optional<Proc> try_get_proc(std::string name, unsigned int override_id=0);
+	Proc& get_proc(std::string name, unsigned int override_id=0);
+	Proc& get_proc(unsigned int id);
+	Proc& get_proc(ExecutionContext* ctx);
+	Proc* try_get_proc(std::string name, unsigned int override_id=0);
 	std::vector<Proc>& get_all_procs();
 
 	bool populate_proc_list();
+	void destroy_proc_list();
 	Disassembly disassemble_raw(std::vector<int> bytecode);
 }
 
-extern std::vector<Core::Proc> procs_by_id;
-extern std::unordered_map<std::string, std::vector<Core::Proc>> procs_by_name;
 extern std::unordered_map<unsigned int, ProcHook> proc_hooks;
 extern std::unordered_map<unsigned int, bool> extended_profiling_procs;
 

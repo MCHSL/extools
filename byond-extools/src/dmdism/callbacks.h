@@ -19,9 +19,9 @@
 #define __forceinline
 #endif
 
-#define ADD_CALLBACK(op) case op: return new Instr_##op(op);
+#define ADD_CALLBACK(op) case op: return std::make_unique<Instr_##op>(op);
 
-__forceinline Instruction* get_instr(std::uint32_t op) {
+__forceinline std::unique_ptr<Instruction> get_instr(std::uint32_t op) {
 	switch (op)
 	{
 		ADD_CALLBACK(END)
@@ -157,8 +157,11 @@ __forceinline Instruction* get_instr(std::uint32_t op) {
 		ADD_CALLBACK(ISOBJ)
 		ADD_CALLBACK(ISTEXT)
 		ADD_CALLBACK(CKEY)
+		ADD_CALLBACK(BROWSE_RSC)
+		ADD_CALLBACK(BROWSE)
+		ADD_CALLBACK(BROWSE_OPT)
 	}
-	return new Instr_UNK;
+	return std::make_unique<Instr_UNK>();
 }
 
 #undef ADD_CALLBACK

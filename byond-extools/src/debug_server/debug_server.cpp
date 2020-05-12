@@ -2,7 +2,7 @@
 #include "../dmdism/disassembly.h"
 #include "../dmdism/disassembler.h"
 #include "../dmdism/opcodes.h"
-#include "../core/json.hpp"
+#include "../third_party/json.hpp"
 #include <utility>
 
 #include <thread>
@@ -41,7 +41,7 @@ void stripUnicode(std::string& str)
 
 nlohmann::json value_to_text(Value val);
 
-int datatype_name_to_val(std::string name)
+DataType datatype_name_to_val(std::string name)
 {
 	for (auto it = datatype_names.begin(); it != datatype_names.end(); ++it)
 		if (it->second == name)
@@ -59,7 +59,7 @@ int DebugServer::handle_one_message()
 	//Core::Alert("Message!!");
 	if (data.is_null())
 	{
-		Core::Alert("null message, leaving");
+		//Core::Alert("null message, leaving");
 		return RES_BREAK;
 	}
 	const std::string& type = data.at("type");
@@ -72,7 +72,7 @@ int DebugServer::handle_one_message()
 	else if (type == MESSAGE_PROC_LIST)
 	{
 		std::vector<nlohmann::json> procs;
-		for (Core::Proc& proc : procs_by_id)
+		for (const Core::Proc& proc : Core::get_all_procs())
 		{
 			procs.push_back({ {"proc", proc.name}, {"override_id", proc.override_id} });
 		}
@@ -83,7 +83,7 @@ int DebugServer::handle_one_message()
 		auto content = data.at("content");
 		const std::string& proc_name = content.at("proc");
 		int override_id = content.at("override_id");
-		Core::Proc proc = Core::get_proc(proc_name, override_id);
+		Core::Proc& proc = Core::get_proc(proc_name, override_id);
 		Disassembly disassembly = proc.disassemble();
 		nlohmann::json disassembled_proc;
 		disassembled_proc["proc"] = proc_name;
@@ -114,7 +114,7 @@ int DebugServer::handle_one_message()
 		const std::string& proc = content.at("proc");
 		const int& override_id = content.at("override_id");
 		//Core::Alert("Setting breakpoint in " + proc);
-		set_breakpoint(Core::get_proc(proc, override_id), content.at("offset"));
+		set_breakpoint(Core::get_proc(proc, override_id).id, content.at("offset"));
 		debugger.send(data);
 	}
 	else if (type == MESSAGE_BREAKPOINT_UNSET)
@@ -123,19 +123,19 @@ int DebugServer::handle_one_message()
 		const std::string& proc = content.at("proc");
 		const int& override_id = content.at("override_id");
 		//Core::Alert("Setting breakpoint in " + proc);
-		remove_breakpoint(Core::get_proc(proc, override_id), content.at("offset"));
+		remove_breakpoint(Core::get_proc(proc, override_id).id, content.at("offset"));
 		debugger.send(data);
 	}
 	else if (type == MESSAGE_BREAKPOINT_STEP_INTO)
 	{
 		std::lock_guard<std::mutex> lk(notifier_mutex);
-		next_action = STEP_INTO;
+		next_action = NextAction::STEP_INTO;
 		notifier.notify_all();
 	}
 	else if (type == MESSAGE_BREAKPOINT_STEP_OVER)
 	{
 		std::lock_guard<std::mutex> lk(notifier_mutex);
-		next_action = STEP_OVER;
+		next_action = NextAction::STEP_OVER;
 		notifier.notify_all();
 	}
 	else if (type == MESSAGE_BREAKPOINT_PAUSE)
@@ -145,20 +145,20 @@ int DebugServer::handle_one_message()
 	else if (type == MESSAGE_BREAKPOINT_RESUME)
 	{
 		std::lock_guard<std::mutex> lk(notifier_mutex);
-		next_action = RESUME;
+		next_action = NextAction::RESUME;
 		notifier.notify_all();
 	}
 	else if (type == MESSAGE_GET_FIELD)
 	{
 		auto content = data.at("content");
 		int ref = content.at("ref");
-		data["content"] = value_to_text(Value(ref >> 24, ref & 0xffffff).get_safe(content.at("field_name")));
+		data["content"] = value_to_text(Value((DataType)(ref >> 24), ref & 0xffffff).get_safe(content.at("field_name")));
 		debugger.send(data);
 	}
 	else if (type == MESSAGE_GET_ALL_FIELDS)
 	{
 		int ref = data.at("content");
-		Value datum = Value(ref >> 24, ref & 0xffffff);
+		Value datum = Value((DataType)(ref >> 24), ref & 0xffffff);
 		nlohmann::json vals;
 		for (const std::pair<std::string, Value>& v: datum.get_all_vars())
 		{
@@ -172,17 +172,6 @@ int DebugServer::handle_one_message()
 		data["content"] = value_to_text(GetVariable(DataType::WORLD_D, 0x01, Core::GetStringId(data.at("content"))));
 		debugger.send(data);
 	}
-	else if (type == MESSAGE_GET_TYPE)
-	{
-		int ref = data.at("content");
-		Value typeval = GetVariable(ref >> 24, ref & 0xffffff, Core::GetStringId("type"));
-		if (typeval.type == DataType::MOB_TYPEPATH)
-		{
-			typeval.value = *MobTableIndexToGlobalTableIndex(typeval.value);
-		}
-		data["content"] = Core::type_to_text(typeval.value);
-		debugger.send(data);
-	}
 	else if (type == MESSAGE_TOGGLE_BREAK_ON_RUNTIME)
 	{
 		break_on_runtimes = data.at("content"); //runtimes funtimes
@@ -191,32 +180,44 @@ int DebugServer::handle_one_message()
 	else if (type == MESSAGE_GET_LIST_CONTENTS)
 	{
 		int ref = data.at("content");
-		List list(ref & 0xffffff);
-		std::vector<Value> elements = std::vector<Value>(list.list->vector_part, list.list->vector_part + list.list->length); //efficiency
-		std::vector<nlohmann::json> textual;
-		if (!list.is_assoc())
-		{
-			for (Value& val : elements)
+		try {
+			List list(ref & 0xffffff);
+
+			std::vector<Value> elements = std::vector<Value>(list.list->vector_part, list.list->vector_part + list.list->length); //efficiency
+			std::vector<nlohmann::json> textual;
+			if (!list.is_assoc())
 			{
-				textual.push_back(value_to_text(val));
+				for (Value& val : elements)
+				{
+					textual.push_back(value_to_text(val));
+				}
+				data["content"] = { { "linear", textual } };
 			}
-			data["content"] = { { "linear", textual } };
-		}
-		else
-		{
-			for (Value& val : elements)
+			else
 			{
-				textual.push_back(std::make_pair<nlohmann::json, nlohmann::json>(value_to_text(val), value_to_text(list.at(val))));
+				for (Value& val : elements)
+				{
+					textual.push_back(std::make_pair<nlohmann::json, nlohmann::json>(value_to_text(val), value_to_text(list.at(val))));
+				}
+				data["content"] = { { "associative", textual } };
 			}
-			data["content"] = { { "associative", textual } };
+			debugger.send(data);
 		}
+		catch (const char* e) { //thrown by list constructor when trying to access an invalid list
+			data["content"] = { {"linear", std::vector<nlohmann::json>()} };
+			debugger.send(data);
+		}
+	}
+	else if (type == MESSAGE_GET_SOURCE)
+	{
+		data["content"] = StdDefDM ? std::string(StdDefDM(nullptr)) : "";
 		debugger.send(data);
 	}
 
 	else if (type == MESSAGE_GET_PROFILE)
 	{
 		const std::string& name = data.at("content");
-		Core::Proc p = Core::get_proc(name);
+		Core::Proc& p = Core::get_proc(name);
 		ProfileInfo* entry = p.profile();
 
 		nlohmann::json resp;
@@ -230,14 +231,17 @@ int DebugServer::handle_one_message()
 		data["content"] = resp;
 		debugger.send(data);
 	}
-	else if (type == MESSAGE_ENABLE_PROFILER)
+	else if (type == MESSAGE_TOGGLE_PROFILER)
 	{
-		Core::enable_profiling();
-		debugger.send(data);
-	}
-	else if (type == MESSAGE_DISABLE_PROFILER)
-	{
-		Core::disable_profiling();
+		bool enable = data.at("content");
+		if (enable)
+		{
+			Core::enable_profiling();
+		}
+		else
+		{
+			Core::disable_profiling();
+		}
 		debugger.send(data);
 	}
 	else if (type == MESSAGE_CONFIGURATION_DONE)
@@ -280,9 +284,9 @@ bool DebugServer::loop_until_configured()
 NextAction DebugServer::wait_for_action()
 {
 	std::unique_lock<std::mutex> lk(notifier_mutex);
-	notifier.wait(lk, [this] { return next_action != WAIT; });
+	notifier.wait(lk, [this] { return next_action != NextAction::WAIT; });
 	NextAction res = next_action;
-	next_action = WAIT;
+	next_action = NextAction::WAIT;
 	return res;
 }
 
@@ -302,9 +306,10 @@ void DebugServer::set_breakpoint(int proc_id, int offset, bool singleshot)
 	{
 		return;
 	}
-	std::uint32_t* bytecode = Core::get_proc(proc_id).get_bytecode();
+	Core::Proc& proc = Core::get_proc(proc_id);
+	std::uint32_t* bytecode = proc.get_bytecode();
 	Breakpoint bp = { //Directly writing to bytecode rather than using set_bytecode,
-		Core::get_proc(proc_id), //because this will ensure any running procs will also hit this
+		&proc, //because this will ensure any running procs will also hit this
 		bytecode[offset],
 		(unsigned short)offset,
 		singleshot
@@ -351,7 +356,7 @@ void DebugServer::restore_breakpoint()
 		Core::Alert("Restore() called with no breakpoint to restore");
 		return;
 	}
-	std::uint32_t* bytecode = breakpoint_to_restore->proc.get_bytecode();
+	std::uint32_t* bytecode = breakpoint_to_restore->proc->get_bytecode();
 	std::swap(bytecode[breakpoint_to_restore->offset], breakpoint_to_restore->replaced_opcode);
 	breakpoint_to_restore = {};
 }
@@ -365,14 +370,14 @@ void DebugServer::on_breakpoint(ExecutionContext* ctx)
 		breakpoint_to_restore = bp;
 	}
 	send_call_stack(ctx);
-	send(MESSAGE_BREAKPOINT_HIT, { {"proc", bp->proc.name }, {"offset", bp->offset }, {"override_id", Core::get_proc(ctx).override_id}, {"reason", "breakpoint opcode"} });
+	send(MESSAGE_BREAKPOINT_HIT, { {"proc", bp->proc->name }, {"offset", bp->offset }, {"override_id", Core::get_proc(ctx).override_id}, {"reason", "breakpoint opcode"} });
 	on_break(ctx);
 	ctx->current_opcode--;
 }
 
 void DebugServer::on_step(ExecutionContext* ctx)
 {
-	auto proc = Core::get_proc(ctx);
+	auto& proc = Core::get_proc(ctx);
 	send_call_stack(ctx);
 	send(MESSAGE_BREAKPOINT_HIT, { {"proc", proc.name }, {"offset", ctx->current_opcode }, {"override_id", proc.override_id}, {"reason", "step"} });
 	on_break(ctx);
@@ -382,23 +387,23 @@ void DebugServer::on_break(ExecutionContext* ctx)
 {
 	switch (wait_for_action())
 	{
-	case STEP_INTO:
-		step_mode = INTO;
+	case NextAction::STEP_INTO:
+		step_mode = StepMode::INTO;
 		break;
-	case STEP_OVER:
-		step_mode = PRE_OVER;
+	case NextAction::STEP_OVER:
+		step_mode = StepMode::PRE_OVER;
 		step_over_context = ctx;
 		step_over_parent_context = ctx->parent_context;
 		break;
-	case RESUME:
-		step_mode = NONE;
+	case NextAction::RESUME:
+		step_mode = StepMode::NONE;
 		break;
 	}
 }
 
 void DebugServer::on_error(ExecutionContext* ctx, char* error)
 {
-	Core::Proc p = Core::get_proc(ctx);
+	Core::Proc& p = Core::get_proc(ctx);
 	send_call_stack(ctx);
 	debug_server.send(MESSAGE_RUNTIME, { {"proc", p.name }, {"offset", ctx->current_opcode }, {"override_id", p.override_id}, {"message", std::string(error)} });
 	debug_server.wait_for_action();
@@ -409,36 +414,45 @@ nlohmann::json value_to_text(Value val)
 	nlohmann::json literal;
 	switch (val.type)
 	{
-	case NUMBER:
+	case DataType::NUMBER:
 		literal = { { "number", val.valuef } };
 		break;
-	case STRING:
+	case DataType::STRING:
 		literal = { { "string", GetStringTableEntry(val.value)->stringData } };
 		break;
-	case MOB_TYPEPATH:
+	case DataType::MOB_TYPEPATH:
 		literal = { { "typepath", Core::type_to_text(*MobTableIndexToGlobalTableIndex(val.value)) } };
 		break;
-	case OBJ_TYPEPATH:
-	case TURF_TYPEPATH:
-	case AREA_TYPEPATH:
-	case DATUM_TYPEPATH:
+	case DataType::OBJ_TYPEPATH:
+	case DataType::TURF_TYPEPATH:
+	case DataType::AREA_TYPEPATH:
+	case DataType::DATUM_TYPEPATH:
 		literal = { { "typepath", Core::type_to_text(val.value) } };
 		break;
-	case LIST_TYPEPATH:
+	case DataType::LIST_TYPEPATH:
 		// Not subtypeable
 		literal = { { "typepath", "/list" } };
 		break;
-	case CLIENT_TYPEPATH:
+	case DataType::CLIENT_TYPEPATH:
 		// Not subtypeable
 		literal = { { "typepath", "/client" } };
 		break;
-	case SAVEFILE_TYPEPATH:
+	case DataType::SAVEFILE_TYPEPATH:
 		// Not subtypeable
 		literal = { { "typepath", "/savefile" } };
 		break;
-	case RESOURCE:
-		literal = { {"resource", Core::stringify(val) } };
+	case DataType::RESOURCE:
+		literal = { { "resource", Core::stringify(val) } };
 		break;
+	case DataType::PROCPATH: {
+		if (val.value < Core::get_all_procs().size()) {
+			Core::Proc& p = Core::get_proc(val.value);
+			literal = { { "proc", p.name } };
+		} else {
+			literal = { { "ref", (val.type << 24) | val.value } };
+		}
+		break;
+	}
 	default:
 		literal = { { "ref", (val.type << 24) | val.value } };
 	}
@@ -446,21 +460,21 @@ nlohmann::json value_to_text(Value val)
 
 	switch (val.type)
 	{
-	case TURF:
-	case OBJ:
-	case MOB:
-	case AREA:
-	case CLIENT:
-	case IMAGE:
-	case WORLD_D:
-	case DATUM:
-	case SAVEFILE:
+	case DataType::TURF:
+	case DataType::OBJ:
+	case DataType::MOB:
+	case DataType::AREA:
+	case DataType::CLIENT:
+	case DataType::IMAGE:
+	case DataType::WORLD_D:
+	case DataType::DATUM:
+	case DataType::SAVEFILE:
 		result["has_vars"] = true;
 	}
 
 	switch (val.type)
 	{
-	case LIST:
+	case DataType::LIST:
 	/*case LIST_ARGS: //uncomment when handled in GET_LIST_CONTENTS
 	case LIST_VERBS:
 	case LIST_CONTENTS_2:
@@ -478,7 +492,7 @@ void DebugServer::send_call_stack(ExecutionContext* ctx)
 	do
 	{
 		nlohmann::json j;
-		Core::Proc p = Core::get_proc(ctx);
+		Core::Proc& p = Core::get_proc(ctx);
 
 		j["proc"] = p.name;
 		j["override_id"] = p.override_id;
@@ -523,15 +537,15 @@ extern "C" void on_singlestep()
 	{
 		debug_server.restore_breakpoint();
 	}
-	if (debug_server.step_mode == INTO)
+	if (debug_server.step_mode == StepMode::INTO)
 	{
 		debug_server.on_step(Core::get_context());
 	}
-	else if (debug_server.step_mode == OVER)
+	else if (debug_server.step_mode == StepMode::OVER)
 	{
 		if (!debug_server.step_over_context)
 		{
-			debug_server.step_mode = NONE;
+			debug_server.step_mode = StepMode::NONE;
 			return;
 		}
 		ExecutionContext* ctx = Core::get_context();
@@ -545,12 +559,12 @@ extern "C" void on_singlestep()
 		{
 			debug_server.step_over_context = nullptr; //there is nothing to return to, we missed our chance
 			debug_server.step_over_parent_context = nullptr;
-			debug_server.step_mode = NONE;
+			debug_server.step_mode = StepMode::NONE;
 		}
 	}
-	else if (debug_server.step_mode == PRE_OVER)
+	else if (debug_server.step_mode == StepMode::PRE_OVER)
 	{
-		debug_server.step_mode = OVER;
+		debug_server.step_mode = StepMode::OVER;
 	}
 }
 
@@ -575,7 +589,7 @@ __declspec(naked) void singlestep_hook()
 	}
 }
 #else
-void singlestep_hook() {};
+extern "C" void singlestep_hook();
 #endif
 
 /*
@@ -619,7 +633,7 @@ bool debugger_initialize()
 		return true;
 	}
 
-	oRuntime = (RuntimePtr)Core::install_hook((void*)Runtime, (void*)hRuntime);
+	oRuntime = Core::install_hook(Runtime, hRuntime);
 	install_singlestep_hook();
 	breakpoint_opcode = Core::register_opcode("DEBUG_BREAKPOINT", on_breakpoint);
 	nop_opcode = Core::register_opcode("DEBUG_NOP", on_nop);

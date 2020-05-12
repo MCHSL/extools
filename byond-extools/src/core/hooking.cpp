@@ -2,28 +2,30 @@
 #include "../tffi/tffi.h"
 #include <chrono>
 #include <fstream>
-#include "json.hpp"
+#include "../third_party/json.hpp"
 #include <stack>
 #include "../extended_profiling/extended_profiling.h"
+#include <mutex>
 
 CrashProcPtr oCrashProc;
 CallGlobalProcPtr oCallGlobalProc;
 TopicFloodCheckPtr oTopicFloodCheck;
+StartTimingPtr oStartTiming;
 
 TopicFilter current_topic_filter = nullptr;
 
-std::unordered_map<void*, subhook::Hook*> hooks;
+std::unordered_map<void*, std::unique_ptr<subhook::Hook>> hooks;
 
 //ExecutionContext* last_suspended_ec;
 
 std::vector<QueuedCall> queued_calls;
 bool calling_queue = false;
 
-trvh REGPARM3 hCallGlobalProc(char usr_type, int usr_value, int proc_type, unsigned int proc_id, int const_0, char src_type, int src_value, Value *argList, unsigned int argListLen, int const_0_2, int const_0_3)
+trvh REGPARM3 hCallGlobalProc(char usr_type, int usr_value, int proc_type, unsigned int proc_id, int const_0, DataType src_type, int src_value, Value *argList, unsigned int argListLen, int const_0_2, int const_0_3)
 {
 	//if(proc_id < Core::codecov_executed_procs.size())
-	//	Core::codecov_executed_procs[proc_id] = true;q	
-	if (!queued_calls.empty() && !calling_queue)
+	//	Core::codecov_executed_procs[proc_id] = true;
+	/*if (!queued_calls.empty() && !calling_queue)
 	{
 		calling_queue = true;
 		while(!queued_calls.empty())
@@ -40,7 +42,7 @@ trvh REGPARM3 hCallGlobalProc(char usr_type, int usr_value, int proc_type, unsig
 			}
 		}
 		calling_queue = false;
-	}
+	}*/
 	Core::extended_profiling_insanely_hacky_check_if_its_a_new_call_or_resume = proc_id;
 	if (proc_hooks.find((unsigned short)proc_id) != proc_hooks.end())
 	{
@@ -72,24 +74,35 @@ bool hTopicFloodCheck(int socket_id)
 	return oTopicFloodCheck(socket_id);
 }
 
+std::recursive_mutex timing_mutex;
+
+#ifndef _WIN32
+REGPARM3
+#endif
+void hStartTiming(SuspendedProc* sp)
+{
+	std::lock_guard<std::recursive_mutex> lk(timing_mutex);
+	oStartTiming(sp);
+}
+
 void Core::set_topic_filter(TopicFilter tf)
 {
 	current_topic_filter = tf;
 }
 
 
-void* Core::install_hook(void* original, void* hook)
+void* Core::untyped_install_hook(void* original, void* hook)
 {
-	subhook::Hook* /*I am*/ shook = new subhook::Hook;
+	std::unique_ptr<subhook::Hook> /*I am*/ shook = std::make_unique<subhook::Hook>();
 	shook->Install(original, hook);
-	hooks[original] = shook;
-	return shook->GetTrampoline();
+	auto trampoline = shook->GetTrampoline();
+	hooks[original] = std::move(shook);
+	return trampoline;
 }
 
 void Core::remove_hook(void* func)
 {
 	hooks[func]->Remove();
-	delete hooks[func];
 	hooks.erase(func);
 }
 
@@ -98,14 +111,18 @@ void Core::remove_all_hooks()
 	for (auto iter = hooks.begin(); iter != hooks.end(); )
 	{
 		iter->second->Remove();
-		delete iter->second;
 		iter = hooks.erase(iter);
 	}
 }
 
 bool Core::hook_custom_opcodes() {
-	oCrashProc = (CrashProcPtr)install_hook((void*)CrashProc, (void*)hCrashProc);
-	oCallGlobalProc = (CallGlobalProcPtr)install_hook((void*)CallGlobalProc, (void*)hCallGlobalProc);
-	oTopicFloodCheck = (TopicFloodCheckPtr)install_hook((void*)TopicFloodCheck, (void*)hTopicFloodCheck);
-	return oCrashProc && oCallGlobalProc && oTopicFloodCheck;
+	oCrashProc = install_hook(CrashProc, hCrashProc);
+	oCallGlobalProc = install_hook(CallGlobalProc, hCallGlobalProc);
+	oTopicFloodCheck = install_hook(TopicFloodCheck, hTopicFloodCheck);
+	oStartTiming = install_hook(StartTiming, hStartTiming);
+	if (!(oCrashProc && oCallGlobalProc && oTopicFloodCheck && oStartTiming)) {
+		Core::Alert("Failed to install hooks!");
+		return false;
+	}
+	return true;
 }

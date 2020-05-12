@@ -8,8 +8,13 @@ struct variadic_arg_hack
 };
 
 struct BSocket;
+struct DungBuilder;
 
-typedef trvh(REGPARM3 *CallGlobalProcPtr)(char usr_type, int usr_value, int proc_type, unsigned int proc_id, int const_0, char src_type, int src_value, Value* argList, unsigned int argListLen, int const_0_2, int const_0_3);
+#ifndef _WIN32
+#define __thiscall __attribute__((thiscall))
+#endif
+
+typedef trvh(REGPARM3 *CallGlobalProcPtr)(char usr_type, int usr_value, int proc_type, unsigned int proc_id, int const_0, DataType src_type, int src_value, Value* argList, unsigned int argListLen, int const_0_2, int const_0_3);
 typedef Value(*Text2PathPtr)(unsigned int text);
 #ifdef _WIN32
 typedef unsigned int(*GetStringTableIndexPtr)(const char* string, int handleEscapes, int duplicateString);
@@ -64,7 +69,7 @@ typedef void(REGPARM3 *StartTimingPtr)(SuspendedProc*);
 #endif
 typedef ProfileInfo* (*GetProfileInfoPtr)(unsigned int proc_id);
 #ifdef _WIN32
-typedef void(*CreateContextPtr)(void* unknown, ExecutionContext* new_ctx);
+typedef void(*CreateContextPtr)(ProcConstants* constants, ExecutionContext* new_ctx);
 typedef void(*ProcCleanupPtr)(ExecutionContext* thing_that_just_executed); //this one is hooked to help with extended profiling
 #else
 typedef void(REGPARM3 *CreateContextPtr)(void* unknown, ExecutionContext* new_ctx);
@@ -86,6 +91,7 @@ typedef TableHolderThingy*(*GetTableHolderThingyByIdPtr)(unsigned int id);
 typedef void(*IncRefCountPtr)(int type, int value);
 typedef void(*DecRefCountPtr)(int type, int value);
 typedef void(*DelDatumPtr)(unsigned int id);
+typedef const char* (__thiscall *StdDefDMPtr)(DungBuilder* this_);
 
 extern CrashProcPtr CrashProc;
 extern StartTimingPtr StartTiming;
@@ -126,4 +132,5 @@ extern GetGlobalByNamePtr GetGlobalByName;
 extern GetTableHolderThingyByIdPtr GetTableHolderThingyById;
 extern IncRefCountPtr IncRefCount;
 extern DecRefCountPtr DecRefCount;
+extern StdDefDMPtr StdDefDM;
 extern DelDatumPtr DelDatum;

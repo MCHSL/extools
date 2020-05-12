@@ -10,9 +10,9 @@ public:
 	Disassembly(std::vector<Instruction>&& i) : instructions(std::move(i)) {}
 	//~Disassembly() { for (auto i : instructions) delete& i; } //heap corruption woo
 	std::vector<Instruction> instructions;
-	Core::Proc proc;
+	Core::Proc* proc;
 
-	std::vector<std::uint32_t>* assemble();
+	std::vector<std::uint32_t> assemble();
 	Instruction& at(std::size_t i);
 	Instruction& at_offset(std::size_t offset);
 	Instruction* next_from_offset(std::uint16_t offset);
@@ -24,9 +24,6 @@ public:
 	void recalculate_offsets();
 	std::size_t size();
 	std::size_t bytecount();
-};
 
-namespace Core
-{
-	Disassembly get_disassembly(std::string proc, unsigned int override_id);
-}
+	static Disassembly from_proc(Core::Proc& proc);
+};

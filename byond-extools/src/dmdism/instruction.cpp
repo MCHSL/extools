@@ -34,7 +34,7 @@ void Instruction::Disassemble(Context* context, Disassembler* dism)
 {
 	for (unsigned int i = 0; i < arguments(); i++)
 	{
-		std::uint32_t val = context->eat_add();
+		std::uint32_t val = context->eat_add(this);
 	}
 }
 

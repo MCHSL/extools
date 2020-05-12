@@ -4,14 +4,14 @@
 #include <vector>
 #include <unordered_map>
 #include <stack>
+#include <memory>
 
 struct ExtendedProfile
 {
-	~ExtendedProfile();
 	unsigned int proc_id;
 	unsigned int id;
 	unsigned long long total;
-	std::vector<ExtendedProfile*> subcalls;
+	std::vector<std::unique_ptr<ExtendedProfile>> subcalls;
 	std::vector<ExtendedProfile*> call_stack;
 	std::chrono::time_point<std::chrono::high_resolution_clock> start_time;
 	std::chrono::time_point<std::chrono::high_resolution_clock> end_time;

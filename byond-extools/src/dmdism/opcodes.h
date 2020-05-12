@@ -1,6 +1,7 @@
 #pragma once
 
 #include <unordered_map>
+#include "../core/byond_constants.h"
 
 enum Bytecode
 {
@@ -20,11 +21,11 @@ enum Bytecode
 	JNZ = 0x10,
 	JZ = 0x11,
 	RET = 0x12,
-	ISLOC = 0x13, 
-	ISMOB = 0x14, 
-	ISOBJ = 0x15, 
-	ISAREA = 0x16, 
-	ISTURF = 0x17, 
+	ISLOC = 0x13,
+	ISMOB = 0x14,
+	ISOBJ = 0x15,
+	ISAREA = 0x16,
+	ISTURF = 0x17,
 	EMPTYLIST = 0x19, //TODO
 	NEWLIST = 0x1A,
 	VIEW = 0x1B, //TODO
@@ -38,6 +39,8 @@ enum Bytecode
 	RAND_RANGE = 0x23,
 	SLEEP = 0x24,
 	SPAWN = 0x25,
+
+	BROWSE_RSC = 0x27,
 
 	CALL = 0x29,
 	CALLNR = 0x2A,
@@ -132,6 +135,9 @@ enum Bytecode
 
 	ISINLIST = 0xA9,
 
+	BROWSE = 0xAA,
+	BROWSE_OPT = 0xAB,
+
 	JMP_OR = 0xB2,
 	JMP_AND = 0xB3,
 
@@ -219,69 +225,32 @@ const std::unordered_map<AccessModifier, std::string> modifier_names = {
 	{NULL_, "NULL"},
 };
 
-enum DataType
-{
-	NULL_D = 0x00,
-	TURF = 0x01,
-	OBJ = 0x02,
-	MOB = 0x03,
-	AREA = 0x04,
-	CLIENT = 0x05,
-	STRING = 0x06,
-	MOB_TYPEPATH = 0x08,
-	OBJ_TYPEPATH = 0x09,
-	TURF_TYPEPATH = 0x0A,
-	AREA_TYPEPATH = 0x0B,
-	RESOURCE = 0x0C,
-	IMAGE = 0x0D,
-	WORLD_D = 0x0E,
-	LIST = 0x0F,
-	LIST_ARGS = 0x10,
-	LIST_VERBS = 0x12,
-	LIST_CONTENTS_2 = 0x18,
-	LIST_WORLD_CONTENTS = 0x1A,
-	LIST_CONTENTS = 0x1C,
-	DATUM_TYPEPATH = 0x20,
-	DATUM = 0x21,
-	SAVEFILE = 0x23,
-	SAVEFILE_TYPEPATH = 0x24,
-	FILE_ = 0x27,
-	LIST_TYPEPATH = 0x28,
-	NUMBER = 0x2A,
-	LIST_MOB_VARS = 0x2C,
-	LIST_OBJ_VARS = 0x2D,
-	APPEARANCE = 0x3A,
-	CLIENT_TYPEPATH = 0x3B,
-	LIST_VARS = 0x31, //maybe?
-	LIST_GLOBAL_VARS = 0x52,
-};
-
 const std::unordered_map<DataType, std::string> datatype_names = {
-	{ NULL_D, "NULL" },
-	{ TURF, "TURF" },
-	{ OBJ, "OBJ" },
-	{ MOB, "MOB" },
-	{ AREA, "AREA" },
-	{ CLIENT, "CLIENT" },
-	{ STRING, "STRING" },
-	{ MOB_TYPEPATH, "MOB_TYPEPATH" },
-	{ OBJ_TYPEPATH, "OBJ_TYPEPATH" },
-	{ TURF_TYPEPATH, "TURF_TYPEPATH" },
-	{ AREA_TYPEPATH, "AREA_TYPEPATH" },
-	{ RESOURCE, "RESOURCE"},
+	{ DataType::NULL_D, "NULL" },
+	{ DataType::TURF, "TURF" },
+	{ DataType::OBJ, "OBJ" },
+	{ DataType::MOB, "MOB" },
+	{ DataType::AREA, "AREA" },
+	{ DataType::CLIENT, "CLIENT" },
+	{ DataType::STRING, "STRING" },
+	{ DataType::MOB_TYPEPATH, "MOB_TYPEPATH" },
+	{ DataType::OBJ_TYPEPATH, "OBJ_TYPEPATH" },
+	{ DataType::TURF_TYPEPATH, "TURF_TYPEPATH" },
+	{ DataType::AREA_TYPEPATH, "AREA_TYPEPATH" },
+	{ DataType::RESOURCE, "RESOURCE"},
 	{ DataType::IMAGE, "IMAGE" },
-	{ WORLD_D, "WORLD" },
-	{ DATUM, "DATUM" },
-	{ SAVEFILE, "SAVEFILE" },
-	{ LIST_TYPEPATH, "LIST_TYPEPATH" },
-	{ NUMBER, "NUMBER" },
-	{ CLIENT_TYPEPATH, "CLIENT_TYPEPATH" },
-	{ LIST, "LIST" },
-	{ LIST_ARGS, "LIST_ARGS" },
-	{ LIST_VERBS, "LIST_VERBS" },
-	{ LIST_CONTENTS, "LIST_CONTENTS" },
-	{ DATUM_TYPEPATH, "DATUM_TYPEPATH" },
-	{ LIST_CONTENTS_2, "LIST_CONTENTS_2" },
+	{ DataType::WORLD_D, "WORLD" },
+	{ DataType::DATUM, "DATUM" },
+	{ DataType::SAVEFILE, "SAVEFILE" },
+	{ DataType::LIST_TYPEPATH, "LIST_TYPEPATH" },
+	{ DataType::NUMBER, "NUMBER" },
+	{ DataType::CLIENT_TYPEPATH, "CLIENT_TYPEPATH" },
+	{ DataType::LIST, "LIST" },
+	{ DataType::LIST_ARGS, "LIST_ARGS" },
+	{ DataType::LIST_VERBS, "LIST_VERBS" },
+	{ DataType::LIST_CONTENTS, "LIST_CONTENTS" },
+	{ DataType::DATUM_TYPEPATH, "DATUM_TYPEPATH" },
+	{ DataType::LIST_CONTENTS_2, "LIST_CONTENTS_2" },
 };
 
 const std::unordered_map<Bytecode, std::string> mnemonics = {
@@ -418,5 +387,8 @@ const std::unordered_map<Bytecode, std::string> mnemonics = {
 	{ ISTURF, "ISTURF" },
 	{ISOBJ, "ISOBJ"},
 	{ISTEXT, "ISTEXT"},
-	{CKEY, "CKEY"}
+	{CKEY, "CKEY"},
+	{ BROWSE_RSC, "BROWSE_RSC" },
+	{ BROWSE, "BROWSE" },
+	{ BROWSE_OPT, "BROWSE_OPT" },
 };

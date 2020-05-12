@@ -5,6 +5,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include "byond_constants.h"
+
 #ifdef _WIN32
 #define REGPARM3
 #else
@@ -24,7 +26,7 @@ struct String
 
 struct trvh //temporary return value holder, used for sidestepping the fact that structs with constructors are passed in memory and not in eax/ecx when returning them
 {
-	char type;
+	DataType type;
 	union
 	{
 		int value;
@@ -42,52 +44,52 @@ struct ManagedValue;
 
 struct Value
 {
-	char type;
+	DataType type;
 	union
 	{
 		int value;
 		float valuef;
 	};
-	Value() { type = 0; value = 0; }
-	Value(char type, int value) : type(type), value(value) {};
+	Value() { type = DataType::NULL_D; value = 0; }
+	Value(DataType type, int value) : type(type), value(value) {};
 	Value(trvh trvh)
 	{
 		type = trvh.type;
-		if (type == 0x2A)
+		if (type == DataType::NUMBER)
 			value = trvh.value;
 		else
 			valuef = trvh.valuef;
 	}
-	Value(float valuef) : type(0x2A), valuef(valuef) {};
+	Value(float valuef) : type(DataType::NUMBER), valuef(valuef) {};
 	Value(std::string s);
 	Value(const char* s);
 	Value(Core::ManagedString& ms);
 
 
 	inline static trvh Null() {
-		return { 0, 0 };
+		return { DataType::NULL_D, 0 };
 	}
 
 	inline static trvh True()
 	{
-		trvh t{ 0x2A };
+		trvh t { DataType::NUMBER };
 		t.valuef = 1.0f;
 		return t;
 	}
 
 	inline static trvh False()
 	{
-		return { 0x2A, 0 };
+		return { DataType::NUMBER, 0 };
 	}
 
 	inline static Value Global()
 	{
-		return { 0x0E, 0x01 };
+		return { DataType::WORLD_D, 0x01 };
 	}
 
 	inline static Value World()
 	{
-		return { 0x0E, 0x00 };
+		return { DataType::WORLD_D, 0x00 };
 	}
 
 	/* inline static Value Tralse()
@@ -136,7 +138,7 @@ struct ManagedValue : Value
 {
 	//This class is used to prevent objects being garbage collected before you are done with them
 	ManagedValue(Value val);
-	ManagedValue(char type, int value);
+	ManagedValue(DataType type, int value);
 	ManagedValue(trvh trvh);
 	ManagedValue(std::string s);
 	ManagedValue(const ManagedValue& other);
@@ -150,11 +152,17 @@ struct IDArrayEntry
 	int refcountMaybe;
 };
 
+enum class RbtColor : bool
+{
+	Black = false,
+	Red = true,
+};
+
 struct AssociativeListEntry
 {
 	Value key;
 	Value value;
-	bool red_black; //0 - black
+	RbtColor color;
 	AssociativeListEntry* left;
 	AssociativeListEntry* right;
 };
@@ -205,12 +213,12 @@ struct ContainerProxy
 };
 
 struct Container //All kinds of lists, including magical snowflake lists like contents
-{ 
+{
 
-	Container(char type, int id);
+	Container(DataType type, int id);
 	Container(Value val);
 	~Container();
-	char type;
+	DataType type;
 	int id;
 
 	Value at(unsigned int index);
@@ -263,12 +271,12 @@ struct List //Specialization for Container with fast access by index
 
 	operator trvh()
 	{
-		return { 0x0F, id };
+		return { DataType::LIST, id };
 	}
 
 	operator Container()
 	{
-		return { 0x0F, id };
+		return { DataType::LIST, id };
 	}
 };
 
@@ -288,7 +296,7 @@ struct ProcArrayEntry
 	int procFlags;
 	int unknown1;
 	unsigned short bytecode_idx; // ProcSetupEntry index
-	unsigned short local_var_count_idx; // ProcSetupEntry index 
+	unsigned short local_var_count_idx; // ProcSetupEntry index
 	int unknown2;
 };
 
@@ -399,7 +407,7 @@ struct NetMsg //named after the struct ThreadedNetMsg - unsure if it's actually 
 	std::uint32_t raw_header;
 };
 
-struct BSocket //or client?		   
+struct BSocket //or client?
 {
 	std::uint32_t unk1;
 	std::uint32_t addr_string_id;

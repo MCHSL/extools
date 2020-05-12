@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../core.h"
-#include "../json.hpp"
+#include "../../third_party/json.hpp"
 #include <string>
 
 #ifdef _WIN32
@@ -28,13 +28,15 @@ class Socket
 	Socket& operator=(const Socket&) = delete;
 
 	SOCKET raw_socket = INVALID_SOCKET;
+	static Socket from_raw(int raw_socket);
+	friend class JsonListener;
+	friend class TcpListener;
+
 public:
 	Socket() {}
 	Socket(Socket&& other);
 	Socket& operator=(Socket&& other);
 	virtual ~Socket();
-
-	explicit Socket(int raw_socket) : raw_socket(raw_socket) {}
 
 	bool create(int family = AF_INET, int socktype = SOCK_STREAM, int protocol = IPPROTO_TCP);
 	void close();
@@ -72,8 +74,24 @@ class TcpStream
 {
 	Socket socket;
 public:
+	TcpStream() {}
+	explicit TcpStream(Socket&& socket) : socket(std::move(socket)) {}
+
 	bool connect(const char* port, const char* remote); //augh, why port first?! damn it spaceman
+
 	bool send(std::string data);
 	std::string recv();
 	void close() { socket.close(); }
+	bool valid() { return socket.raw() != INVALID_SOCKET; }
+};
+
+class TcpListener
+{
+	Socket socket;
+public:
+	TcpListener() {}
+	bool listen(const char* port, const char* iface);
+	TcpStream accept();
+	void close() { socket.close(); }
+	bool valid() { return socket.raw() != INVALID_SOCKET; }
 };

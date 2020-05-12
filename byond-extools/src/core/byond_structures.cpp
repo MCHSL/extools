@@ -6,19 +6,19 @@
 
 Value::Value(std::string s)
 {
-	type = 0x06;
+	type = DataType::STRING;
 	value = Core::GetStringId(s);
 }
 
 Value::Value(const char* s)
 {
-	type = 0x06;
+	type = DataType::STRING;
 	value = Core::GetStringId(s);
 }
 
 Value::Value(Core::ManagedString& ms)
 {
-	type = 0x06;
+	type = DataType::STRING;
 	value = ms;
 }
 
@@ -54,12 +54,12 @@ ManagedValue Value::get_by_id(int id)
 
 std::unordered_map<std::string, Value> Value::get_all_vars()
 {
-	Container vars = get("vars");
+	Container vars = *this == Global() ? Value { DataType::LIST_GLOBAL_VARS, 0 } : get("vars");
 	int len = vars.length();
 	std::unordered_map<std::string, Value> vals;
 	for (int i = 0; i < len; i++)
 	{
-		std::string varname = vars.at(i);
+		const std::string& varname = vars.at(i);
 		vals[varname] = get(varname);
 	}
 	return vals;
@@ -131,7 +131,7 @@ Value& Value::operator+=(const Value& rhs)
 	else
 	{
 		assert(false);
-		Runtime("Attempt to add invalid types in native code! (good luck)");
+		//Runtime("Attempt to add invalid types in native code! (good luck)");
 	}
 	return *this;
 }
@@ -143,7 +143,7 @@ Value& Value::operator-=(const Value& rhs)
 	else
 	{
 		assert(false);
-		Runtime("Attempt to subtract invalid types in native code! (good luck)");
+		//Runtime("Attempt to subtract invalid types in native code! (good luck)");
 	}
 	return *this;
 }
@@ -155,7 +155,7 @@ Value& Value::operator*=(const Value& rhs)
 	else
 	{
 		assert(false);
-		Runtime("Attempt to multiply invalid types in native code! (good luck)");
+		//Runtime("Attempt to multiply invalid types in native code! (good luck)");
 	}
 	return *this;
 }
@@ -167,7 +167,7 @@ Value& Value::operator/=(const Value& rhs)
 	else
 	{
 		assert(false);
-		Runtime("Attempt to divide invalid types in native code! (good luck)");
+		//Runtime("Attempt to divide invalid types in native code! (good luck)");
 	}
 	return *this;
 }
@@ -204,6 +204,9 @@ List::List()
 List::List(int _id) : id(_id)
 {
 	list = GetListPointerById(id);
+	if (!list) {
+		throw "Invalid list id";
+	}
 	IncRefCount(0x0F, id);
 }
 
@@ -219,7 +222,7 @@ List::~List()
 	DecRefCount(0x0F, id);
 }
 
-Container::Container(char type, int id) : type(type), id(id)
+Container::Container(DataType type, int id) : type(type), id(id)
 {
 	IncRefCount(type, id);
 }
@@ -272,7 +275,7 @@ ManagedValue::ManagedValue(Value val)
 	IncRefCount(type, value);
 }
 
-ManagedValue::ManagedValue(char type, int value) : Value(type, value)
+ManagedValue::ManagedValue(DataType type, int value) : Value(type, value)
 {
 	IncRefCount(type, value);
 }
