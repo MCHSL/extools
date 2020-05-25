@@ -9,8 +9,10 @@
 
 #ifdef _WIN32
 #define REGPARM3
+#define REGPARM2
 #else
 #define REGPARM3 __attribute__((regparm(3)))
+#define REGPARM2 __attribute__((regparm(2)))
 #endif
 #define FLAG_PROFILE 0x10000
 
