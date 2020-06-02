@@ -27,6 +27,8 @@
 #define MESSAGE_GET_LIST_CONTENTS "get list contents"
 #define MESSAGE_GET_PROFILE "get profile"
 #define MESSAGE_GET_SOURCE "get source"
+#define MESSAGE_DATA_BREAKPOINT_SET "data breakpoint set"
+#define MESSAGE_DATA_BREAKPOINT_UNSET "data breakpoint unset"
 
 // response only
 #define MESSAGE_BREAKPOINT_HIT "breakpoint hit"

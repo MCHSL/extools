@@ -96,6 +96,10 @@ namespace Core
 	extern unsigned int* name_table_id_ptr;
 	extern unsigned int* name_table;
 	extern Value* global_var_table;
+	extern TableHolder2* obj_table;
+	extern TableHolder2* datum_table;
+	extern TableHolder2* list_table; //list list honk
+	extern TableHolder2* mob_table;
 
 	extern std::unordered_map<std::string, Value*> global_direct_cache;
 	void global_direct_set(std::string name, Value val);

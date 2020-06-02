@@ -77,6 +77,8 @@ typedef TableHolderThingy*(*GetTableHolderThingyByIdPtr)(unsigned int id);
 typedef void(*IncRefCountPtr)(int type, int value);
 typedef void(*DecRefCountPtr)(int type, int value);
 typedef const char* (__thiscall *StdDefDMPtr)(DungBuilder* this_);
+//typedef String* (*GetMemoryStatsPtr)(String* out);
+typedef unsigned int(*GetRBTreeMemoryUsagePtr)(AssociativeListEntry* root);
 
 extern CrashProcPtr CrashProc;
 extern StartTimingPtr StartTiming;
@@ -118,3 +120,5 @@ extern GetTableHolderThingyByIdPtr GetTableHolderThingyById;
 extern IncRefCountPtr IncRefCount;
 extern DecRefCountPtr DecRefCount;
 extern StdDefDMPtr StdDefDM;
+//extern GetMemoryStatsPtr GetMemoryStats;
+extern GetRBTreeMemoryUsagePtr GetRBTreeMemoryUsage;

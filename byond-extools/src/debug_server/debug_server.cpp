@@ -4,6 +4,7 @@
 #include "../dmdism/opcodes.h"
 #include "../third_party/json.hpp"
 #include <utility>
+#include <unordered_map>
 
 #include <thread>
 
@@ -15,6 +16,7 @@ std::mutex notifier_mutex;
 std::condition_variable notifier;
 
 RuntimePtr oRuntime;
+//GetVariablePtr oGetVariable;
 
 bool DebugServer::listen(const char* port)
 {
@@ -526,6 +528,28 @@ void hRuntime(char* error)
 	}
 	oRuntime(error);
 }
+
+
+
+/*trvh hGetVariable(int datumType, int datumId, unsigned int name_id)
+{
+	if (debug_server.data_breakpoints_read.find(datumType) != debug_server.data_breakpoints_read.end())
+	{
+		auto breakpoints_for_type = debug_server.data_breakpoints_read.at(datumType);
+		if (breakpoints_for_type.find(datumId) != breakpoints_for_type.end())
+		{
+			auto breakpoint_var_names = breakpoints_for_type.equal_range(datumId);
+			for (auto it = breakpoint_var_names.first; it != breakpoint_var_names.second; ++it)
+			{
+				if (it->second == name_id)
+				{
+					//debug_server.on_data_breakpoint(Core::get_context(), datumType, datumId, Core::GetStringFromId(name_id));
+				}
+			}
+		}
+	}
+	return oGetVariable(datumType, datumId, name_id);
+}*/
 
 extern "C" void on_singlestep()
 {
