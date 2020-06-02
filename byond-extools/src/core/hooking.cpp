@@ -75,6 +75,10 @@ bool hTopicFloodCheck(int socket_id)
 }
 
 std::recursive_mutex timing_mutex;
+
+#ifndef _WIN32
+REGPARM3
+#endif
 void hStartTiming(SuspendedProc* sp)
 {
 	std::lock_guard<std::recursive_mutex> lk(timing_mutex);

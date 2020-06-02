@@ -31,8 +31,8 @@ extern int ByondBuild;
 
 namespace Core
 {
-	static const char* SUCCESS = "SUCCESS";
-	static const char* FAIL = "FAIL";
+	const char* const SUCCESS = "SUCCESS";
+	const char* const FAIL = "FAIL";
 
 	//not exactly a byond structure so it's here for now
 

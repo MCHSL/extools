@@ -447,8 +447,12 @@ nlohmann::json value_to_text(Value val)
 		literal = { { "resource", Core::stringify(val) } };
 		break;
 	case DataType::PROCPATH: {
-		Core::Proc& p = Core::get_proc(val.value);
-		literal = { { "proc", p.name } };
+		if (val.value < Core::get_all_procs().size()) {
+			Core::Proc& p = Core::get_proc(val.value);
+			literal = { { "proc", p.name } };
+		} else {
+			literal = { { "ref", (val.type << 24) | val.value } };
+		}
 		break;
 	}
 	default:
