@@ -136,11 +136,13 @@ struct Value
 struct ManagedValue : Value
 {
 	//This class is used to prevent objects being garbage collected before you are done with them
+	ManagedValue() = delete;
 	ManagedValue(Value val);
 	ManagedValue(DataType type, int value);
 	ManagedValue(trvh trvh);
 	ManagedValue(std::string s);
 	ManagedValue(const ManagedValue& other);
+	ManagedValue(ManagedValue&& other) noexcept;
 	~ManagedValue();
 };
 

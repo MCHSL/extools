@@ -126,12 +126,13 @@ void init_testing()
 	//b += 1.0f;
 	//Core::Alert(std::to_string(b));
 	//ManagedValue a = Value::World().get("name");
-	dump_full_obj_mem_usage();
+	//dump_full_obj_mem_usage();
 	//Core::Alert("end func");
 	//Core::global_direct_set("internal_tick_usage", "AYYLMAO");
 	//Core::Alert(Core::global_direct_get("internal_tick_usage"));
 	//Core::Alert(Core::GetStringFromId(0x86));
-	Core::get_proc("/proc/get_string_by_id").hook(test_invoke);
+	Proxy::initialize();
+	//Core::get_proc("/proc/get_string_by_id").hook(test_invoke);
 	//Core::Alert(Core::get_proc("/client/verb/hidden").proc_table_entry->procFlags);
 	//Core::Alert(Core::get_proc("/client/verb/nothidden").proc_table_entry->procFlags);
 	//Core::get_proc("/client/verb/toggle_hidden_verb").hook(toggle_verb_hidden);
