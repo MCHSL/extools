@@ -41,3 +41,5 @@ DecRefCountPtr DecRefCount;
 IncRefCountPtr IncRefCount;
 StdDefDMPtr StdDefDM;
 GetRBTreeMemoryUsagePtr GetRBTreeMemoryUsage;
+InitializeListFromContextPtr InitializeListFromContext;
+RemoveFromContainerPtr RemoveFromContainer;

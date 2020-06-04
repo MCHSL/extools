@@ -198,7 +198,7 @@ struct ContainerProxy
 
 struct Container //All kinds of lists, including magical snowflake lists like contents
 {
-
+	Container();
 	Container(DataType type, int id);
 	Container(Value val);
 	~Container();

@@ -213,6 +213,13 @@ List::~List()
 	DecRefCount(0x0F, id);
 }
 
+Container::Container()
+{
+	type = DataType::LIST;
+	id = CreateList(0);
+	IncRefCount(0x0F, id);
+}
+
 Container::Container(DataType type, int id) : type(type), id(id)
 {
 	IncRefCount(type, id);
