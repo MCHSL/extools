@@ -1,6 +1,6 @@
 #include "../core/core.h"
 
-namespace Proxy
+namespace RefTracking
 {
 	bool initialize();
 }

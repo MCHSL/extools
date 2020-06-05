@@ -1,7 +1,6 @@
 #include "core.h"
 #include "../dmdism/disassembly.h"
 #include "../debug_server/debug_server.h"
-#include "../proxy/proxy_object.h"
 #include "../optimizer/optimizer.h"
 #include "../crash_guard/crash_guard.h"
 #include "../extended_profiling/normal_profiling.h"
@@ -131,7 +130,6 @@ void init_testing()
 	//Core::global_direct_set("internal_tick_usage", "AYYLMAO");
 	//Core::Alert(Core::global_direct_get("internal_tick_usage"));
 	//Core::Alert(Core::GetStringFromId(0x86));
-	Proxy::initialize();
 	//Core::get_proc("/proc/get_string_by_id").hook(test_invoke);
 	//Core::Alert(Core::get_proc("/client/verb/hidden").proc_table_entry->procFlags);
 	//Core::Alert(Core::get_proc("/client/verb/nothidden").proc_table_entry->procFlags);

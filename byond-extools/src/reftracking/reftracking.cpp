@@ -1,4 +1,4 @@
-#include "proxy_object.h"
+#include "reftracking.h"
 #include "../core/byond_structures.h"
 #include "../dmdism/opcodes.h"
 #include "../third_party/robin_hood.h"
@@ -8,7 +8,6 @@
 #include <fstream>
 #include <unordered_set>
 
-GetVariablePtr oGetVariable;
 SetVariablePtr oSetVariable;
 AppendToContainerPtr oAppendToContainer;
 RemoveFromContainerPtr oRemoveFromContainer;
@@ -36,63 +35,6 @@ struct Reference
 robin_hood::unordered_flat_map<unsigned int, robin_hood::unordered_flat_map<unsigned int, std::vector<Reference>>> back_references;
 robin_hood::unordered_flat_map<unsigned int, robin_hood::unordered_flat_map<unsigned int, std::vector<Reference>>> forward_references;
 
-//std::unordered_map<unsigned int, std::vector<Reference>> list_back_references;
-//std::unordered_map<unsigned int, std::vector<Reference>> list_forward_references;
-
-trvh hGetVariable(int datumType, int datumId, unsigned int name_id)
-{
-	/*if (proxies.find(datumId) != proxies.end())
-	{
-		return handle_proxy(datumId, name_id);
-	}
-	else if (getters.find(name_id) != getters.end())
-	{
-		auto tmp = getters.at(name_id);
-		getters.erase(name_id);
-		auto res = tmp.call({}, Value::Null(), Value(datumType, datumId));
-		getters[name_id] = tmp;
-		return res;
-	}*/
-	/*if (data_breakpoints[datumType][datumId].find(name_id) != data_breakpoints[datumType][datumId].end())
-	{
-
-	}*/
-	static unsigned int back_refs_name_id = Core::GetStringId("back_references");
-	static unsigned int fore_refs_name_id = Core::GetStringId("forward_references");
-
-	static unsigned int indirect_back_refs_name_id = Core::GetStringId("indirect_back_references");
-	static unsigned int indirect_fore_refs_name_id = Core::GetStringId("indirect_forward_references");
-
-	/*if (name_id == back_refs_name_id) //nooooooo
-	{
-		exporting_refs = true;
-		Container result;
-		for (Reference& ref : back_references[datumType & 0xFF][datumId])
-		{
-			//Core::Alert("Adding ref");
-			result[ref.holder] = Value(DataType::STRING, ref.varname);
-			//result.append(ref.holder.value);
-			//DecRefCount(ref.holder.type, ref.holder.value);
-		}
-		exporting_refs = false;
-		return result;
-	}
-	else if (name_id == fore_refs_name_id)
-	{
-		exporting_refs = true;
-		Container result;
-		for (Reference& ref : forward_references[datumType & 0xFF][datumId])
-		{
-			result[Value(DataType::STRING, ref.varname)] = ref.holder;
-			//result.append(ref.holder);
-			//DecRefCount(ref.holder.type, ref.holder.value);
-		}
-		exporting_refs = false;
-		return result;
-	}*/
-	return oGetVariable(datumType, datumId, name_id);
-}
-
 bool isdatom(const trvh v)
 {
 	return v.type == DataType::DATUM || v.type == DataType::AREA || v.type == DataType::TURF || v.type == DataType::OBJ || v.type == DataType::MOB;
@@ -109,7 +51,6 @@ void hSetVariable(trvh datum, unsigned int name_id, trvh new_value)
 	if (isdatom(datum))
 	{
 		Value current_value = Value(datum).get_by_id(name_id);
-		//DecRefCount(current_value.type, current_value.value);
 		current_value.type = (DataType)(current_value.type & 0xFF);
 		if (isdatom(current_value) || islist(current_value))
 		{
@@ -125,41 +66,8 @@ void hSetVariable(trvh datum, unsigned int name_id, trvh new_value)
 			forward_references[datum.type][datum.value].emplace_back(new_value, name_id);
 		}
 	}
-	/*if (setters.find(name_id) != setters.end())
-	{
-		auto tmp = setters.at(name_id);
-		setters.erase(name_id);
-		tmp.call({ new_value }, Value::Null(), Value(datumType, datumId));
-		setters[name_id] = tmp;
-		return;
-	}*/
+
 	oSetVariable(datum.type, datum.value, name_id, new_value);
-}
-
-trvh install_proxy(unsigned int n_args, Value* args, Value src)
-{
-	proxies[src.value] = true;
-	return Value::True();
-}
-
-void add_data_breakpoint(int datumType, int datumId, std::string varName)
-{
-	data_breakpoints[datumType][datumId].emplace(Core::GetStringId(varName));
-}
-
-void remove_data_breakpoint(int datumType, int datumId, std::string varName)
-{
-	data_breakpoints[datumType][datumId].erase(Core::GetStringId(varName));
-}
-
-void on_data_read(int datumId, int datumType, std::string varName)
-{
-
-}
-
-void on_data_write(int datumId, int datumType, std::string varName, Value new_value)
-{
-
 }
 
 trvh get_backrefs(unsigned int n_args, trvh* args, trvh src)
@@ -171,7 +79,6 @@ trvh get_backrefs(unsigned int n_args, trvh* args, trvh src)
 	for (Reference& ref : back_references[a.type][a.value])
 	{
 		result[ref.holder] = Value(DataType::STRING, ref.varname);
-		//result.append(ref.holder);
 	}
 	exporting_refs = false;
 	return result;
@@ -186,7 +93,6 @@ trvh get_forwardrefs(unsigned int n_args, trvh* args, trvh src)
 	for (Reference& ref : forward_references[a.type][a.value])
 	{
 		result[Value(DataType::STRING, ref.varname)] = ref.holder;
-		//result.append(ref.holder);
 	}
 	exporting_refs = false;
 	return result;
@@ -253,7 +159,6 @@ void hSetAssocElement(trvh container, trvh key, trvh value)
 	key.type = (DataType)(key.type & 0xFF);
 	value.type = (DataType)(value.type & 0xFF);
 	Value current_value = GetAssocElement(container.type, container.value, key.type, key.value); //ugly
-	//DecRefCount(current_value.type, current_value.value);
 	if (isdatom(current_value) || islist(current_value))
 	{
 		auto& backrefs = back_references[current_value.type][current_value.value];
@@ -299,7 +204,7 @@ void hDestroyList(unsigned int list_id)
 	oDestroyList(list_id);
 }
 
-bool Proxy::initialize()
+bool RefTracking::initialize()
 {
 	back_references.clear();
 	forward_references.clear();
@@ -308,19 +213,17 @@ bool Proxy::initialize()
 	back_references[DataType::TURF].reserve(50000);
 	back_references[DataType::OBJ].reserve(50000);
 	back_references[DataType::MOB].reserve(50000);
-	oGetVariable = Core::install_hook(GetVariable, hGetVariable);
+
 	oSetVariable = Core::install_hook(SetVariable, (SetVariablePtr)hSetVariable);
 	oAppendToContainer = Core::install_hook(AppendToContainer, (AppendToContainerPtr)hAppendToContainer);
 	oInitializeListFromContext = Core::install_hook(InitializeListFromContext, hInitializeListFromContext);
 	oRemoveFromContainer = Core::install_hook(RemoveFromContainer, (RemoveFromContainerPtr)hRemoveFromContainer);
 	oSetAssocElement = Core::install_hook(SetAssocElement, (SetAssocElementPtr)hSetAssocElement);
 	oDestroyList = Core::install_hook(DestroyList, hDestroyList);
-	if (false)
-	{
-		Core::get_proc("/datum/proxy_object/proc/__install").hook(install_proxy);
-	}
+
 	Core::get_proc("/proc/get_back_references").hook((ProcHook)get_backrefs);
 	Core::get_proc("/proc/get_forward_references").hook((ProcHook)get_forwardrefs);
 	Core::get_proc("/proc/clear_references").hook((ProcHook)clear_refs);
+
 	return true;
 }
