@@ -1,7 +1,6 @@
 #pragma once
 #include "instruction.h"
 
-
 ADD_INSTR_CUSTOM(OUTPUT_FORMAT)
 ADD_INSTR(FINDTEXT)
 ADD_INSTR(REPLACETEXT)

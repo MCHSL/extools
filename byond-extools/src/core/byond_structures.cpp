@@ -9,7 +9,7 @@ Value::Value(std::string s)
 	value = Core::GetStringId(s.c_str());
 }
 
-Value::Value(const char* s)
+Value::Value(const char *s)
 {
 	type = 0x06;
 	value = Core::GetStringId(s);
@@ -134,7 +134,7 @@ unsigned int Container::length()
 
 Value Container::at(unsigned int index)
 {
-	return at(Value(index+1));
+	return at(Value(index + 1));
 }
 
 Value Container::at(Value key)

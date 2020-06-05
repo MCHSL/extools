@@ -9,13 +9,12 @@
 #include "callbacks.h"
 #include "context.h"
 
-
-Disassembler::Disassembler(std::vector<std::uint32_t> bc, std::vector<Core::Proc>& ps)
+Disassembler::Disassembler(std::vector<std::uint32_t> bc, std::vector<Core::Proc> &ps)
 {
 	context_ = new Context(bc, ps);
 }
 
-Disassembler::Disassembler(std::uint32_t* bc, unsigned int bc_len, std::vector<Core::Proc>& ps)
+Disassembler::Disassembler(std::uint32_t *bc, unsigned int bc_len, std::vector<Core::Proc> &ps)
 {
 	std::vector<std::uint32_t> v(bc, bc + bc_len);
 	context_ = new Context(v, ps);
@@ -30,7 +29,8 @@ Disassembly Disassembler::disassemble()
 {
 	std::vector<Instruction> instrs;
 	instrs.reserve(512);
-	while (context_->more()) {
+	while (context_->more())
+	{
 		instrs.push_back(disassemble_next());
 	}
 
@@ -40,7 +40,7 @@ Disassembly Disassembler::disassemble()
 Instruction Disassembler::disassemble_next()
 {
 	auto root = context_->eat();
-	Instruction* instr = get_instr(root);
+	Instruction *instr = get_instr(root);
 	/*auto cb = callbacks.find(static_cast<Bytecode>(root));
 	if (cb != callbacks.end())
 	{
@@ -59,7 +59,7 @@ Instruction Disassembler::disassemble_next()
 	return *instr;
 }
 
-bool Disassembler::disassemble_var_alt(Instruction& instr)
+bool Disassembler::disassemble_var_alt(Instruction &instr)
 {
 	std::uint32_t accessor = context_->eat();
 	switch (accessor)
@@ -79,7 +79,7 @@ bool Disassembler::disassemble_var_alt(Instruction& instr)
 	return false;
 }
 
-bool Disassembler::disassemble_var(Instruction& instr)
+bool Disassembler::disassemble_var(Instruction &instr)
 {
 	switch (context_->peek())
 	{
@@ -182,14 +182,14 @@ bool Disassembler::disassemble_var(Instruction& instr)
 	default:
 	{
 		std::uint32_t val = context_->eat();
-		instr.add_comment("CACHE."+byond_tostring(val));
+		instr.add_comment("CACHE." + byond_tostring(val));
 		break;
 	}
 	}
 	return false;
 }
 
-void Disassembler::add_call_args(Instruction& instr, unsigned int num_args)
+void Disassembler::add_call_args(Instruction &instr, unsigned int num_args)
 {
 	num_args = std::min((int)num_args, 16);
 	instr.add_comment("(");
@@ -198,7 +198,8 @@ void Disassembler::add_call_args(Instruction& instr, unsigned int num_args)
 		instr.add_comment("STACK" + std::to_string(i) + ", ");
 	}
 
-	if (num_args) {
+	if (num_args)
+	{
 		instr.set_comment(instr.comment().substr(0, instr.comment().size() - 2));
 	}
 

@@ -6,9 +6,9 @@ SendMapsPtr oSendMaps;
 
 float last_duration = 0;
 
-trvh sendmaps_duration(unsigned int argcount, Value* args, Value src)
+trvh sendmaps_duration(unsigned int argcount, Value *args, Value src)
 {
-	trvh t{ 0x2A };
+	trvh t{0x2A};
 	t.valuef = last_duration;
 	return t;
 }
@@ -23,7 +23,7 @@ void hSendMaps()
 
 bool enable_maptick()
 {
-	oSendMaps = (SendMapsPtr)Core::install_hook((void*)SendMaps, (void*)hSendMaps);
+	oSendMaps = (SendMapsPtr)Core::install_hook((void *)SendMaps, (void *)hSendMaps);
 	Core::get_proc("/proc/get_sendmaps_elapsed_time").hook(sendmaps_duration);
 	return oSendMaps;
 }

@@ -3,8 +3,6 @@
 #include "instruction.h"
 #include "disassembler.h"
 
-
-
 ADD_INSTR(NOT)
 ADD_INSTR(TEQ)
 ADD_INSTR(TNE)

@@ -15,9 +15,12 @@
 #include "instr_matrix.h"
 #include "instr_debug.h"
 
-#define ADD_CALLBACK(op) case op: return new Instr_##op(op);
+#define ADD_CALLBACK(op) \
+	case op:             \
+		return new Instr_##op(op);
 
-__forceinline Instruction* get_instr(std::uint32_t op) {
+__forceinline Instruction *get_instr(std::uint32_t op)
+{
 	switch (op)
 	{
 		ADD_CALLBACK(END)

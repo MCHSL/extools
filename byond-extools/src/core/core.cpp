@@ -46,13 +46,13 @@ GetSocketHandleStructPtr GetSocketHandleStruct;
 CallProcByNamePtr CallProcByName;
 SendMapsPtr SendMaps;
 
-ExecutionContext** Core::current_execution_context_ptr;
-ExecutionContext** Core::parent_context_ptr_hack;
-ProcSetupEntry** Core::proc_setup_table;
+ExecutionContext **Core::current_execution_context_ptr;
+ExecutionContext **Core::parent_context_ptr_hack;
+ProcSetupEntry **Core::proc_setup_table;
 
 int ByondVersion;
 int ByondBuild;
-unsigned int* Core::some_flags_including_profile;
+unsigned int *Core::some_flags_including_profile;
 unsigned int Core::extended_profiling_insanely_hacky_check_if_its_a_new_call_or_resume;
 
 //std::vector<bool> Core::codecov_executed_procs;
@@ -73,7 +73,8 @@ bool Core::initialize()
 	return initialized;
 }
 
-void Core::Alert(std::string what) {
+void Core::Alert(std::string what)
+{
 #ifdef _WIN32
 	MessageBoxA(NULL, what.c_str(), "Ouch!", MB_OK);
 #else
@@ -86,13 +87,16 @@ void Core::Alert(int what)
 	Alert(std::to_string(what));
 }
 
-unsigned int Core::GetStringId(std::string str) {
-	switch (ByondVersion) {
-		case 512:
-			return GetStringTableIndex(str.c_str(), 0, 1);
-		case 513:
-			return GetStringTableIndexUTF8(str.c_str(), 0, 0, 1);
-		default: break;
+unsigned int Core::GetStringId(std::string str)
+{
+	switch (ByondVersion)
+	{
+	case 512:
+		return GetStringTableIndex(str.c_str(), 0, 1);
+	case 513:
+		return GetStringTableIndexUTF8(str.c_str(), 0, 0, 1);
+	default:
+		break;
 	}
 	return 0;
 }
@@ -110,12 +114,12 @@ std::uint32_t Core::register_opcode(std::string name, opcode_handler handler)
 	return next_opcode;
 }
 
-ExecutionContext* Core::get_context()
+ExecutionContext *Core::get_context()
 {
 	return *current_execution_context_ptr;
 }
 
-ExecutionContext* Core::_get_parent_context()
+ExecutionContext *Core::_get_parent_context()
 {
 	return *parent_context_ptr_hack;
 }
@@ -133,7 +137,7 @@ void Core::stack_pop(unsigned int how_many)
 void Core::stack_push(Value val)
 {
 	(*Core::current_execution_context_ptr)->stack_size++;
-	(*Core::current_execution_context_ptr)->stack[(*Core::current_execution_context_ptr)->stack_size-1] = val;
+	(*Core::current_execution_context_ptr)->stack[(*Core::current_execution_context_ptr)->stack_size - 1] = val;
 }
 
 bool Core::enable_profiling()
@@ -155,7 +159,7 @@ std::string Core::type_to_text(unsigned int type)
 
 Value Core::get_turf(int x, int y, int z)
 {
-	return GetTurf(x-1, y-1, z-1);
+	return GetTurf(x - 1, y - 1, z - 1);
 }
 
 std::string Core::stringify(Value val)
@@ -182,22 +186,22 @@ std::string Core::stringify(Value val)
 	return "";
 }*/
 
-const char* good = "SUCCESS";
-const char* bad = "FAIL";
+const char *good = "SUCCESS";
+const char *bad = "FAIL";
 
-extern "C" EXPORT const char* enable_profiling(int n_args, const char** args)
+extern "C" EXPORT const char *enable_profiling(int n_args, const char **args)
 {
 	Core::initialize() && Core::enable_profiling();
 	return good;
 }
 
-extern "C" EXPORT const char* disable_profiling(int n_args, const char** args)
+extern "C" EXPORT const char *disable_profiling(int n_args, const char **args)
 {
 	Core::initialize() && Core::disable_profiling();
 	return good;
 }
 
-extern "C" EXPORT const char* core_initialize(int n_args, const char** args)
+extern "C" EXPORT const char *core_initialize(int n_args, const char **args)
 {
 	if (!Core::initialize())
 	{
@@ -206,34 +210,34 @@ extern "C" EXPORT const char* core_initialize(int n_args, const char** args)
 	}
 	//optimizer_initialize();
 #ifdef _WIN32 // i ain't fixing this awful Linux situation anytime soon
-	//extended_profiling_initialize();
+			  //extended_profiling_initialize();
 #endif
 	return good;
 }
 
-extern "C" EXPORT const char* tffi_initialize(int n_args, const char** args)
+extern "C" EXPORT const char *tffi_initialize(int n_args, const char **args)
 {
 	if (!(Core::initialize() && TFFI::initialize()))
 		return bad;
 	return good;
 }
 
-extern "C" EXPORT const char* proxy_initialize(int n_args, const char** args)
+extern "C" EXPORT const char *proxy_initialize(int n_args, const char **args)
 {
 	if (!(Core::initialize() && Proxy::initialize()))
 		return bad;
 	return good;
 }
 
-extern "C" EXPORT const char* debug_initialize(int n_args, const char** args)
+extern "C" EXPORT const char *debug_initialize(int n_args, const char **args)
 {
 	// Fallback values if called
-	const char* mode = DBG_MODE_NONE;
-	const char* port = DBG_DEFAULT_PORT;
+	const char *mode = DBG_MODE_NONE;
+	const char *port = DBG_DEFAULT_PORT;
 
 	// Read from environment, set from shell or from DAP-controlled launch
-	const char* env_mode = getenv("EXTOOLS_MODE");
-	const char* env_port = getenv("EXTOOLS_PORT");
+	const char *env_mode = getenv("EXTOOLS_MODE");
+	const char *env_port = getenv("EXTOOLS_PORT");
 	if (env_mode)
 	{
 		mode = env_mode;
@@ -269,7 +273,7 @@ extern "C" EXPORT void force_debug()
 
 void init_testing();
 void run_tests();
-extern "C" EXPORT const char* run_tests(int n_args, const char** args)
+extern "C" EXPORT const char *run_tests(int n_args, const char **args)
 {
 	if (!Core::initialize())
 	{
@@ -281,21 +285,21 @@ extern "C" EXPORT const char* run_tests(int n_args, const char** args)
 }
 
 // TODO: make this work on Linux. -steamport
-extern "C" EXPORT const char* extended_profiling_initialize(int n_args, const char** args)
+extern "C" EXPORT const char *extended_profiling_initialize(int n_args, const char **args)
 {
 	if (!(Core::initialize() && actual_extended_profiling_initialize()))
 		return bad;
 	return good;
 }
 
-extern "C" EXPORT const char* enable_extended_profiling(int n_args, const char** args)
+extern "C" EXPORT const char *enable_extended_profiling(int n_args, const char **args)
 {
 	//Core::Alert("Enabling logging for " + std::string(args[0]));
 	Core::get_proc(args[0]).extended_profile();
 	return good;
 }
 
-extern "C" EXPORT const char* disable_extended_profiling(int n_args, const char** args)
+extern "C" EXPORT const char *disable_extended_profiling(int n_args, const char **args)
 {
 	procs_to_profile.erase(Core::get_proc(args[0]).id); //TODO: improve consistency and reconsider how initialization works
 	return good;
@@ -304,9 +308,8 @@ extern "C" EXPORT const char* disable_extended_profiling(int n_args, const char*
 std::uint32_t Core::get_socket_from_client(unsigned int id)
 {
 	int str = (int)GetSocketHandleStruct(id);
-	return ((Hellspawn*)(str - 0x74))->handle;
+	return ((Hellspawn *)(str - 0x74))->handle;
 }
-
 
 void Core::disconnect_client(unsigned int id)
 {
@@ -332,13 +335,13 @@ void Core::cleanup()
 	Core::initialized = false; // add proper modularization already
 }
 
-extern "C" EXPORT const char* cleanup(int n_args, const char** args)
+extern "C" EXPORT const char *cleanup(int n_args, const char **args)
 {
 	Core::cleanup();
 	return good;
 }
 
-extern "C" EXPORT const char* maptick_initialize(int n_args, const char** args)
+extern "C" EXPORT const char *maptick_initialize(int n_args, const char **args)
 {
 	if (!(Core::initialize() && enable_maptick()))
 	{
@@ -352,7 +355,7 @@ std::unordered_set<std::string> whitelist;
 std::unordered_map<std::string, std::chrono::steady_clock::time_point> last_packets;
 std::optional<Core::Proc> ban_callback;
 
-bool flood_topic_filter(BSocket* socket, int socket_id)
+bool flood_topic_filter(BSocket *socket, int socket_id)
 {
 	std::string addr = socket->addr();
 	if (blacklist.find(addr) != blacklist.end())
@@ -383,7 +386,7 @@ bool flood_topic_filter(BSocket* socket, int socket_id)
 		Core::disconnect_client(socket_id);
 		if (ban_callback)
 		{
-			ban_callback->call({ addr });
+			ban_callback->call({addr});
 		}
 		return false;
 	}
@@ -391,7 +394,7 @@ bool flood_topic_filter(BSocket* socket, int socket_id)
 	return true;
 }
 
-void read_filter_config(std::string filename, std::unordered_set<std::string>& set)
+void read_filter_config(std::string filename, std::unordered_set<std::string> &set)
 {
 	std::ifstream conf("config/extools/" + filename);
 	if (!conf.is_open())
@@ -409,7 +412,7 @@ void read_filter_config(std::string filename, std::unordered_set<std::string>& s
 	}
 }
 
-extern "C" EXPORT const char* install_flood_topic_filter(int n_args, const char** args)
+extern "C" EXPORT const char *install_flood_topic_filter(int n_args, const char **args)
 {
 	if (!Core::initialize())
 	{

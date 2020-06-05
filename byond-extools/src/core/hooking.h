@@ -10,14 +10,14 @@
 #include "subhook/subhook.h"
 //#endif
 
-typedef bool(*TopicFilter)(BSocket* socket, int socket_id);
+typedef bool (*TopicFilter)(BSocket *socket, int socket_id);
 extern TopicFilter current_topic_filter;
 
 namespace Core
 {
-	void* install_hook(void* original, void* hook);
-	void remove_hook(void* func);
+	void *install_hook(void *original, void *hook);
+	void remove_hook(void *func);
 	void remove_all_hooks();
 	bool hook_custom_opcodes();
 	void set_topic_filter(TopicFilter tf);
-}
+} // namespace Core

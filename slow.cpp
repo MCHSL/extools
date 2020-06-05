@@ -25,7 +25,7 @@ void mySleep(int sleepMs)
 
 char ret[256];
 
-extern "C" EXPORT const char* slow_concat(int n_args, const char** args)
+extern "C" EXPORT const char *slow_concat(int n_args, const char **args)
 {
     std::string s;
     for (int i = 0; i < n_args; i++)

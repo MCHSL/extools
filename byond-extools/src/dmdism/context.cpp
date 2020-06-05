@@ -5,7 +5,6 @@
 #include "helpers.h"
 #include "opcodes.h"
 
-
 std::uint32_t Context::peek()
 {
 	if (current_offset_ >= buffer_.size())
@@ -50,7 +49,7 @@ std::uint32_t Context::eat_add()
 	return val;
 }
 
-void Context::set_instr(Instruction* instr)
+void Context::set_instr(Instruction *instr)
 {
 	instr->set_offset(current_offset_ - 1);
 	instr_ = instr;

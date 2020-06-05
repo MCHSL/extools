@@ -6,30 +6,33 @@
 using local_lower_bound = std::lower_bound;
 #else
 // "Second version" from https://en.cppreference.com/w/cpp/algorithm/lower_bound
-template<class ForwardIt, class T, class Compare>
-ForwardIt local_lower_bound(ForwardIt first, ForwardIt last, const T& value, Compare comp)
+template <class ForwardIt, class T, class Compare>
+ForwardIt local_lower_bound(ForwardIt first, ForwardIt last, const T &value, Compare comp)
 {
-    ForwardIt it;
-    typename std::iterator_traits<ForwardIt>::difference_type count, step;
-    count = std::distance(first, last);
+	ForwardIt it;
+	typename std::iterator_traits<ForwardIt>::difference_type count, step;
+	count = std::distance(first, last);
 
-    while (count > 0) {
-        it = first;
-        step = count / 2;
-        std::advance(it, step);
-        if (comp(*it, value)) {
-            first = ++it;
-            count -= step + 1;
-        }
-        else
-            count = step;
-    }
-    return first;
+	while (count > 0)
+	{
+		it = first;
+		step = count / 2;
+		std::advance(it, step);
+		if (comp(*it, value))
+		{
+			first = ++it;
+			count -= step + 1;
+		}
+		else
+			count = step;
+	}
+	return first;
 }
 #endif
 
-std::vector<std::uint32_t>* Disassembly::assemble()	{
-	std::vector<std::uint32_t>* ret = new std::vector<std::uint32_t>();
+std::vector<std::uint32_t> *Disassembly::assemble()
+{
+	std::vector<std::uint32_t> *ret = new std::vector<std::uint32_t>();
 	for (Instruction i : instructions)
 	{
 		for (int op : i.bytes())
@@ -40,23 +43,22 @@ std::vector<std::uint32_t>* Disassembly::assemble()	{
 	return ret;
 }
 
-Instruction& Disassembly::at(std::size_t i)
+Instruction &Disassembly::at(std::size_t i)
 {
 	return instructions.at(i);
 }
 
-Instruction* Disassembly::next_from_offset(std::uint16_t offset)
+Instruction *Disassembly::next_from_offset(std::uint16_t offset)
 {
-	auto it = local_lower_bound(instructions.begin(), instructions.end(), offset, [](Instruction const& instr, int offset) { return instr.offset() < offset; });
+	auto it = local_lower_bound(instructions.begin(), instructions.end(), offset, [](Instruction const &instr, int offset) { return instr.offset() < offset; });
 
 	if (it == instructions.end() || ++it == instructions.end())
 	{
 		Core::Alert("Could not find next instruction for offset"); //Ummm...
-		return nullptr; //There. Sorry.
+		return nullptr;											   //There. Sorry.
 	}
 
 	return &*it; //yes
-
 }
 
 std::vector<Instruction>::iterator Disassembly::begin() noexcept
@@ -92,7 +94,7 @@ std::size_t Disassembly::size()
 std::size_t Disassembly::bytecount()
 {
 	int sum = 0;
-	for (Instruction& i : instructions)
+	for (Instruction &i : instructions)
 	{
 		sum += i.size();
 	}
@@ -104,7 +106,7 @@ void Disassembly::recalculate_offsets()
 	int current_offset = instructions.front().bytes().size();
 	for (int i = 1; i < instructions.size(); i++)
 	{
-		Instruction& instr = instructions.at(i);
+		Instruction &instr = instructions.at(i);
 		instr.set_offset(current_offset);
 		current_offset += instr.bytes().size();
 	}
@@ -113,7 +115,6 @@ void Disassembly::recalculate_offsets()
 Disassembly Core::get_disassembly(std::string _proc, unsigned int override_id)
 {
 	Core::Proc proc = Core::get_proc(_proc, override_id);
-	std::uint32_t* bytecode = proc.get_bytecode();
+	std::uint32_t *bytecode = proc.get_bytecode();
 	return Disassembler(std::vector<uint32_t>(bytecode, bytecode + proc.get_bytecode_length()), procs_by_id).disassemble();
 }
-

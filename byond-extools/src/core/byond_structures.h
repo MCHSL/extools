@@ -16,7 +16,7 @@
 
 struct String
 {
-	char* stringData;
+	char *stringData;
 	int unk1;
 	int unk2;
 	unsigned int refcount;
@@ -25,8 +25,7 @@ struct String
 struct trvh //temporary return value holder, used for sidestepping the fact that structs with constructors are passed in memory and not in eax/ecx when returning them
 {
 	char type;
-	union
-	{
+	union {
 		int value;
 		float valuef;
 	};
@@ -35,13 +34,16 @@ struct trvh //temporary return value holder, used for sidestepping the fact that
 struct Value
 {
 	char type;
-	union
-	{
+	union {
 		int value;
 		float valuef;
 	};
-	Value() { type = 0; value = 0; }
-	Value(char type, int value) : type(type), value(value) {};
+	Value()
+	{
+		type = 0;
+		value = 0;
+	}
+	Value(char type, int value) : type(type), value(value){};
 	Value(trvh trvh)
 	{
 		type = trvh.type;
@@ -50,13 +52,13 @@ struct Value
 		else
 			valuef = trvh.valuef;
 	}
-	Value(float valuef) : type(0x2A), valuef(valuef) {};
+	Value(float valuef) : type(0x2A), valuef(valuef){};
 	Value(std::string s);
-	Value(const char* s);
+	Value(const char *s);
 
-
-	constexpr static trvh Null() {
-		return { 0, 0 };
+	constexpr static trvh Null()
+	{
+		return {0, 0};
 	}
 
 	constexpr static trvh True()
@@ -68,7 +70,7 @@ struct Value
 
 	constexpr static trvh False()
 	{
-		return { 0x2A, 0 };
+		return {0x2A, 0};
 	}
 
 	/* inline static Value Tralse()
@@ -78,10 +80,10 @@ struct Value
 
 	operator trvh()
 	{
-		return trvh{ type, value };
+		return trvh{type, value};
 	}
 
-	bool operator==(const Value& rhs)
+	bool operator==(const Value &rhs)
 	{
 		return value == rhs.value && type == rhs.type;
 	}
@@ -109,14 +111,14 @@ struct AssociativeListEntry
 	Value key;
 	Value value;
 	bool red_black; //0 - black
-	AssociativeListEntry* left;
-	AssociativeListEntry* right;
+	AssociativeListEntry *left;
+	AssociativeListEntry *right;
 };
 
 struct RawList
 {
-	Value* vector_part;
-	AssociativeListEntry* map_part;
+	Value *vector_part;
+	AssociativeListEntry *map_part;
 	int allocated_size; //maybe
 	int length;
 	int refcount;
@@ -126,23 +128,22 @@ struct RawList
 	{
 		return map_part != nullptr;
 	}
-
 };
 
 struct Container;
 
 struct ContainerProxy
 {
-	Container& c;
+	Container &c;
 	Value key = Value::Null();
-	ContainerProxy(Container& c, Value key) : c(c), key(key) {}
+	ContainerProxy(Container &c, Value key) : c(c), key(key) {}
 
 	operator Value();
 	void operator=(Value val);
 };
 
 struct Container //All kinds of lists, including magical snowflake lists like contents
-{ 
+{
 
 	Container(char type, int id) : type(type), id(id) {}
 	Container(Value val) : type(val.type), id(val.value) {}
@@ -156,12 +157,12 @@ struct Container //All kinds of lists, including magical snowflake lists like co
 
 	operator Value()
 	{
-		return { type, id };
+		return {type, id};
 	}
 
 	operator trvh()
 	{
-		return { type, id };
+		return {type, id};
 	}
 
 	ContainerProxy operator[](unsigned int index)
@@ -180,7 +181,7 @@ struct List //Specialization for Container with fast access by index
 	List();
 	List(int _id);
 	List(Value v);
-	RawList* list;
+	RawList *list;
 
 	int id;
 
@@ -193,17 +194,17 @@ struct List //Specialization for Container with fast access by index
 		return list->is_assoc();
 	}
 
-	Value* begin() { return list->vector_part; }
-	Value* end() { return list->vector_part + list->length; }
+	Value *begin() { return list->vector_part; }
+	Value *end() { return list->vector_part + list->length; }
 
 	operator trvh()
 	{
-		return { 0x0F, id };
+		return {0x0F, id};
 	}
 
 	operator Container()
 	{
-		return { 0x0F, id };
+		return {0x0F, id};
 	}
 };
 
@@ -222,8 +223,8 @@ struct ProcArrayEntry
 	int procCategory;
 	int procFlags;
 	int unknown1;
-	unsigned short bytecode_idx; // ProcSetupEntry index
-	unsigned short local_var_count_idx; // ProcSetupEntry index 
+	unsigned short bytecode_idx;		// ProcSetupEntry index
+	unsigned short local_var_count_idx; // ProcSetupEntry index
 	int unknown2;
 };
 
@@ -241,37 +242,36 @@ struct ProcConstants
 	int unknown2;
 	Value usr;
 	Value src;
-	ExecutionContext* context;
+	ExecutionContext *context;
 	int unknown3;
 	int unknown4; //some callback thing
-	union
-	{
+	union {
 		int unknown5;
 		int extended_profile_id;
 	};
 	int arg_count;
-	Value* args;
+	Value *args;
 };
 
 struct ExecutionContext
 {
-	ProcConstants* constants;
-	ExecutionContext* parent_context;
+	ProcConstants *constants;
+	ExecutionContext *parent_context;
 	std::uint32_t dbg_proc_file;
 	std::uint32_t dbg_current_line;
-	std::uint32_t* bytecode;
+	std::uint32_t *bytecode;
 	std::uint16_t current_opcode;
 	char test_flag;
 	char unknown1;
 	Value cached_datum;
 	char unknown2[16];
 	Value dot;
-	Value* local_variables;
-	Value* stack;
+	Value *local_variables;
+	Value *stack;
 	std::uint16_t local_var_count;
 	std::uint16_t stack_size;
 	std::int32_t unknown; //callback something
-	Value* current_iterator;
+	Value *current_iterator;
 	std::uint32_t iterator_allocated;
 	std::uint32_t iterator_length;
 	std::uint32_t iterator_index;
@@ -289,12 +289,11 @@ struct ExecutionContext
 
 struct ProcSetupEntry
 {
-	union
-	{
+	union {
 		std::uint16_t local_var_count;
 		std::uint16_t bytecode_length;
 	};
-	std::uint32_t* bytecode;
+	std::uint32_t *bytecode;
 	std::int32_t unknown;
 };
 
@@ -329,12 +328,12 @@ struct NetMsg //named after the struct ThreadedNetMsg - unsure if it's actually 
 	std::uint32_t payload_length;
 	std::uint32_t unk1;
 	std::uint32_t unk2;
-	char* payload;
+	char *payload;
 	std::uint32_t unk3;
 	std::uint32_t raw_header;
 };
 
-struct BSocket //or client?		   
+struct BSocket //or client?
 {
 	std::uint32_t unk1;
 	std::uint32_t addr_string_id;

@@ -20,9 +20,9 @@ std::unordered_map<unsigned int, bool> procs_to_profile;
 #define TOMICROS(x) (long long)std::chrono::duration_cast<std::chrono::nanoseconds>(x).count()
 unsigned int next_profile_id = 1;
 
-std::unordered_map<unsigned int, ExtendedProfile*> sleeping_profiles;
+std::unordered_map<unsigned int, ExtendedProfile *> sleeping_profiles;
 
-unsigned long long output_subcalls(std::string base, std::ofstream& output, ExtendedProfile* profile)
+unsigned long long output_subcalls(std::string base, std::ofstream &output, ExtendedProfile *profile)
 {
 	base += Core::get_proc(profile->proc_id).name;
 	//Core::Alert(base.c_str());
@@ -41,17 +41,16 @@ unsigned long long output_subcalls(std::string base, std::ofstream& output, Exte
 			output << base << " " << time << "\n";
 		}
 
-		for (int i=0; i < profile->subcalls.size()-1; i++)
+		for (int i = 0; i < profile->subcalls.size() - 1; i++)
 		{
-			ExtendedProfile* sub = profile->subcalls.at(i);
+			ExtendedProfile *sub = profile->subcalls.at(i);
 			//Core::Alert( ("End: " + std::to_string(sub->end_time.time_since_epoch().count())).c_str());
 			//Core::Alert(("Start: " +std::to_string(sub->start_time.time_since_epoch().count())).c_str());
 			total_time += output_subcalls(base + ";", output, sub);
 			total_time += TOMICROS(profile->subcalls.at(i + 1)->start_time - sub->end_time);
-			output << base << " " << TOMICROS(profile->subcalls.at(i+1)->start_time - sub->end_time) << "\n";
-
+			output << base << " " << TOMICROS(profile->subcalls.at(i + 1)->start_time - sub->end_time) << "\n";
 		}
-		ExtendedProfile* last_sub = profile->subcalls.back();
+		ExtendedProfile *last_sub = profile->subcalls.back();
 		output_subcalls(base + ";", output, last_sub);
 		time = TOMICROS(profile->end_time - last_sub->end_time);
 		total_time += time;
@@ -85,7 +84,7 @@ unsigned long long output_subcalls(std::string base, std::ofstream& output, Exte
 	return total_time;
 }
 
-void dump_extended_profile(ExtendedProfile* profile)
+void dump_extended_profile(ExtendedProfile *profile)
 {
 	//Core::Alert(std::to_string(TOMICROS(real_end - real_start)));
 	//Core::Alert(std::to_string(TOMICROS(profile->end_time - profile->start_time)));
@@ -103,18 +102,18 @@ void dump_extended_profile(ExtendedProfile* profile)
 	output.flush();
 }
 
-std::unordered_map<int, ExtendedProfile*> profiles;
+std::unordered_map<int, ExtendedProfile *> profiles;
 
-void recursive_start(ExtendedProfile* profile)
+void recursive_start(ExtendedProfile *profile)
 {
-	for (ExtendedProfile* subcall : profile->subcalls)
+	for (ExtendedProfile *subcall : profile->subcalls)
 	{
 		subcall->start_timer();
 		recursive_start(subcall);
 	}
 }
 
-void hCreateContext(ProcConstants* constants, ExecutionContext* new_context)
+void hCreateContext(ProcConstants *constants, ExecutionContext *new_context)
 {
 	//Core::Alert("HELLO?");
 	oCreateContext(constants, new_context);
@@ -136,8 +135,8 @@ void hCreateContext(ProcConstants* constants, ExecutionContext* new_context)
 			sleeping_profiles.erase(constants->proc_id);
 			profile->start_timer();
 			recursive_start(profile);*/
-			ExtendedProfile* sleepy = sleeping_profiles[constants->proc_id];
-			ExtendedProfile* profile = new ExtendedProfile;
+			ExtendedProfile *sleepy = sleeping_profiles[constants->proc_id];
+			ExtendedProfile *profile = new ExtendedProfile;
 			profile->proc_id = constants->proc_id;
 			profile->id = sleepy->id;
 			profile->call_stack.reserve(32);
@@ -148,7 +147,7 @@ void hCreateContext(ProcConstants* constants, ExecutionContext* new_context)
 			profile->start_timer();
 			return;
 		}
-		ExtendedProfile* profile = new ExtendedProfile;
+		ExtendedProfile *profile = new ExtendedProfile;
 		profile->proc_id = constants->proc_id;
 		profile->id = next_profile_id++;
 		profile->call_stack.push_back(profile);
@@ -158,7 +157,7 @@ void hCreateContext(ProcConstants* constants, ExecutionContext* new_context)
 	}
 	else
 	{
-		ExecutionContext* parent_context = new_context->parent_context;
+		ExecutionContext *parent_context = new_context->parent_context;
 		if (!parent_context)
 		{
 			parent_context = Core::_get_parent_context();
@@ -168,12 +167,12 @@ void hCreateContext(ProcConstants* constants, ExecutionContext* new_context)
 				return;
 			}
 		}
-		for (std::pair<const int, ExtendedProfile*>& p : profiles)
+		for (std::pair<const int, ExtendedProfile *> &p : profiles)
 		{
-			ExtendedProfile* ep = p.second;
+			ExtendedProfile *ep = p.second;
 			if (ep->call_stack.size() < 50 && ep->call_stack.back()->proc_id == parent_context->constants->proc_id)
 			{
-				ExtendedProfile* subprofile = new ExtendedProfile;
+				ExtendedProfile *subprofile = new ExtendedProfile;
 				subprofile->proc_id = constants->proc_id;
 				subprofile->call_stack.reserve(32);
 				subprofile->call_stack.push_back(subprofile);
@@ -186,24 +185,23 @@ void hCreateContext(ProcConstants* constants, ExecutionContext* new_context)
 	}
 }
 
-
-void recursive_suspend(ExtendedProfile* profile)
+void recursive_suspend(ExtendedProfile *profile)
 {
-	for (ExtendedProfile* subcall : profile->subcalls)
+	for (ExtendedProfile *subcall : profile->subcalls)
 	{
 		subcall->stop_timer();
 		recursive_suspend(subcall);
 	}
 }
 
-void hProcCleanup(ExecutionContext* ctx)
+void hProcCleanup(ExecutionContext *ctx)
 {
 	int proc_id = ctx->constants->proc_id;
 	if (sleeping_profiles.find(proc_id) == sleeping_profiles.end())
 	{
 		if (profiles.find(proc_id) != profiles.end())
 		{
-			ExtendedProfile* profile = profiles[proc_id];
+			ExtendedProfile *profile = profiles[proc_id];
 			profile->stop_timer();
 			//Core::Alert("Destroying profile for: " + Core::get_proc(proc_id).name);
 			if (profile->call_stack.back() != profile)
@@ -211,7 +209,7 @@ void hProcCleanup(ExecutionContext* ctx)
 				Core::Alert("Profile call stack not empty!");
 				do
 				{
-					ExtendedProfile* subprofile = profile->call_stack.back();
+					ExtendedProfile *subprofile = profile->call_stack.back();
 					subprofile->stop_timer();
 					profile->call_stack.pop_back();
 				} while (profile->call_stack.back() != profile);
@@ -231,14 +229,14 @@ void hProcCleanup(ExecutionContext* ctx)
 		//Core::Alert("Found in sleeping procs, skipped profile destruction");
 	}
 
-	for (std::pair<const int, ExtendedProfile*>& p : profiles)
+	for (std::pair<const int, ExtendedProfile *> &p : profiles)
 	{
-		ExtendedProfile* ep = p.second;
+		ExtendedProfile *ep = p.second;
 		//Core::Alert("Want: " + std::to_string(proc_id));
 		//Core::Alert("Have: " + std::to_string(ep->call_stack.back()->proc_id));
 		if (ep->call_stack.back()->proc_id == proc_id)
 		{
-			ExtendedProfile* subprofile = ep->call_stack.back();
+			ExtendedProfile *subprofile = ep->call_stack.back();
 			subprofile->stop_timer();
 			ep->call_stack.pop_back();
 		}
@@ -246,14 +244,14 @@ void hProcCleanup(ExecutionContext* ctx)
 	oProcCleanup(ctx);
 }
 
-SuspendedProc* hSuspend(ExecutionContext* ctx, int unknown)
+SuspendedProc *hSuspend(ExecutionContext *ctx, int unknown)
 {
 	int proc_id = ctx->constants->proc_id;
-	if (/*procs_to_profile.find(proc_id) != procs_to_profile.end() || */profiles.find(proc_id) != profiles.end())
+	if (/*procs_to_profile.find(proc_id) != procs_to_profile.end() || */ profiles.find(proc_id) != profiles.end())
 	{
 		//profiles[proc_id]->stop_timer();
 		//Core::Alert("Marking as sleepy");
-		ExtendedProfile* profile = profiles[proc_id];
+		ExtendedProfile *profile = profiles[proc_id];
 		sleeping_profiles[proc_id] = profile;
 		profile->stop_timer();
 		//recursive_suspend(profile);
@@ -265,9 +263,9 @@ SuspendedProc* hSuspend(ExecutionContext* ctx, int unknown)
 
 bool actual_extended_profiling_initialize()
 {
-	oCreateContext = (CreateContextPtr)Core::install_hook((void*)CreateContext, (void*)hCreateContext);
-	oProcCleanup = (ProcCleanupPtr)Core::install_hook((void*)ProcCleanup, (void*)hProcCleanup);
-	oSuspend = (SuspendPtr)Core::install_hook((void*)Suspend, (void*)hSuspend);
+	oCreateContext = (CreateContextPtr)Core::install_hook((void *)CreateContext, (void *)hCreateContext);
+	oProcCleanup = (ProcCleanupPtr)Core::install_hook((void *)ProcCleanup, (void *)hProcCleanup);
+	oSuspend = (SuspendPtr)Core::install_hook((void *)Suspend, (void *)hSuspend);
 	return oCreateContext && oProcCleanup && oSuspend;
 }
 

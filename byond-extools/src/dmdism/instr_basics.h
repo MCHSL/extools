@@ -3,7 +3,6 @@
 #include "instruction.h"
 #include "disassembler.h"
 
-
 ADD_INSTR_ARG(NEW, 1)
 ADD_INSTR_ARG(FORMAT, 2)
 ADD_INSTR(OUTPUT)

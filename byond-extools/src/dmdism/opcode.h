@@ -2,7 +2,6 @@
 
 #include "opcodes.h"
 
-
 class Opcode
 {
 public:
@@ -17,7 +16,6 @@ public:
 		{
 			mnemonic_ = mnemonics.at(opcode);
 		}
-		
 	}
 
 	Bytecode opcode() const { return opcode_; }

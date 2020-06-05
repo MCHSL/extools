@@ -13,7 +13,7 @@ std::string ErrorToString(int id)
 	return exc_code_to_msg.find(id) != exc_code_to_msg.end() ? exc_code_to_msg.at(id) : "";
 }
 
-extern "C" __declspec(dllexport) const char* force_crash(int n, const char* args)
+extern "C" __declspec(dllexport) const char *force_crash(int n, const char *args)
 {
 	volatile int a = 1;
 	volatile int b = 0;
@@ -21,7 +21,7 @@ extern "C" __declspec(dllexport) const char* force_crash(int n, const char* args
 	return "";
 }
 
-LONG WINAPI all_the_broken_things_that_byond_made(_EXCEPTION_POINTERS* ExceptionInfo)
+LONG WINAPI all_the_broken_things_that_byond_made(_EXCEPTION_POINTERS *ExceptionInfo)
 {
 	std::ofstream dump("crashdump.log");
 	std::time_t t = std::time(nullptr);
@@ -36,7 +36,7 @@ LONG WINAPI all_the_broken_things_that_byond_made(_EXCEPTION_POINTERS* Exception
 	dump.flush();
 	HMODULE hModule = NULL;
 	GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-		(LPCTSTR)ExceptionInfo->ExceptionRecord->ExceptionAddress, &hModule);
+					  (LPCTSTR)ExceptionInfo->ExceptionRecord->ExceptionAddress, &hModule);
 	std::string module;
 	module.resize(128);
 	if (hModule)
@@ -52,14 +52,14 @@ LONG WINAPI all_the_broken_things_that_byond_made(_EXCEPTION_POINTERS* Exception
 		dump << "\t" << i << ": " << ExceptionInfo->ExceptionRecord->ExceptionInformation[i] << "\n";
 	}
 	dump.flush();
-	ExecutionContext* ctx = Core::get_context();
+	ExecutionContext *ctx = Core::get_context();
 	if (!ctx)
 	{
 		dump.close();
 		return EXCEPTION_CONTINUE_SEARCH;
 	}
 	dump << "\nCall stack:\n";
-	ExecutionContext* dctx = ctx;
+	ExecutionContext *dctx = ctx;
 	do
 	{
 		dump << "\t" << Core::get_proc(dctx->constants->proc_id).raw_path << "\n";
@@ -75,7 +75,6 @@ LONG WINAPI all_the_broken_things_that_byond_made(_EXCEPTION_POINTERS* Exception
 		dump << "\t" << ctx->local_variables[i].type << " " << (ctx->local_variables[i].type == 0x2A ? ctx->local_variables[i].valuef : ctx->local_variables[i].value) << "\n";
 	}
 
-
 	return EXCEPTION_CONTINUE_SEARCH;
 }
 
@@ -90,7 +89,7 @@ void dump_oor()
 		timestamp = std::string(buf);
 	}
 	dump << "Out of resources runtime occured at" << timestamp << "\n";
-	ExecutionContext* ctx = Core::get_context();
+	ExecutionContext *ctx = Core::get_context();
 	if (!ctx)
 	{
 		dump << "Unable to acquire execution context. Sorry.\n";
@@ -119,7 +118,7 @@ void dump_oor()
 	} while (ctx = ctx->parent_context);
 }
 
-void hRuntimeLL(char* err)
+void hRuntimeLL(char *err)
 {
 	if (strcmp(err, "Out of resources!") == 0)
 	{
@@ -134,10 +133,10 @@ bool enable_crash_guard()
 	return true;
 }
 
-extern "C" EXPORT const char* enable_resource_leak_locator(int arg_n, const char** c)
+extern "C" EXPORT const char *enable_resource_leak_locator(int arg_n, const char **c)
 {
 	Core::initialize();
-	oRuntimeLL = (RuntimePtr)Core::install_hook((void*)Runtime, (void*)hRuntimeLL);
+	oRuntimeLL = (RuntimePtr)Core::install_hook((void *)Runtime, (void *)hRuntimeLL);
 	return "";
 }
 

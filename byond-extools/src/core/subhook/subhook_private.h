@@ -30,13 +30,14 @@
 #include <stddef.h>
 
 #ifndef true
-  #define true 1
+#define true 1
 #endif
 #ifndef false
-  #define false 0
+#define false 0
 #endif
 
-struct subhook_struct {
+struct subhook_struct
+{
   int installed;
   void *src;
   void *dst;

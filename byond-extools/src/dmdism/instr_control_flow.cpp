@@ -1,6 +1,5 @@
 
 
-
 #include <algorithm>
 
 #include "instr_control_flow.h"
@@ -9,7 +8,7 @@
 #include "disassembler.h"
 
 //TODO: finish
-void Instr_CALL::Disassemble(Context* context, Disassembler* dism)
+void Instr_CALL::Disassemble(Context *context, Disassembler *dism)
 {
 	comment_ = "";
 	if (dism->disassemble_var(*this))
@@ -26,7 +25,7 @@ void Instr_CALL::Disassemble(Context* context, Disassembler* dism)
 	dism->add_call_args(*this, num_args);
 }
 
-void Instr_CALLNR::Disassemble(Context* context, Disassembler* dism)
+void Instr_CALLNR::Disassemble(Context *context, Disassembler *dism)
 {
 	comment_ = "";
 	if (dism->disassemble_var(*this))
@@ -43,7 +42,7 @@ void Instr_CALLNR::Disassemble(Context* context, Disassembler* dism)
 	dism->add_call_args(*this, num_args);
 }
 
-void Instr_CALLGLOB::Disassemble(Context* context, Disassembler* dism)
+void Instr_CALLGLOB::Disassemble(Context *context, Disassembler *dism)
 {
 	std::uint32_t num_args = context->eat();
 	std::uint32_t proc_id = context->eat();
@@ -59,7 +58,7 @@ void Instr_CALLGLOB::Disassemble(Context* context, Disassembler* dism)
 	dism->add_call_args(*this, num_args);
 }
 
-void Instr_CALL_GLOBAL_ARGLIST::Disassemble(Context* context, Disassembler* dism)
+void Instr_CALL_GLOBAL_ARGLIST::Disassemble(Context *context, Disassembler *dism)
 {
 	std::uint32_t proc_id = context->eat();
 
@@ -73,7 +72,7 @@ void Instr_CALL_GLOBAL_ARGLIST::Disassemble(Context* context, Disassembler* dism
 	}
 }
 
-void Instr_SWITCH::Disassemble(Context* context, Disassembler* dism)
+void Instr_SWITCH::Disassemble(Context *context, Disassembler *dism)
 {
 	std::uint32_t case_count = context->eat();
 	comment_ += std::to_string(case_count) + " cases, default jump to ";
@@ -83,9 +82,9 @@ void Instr_SWITCH::Disassemble(Context* context, Disassembler* dism)
 		std::uint32_t type = context->take(); //TODO: Perhaps extract into a separate function to disassemble variables.
 		if (type == NUMBER)
 		{
-			typedef union
-			{
-				int i; float f;
+			typedef union {
+				int i;
+				float f;
 			} funk;
 			funk f;
 			std::uint32_t first_part = context->take();

@@ -7,15 +7,15 @@
 class Disassembly
 {
 public:
-	Disassembly(std::vector<Instruction>&& i) : instructions(std::move(i)) {}
+	Disassembly(std::vector<Instruction> &&i) : instructions(std::move(i)) {}
 	//~Disassembly() { for (auto i : instructions) delete& i; } //heap corruption woo
 	std::vector<Instruction> instructions;
 	Core::Proc proc;
 
-	std::vector<std::uint32_t>* assemble();
-	Instruction& at(std::size_t i);
-	Instruction& at_offset(std::size_t offset);
-	Instruction* next_from_offset(std::uint16_t offset);
+	std::vector<std::uint32_t> *assemble();
+	Instruction &at(std::size_t i);
+	Instruction &at_offset(std::size_t offset);
+	Instruction *next_from_offset(std::uint16_t offset);
 	std::uint32_t op_at(std::size_t i);
 	std::vector<Instruction>::iterator begin() noexcept;
 	std::vector<Instruction>::iterator end() noexcept;

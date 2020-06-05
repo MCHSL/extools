@@ -3,7 +3,7 @@
 
 std::string byond_tostring(int idx)
 {
-	String* s = GetStringTableEntry(idx);
+	String *s = GetStringTableEntry(idx);
 	s->refcount++;
 	return std::string(s->stringData);
 }
@@ -11,18 +11,20 @@ std::string byond_tostring(int idx)
 int intern_string(std::string str)
 {
 	int idx = Core::GetStringId(str.c_str());
-	String* s = GetStringTableEntry(idx);
+	String *s = GetStringTableEntry(idx);
 	s->refcount++;
 	return idx;
 }
 
-std::string tohex(int numero) {
+std::string tohex(int numero)
+{
 	std::stringstream stream;
 	stream << std::hex << std::uppercase << numero;
 	return "0x" + std::string(stream.str());
 }
 
-std::string todec(int numero) {
+std::string todec(int numero)
+{
 	std::stringstream stream;
 	stream << std::dec << numero;
 	return std::string(stream.str());

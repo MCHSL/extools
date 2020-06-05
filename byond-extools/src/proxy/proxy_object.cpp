@@ -22,7 +22,7 @@ trvh handle_proxy(int id, int name_id)
 	std::ifstream fin("wack.txt");
 	std::string wack;
 	fin >> wack;
-	return { DataType::STRING, (int)Core::GetStringId(wack.c_str()) };
+	return {DataType::STRING, (int)Core::GetStringId(wack.c_str())};
 }
 
 trvh hGetVariable(int datumType, int datumId, unsigned int name_id)
@@ -59,7 +59,7 @@ void hSetVariable(int datumType, int datumId, unsigned int name_id, Value new_va
 	oSetVariable(datumType, datumId, name_id, new_value);
 }
 
-trvh install_proxy(unsigned int n_args, Value* args, Value src)
+trvh install_proxy(unsigned int n_args, Value *args, Value src)
 {
 	proxies[src.value] = true;
 	return Value::True();
@@ -77,22 +77,19 @@ void remove_data_breakpoint(int datumType, int datumId, std::string varName)
 
 void on_data_read(int datumId, int datumType, std::string varName)
 {
-
 }
 
 void on_data_write(int datumId, int datumType, std::string varName, Value new_value)
 {
-
 }
 
 bool Proxy::initialize()
 {
-	oGetVariable = (GetVariablePtr)Core::install_hook((void*)GetVariable, (void*)hGetVariable);
-	oSetVariable = (SetVariablePtr)Core::install_hook((void*)SetVariable, (void*)hSetVariable);
+	oGetVariable = (GetVariablePtr)Core::install_hook((void *)GetVariable, (void *)hGetVariable);
+	oSetVariable = (SetVariablePtr)Core::install_hook((void *)SetVariable, (void *)hSetVariable);
 	if (false)
 	{
 		Core::get_proc("/datum/proxy_object/proc/__install").hook(install_proxy);
-		
 	}
 	return true;
 }

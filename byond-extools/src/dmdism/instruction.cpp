@@ -1,10 +1,8 @@
 
 
-
 #include "instruction.h"
 #include "helpers.h"
 #include "context.h"
-
 
 Instruction::Instruction(Bytecode op)
 {
@@ -30,7 +28,7 @@ Instruction Instruction::create(unsigned int op)
 	return Instruction::create((Bytecode)op);
 }
 
-void Instruction::Disassemble(Context* context, Disassembler* dism)
+void Instruction::Disassemble(Context *context, Disassembler *dism)
 {
 	for (unsigned int i = 0; i < arguments(); i++)
 	{
@@ -65,4 +63,3 @@ bool Instruction::operator==(const unsigned int rhs)
 {
 	return opcode().opcode() == (Bytecode)rhs;
 }
-

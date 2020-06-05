@@ -9,7 +9,7 @@ std::unordered_map<std::string, std::vector<Core::Proc>> procs_by_name;
 std::unordered_map<unsigned int, bool> extended_profiling_procs;
 std::unordered_map<unsigned int, ProcHook> proc_hooks;
 
-void strip_proc_path(std::string& name)
+void strip_proc_path(std::string &name)
 {
 	size_t proc_pos = name.find("/proc/");
 	proc_pos = (proc_pos == std::string::npos ? name.find("/verb/") : proc_pos);
@@ -30,7 +30,7 @@ Core::Proc::Proc(std::uint32_t id)
 	*this = procs_by_id.at(id);
 }
 
-void Core::Proc::set_bytecode(std::vector<std::uint32_t>* new_bytecode)
+void Core::Proc::set_bytecode(std::vector<std::uint32_t> *new_bytecode)
 {
 	if (original_bytecode_ptr)
 	{
@@ -43,7 +43,7 @@ void Core::Proc::set_bytecode(std::vector<std::uint32_t>* new_bytecode)
 	setup_entry_bytecode->bytecode = new_bytecode->data();
 }
 
-void Core::Proc::set_bytecode(std::uint32_t* new_bytecode)
+void Core::Proc::set_bytecode(std::uint32_t *new_bytecode)
 {
 	setup_entry_bytecode->bytecode = new_bytecode;
 }
@@ -59,7 +59,7 @@ void Core::Proc::reset_bytecode()
 	original_bytecode_ptr = nullptr;
 }
 
-std::uint32_t* Core::Proc::get_bytecode()
+std::uint32_t *Core::Proc::get_bytecode()
 {
 	return setup_entry_bytecode->bytecode;
 }
@@ -77,7 +77,7 @@ std::uint16_t Core::Proc::get_local_varcount() //TODO: this is broken
 	return setup_entry_varcount->local_var_count;
 }
 
-ProfileInfo* Core::Proc::profile()
+ProfileInfo *Core::Proc::profile()
 {
 	return GetProfileInfo(id);
 }
@@ -107,7 +107,7 @@ Disassembly Core::Proc::disassemble()
 
 void Core::Proc::assemble(Disassembly disasm)
 {
-	std::vector<std::uint32_t>* bc = disasm.assemble();
+	std::vector<std::uint32_t> *bc = disasm.assemble();
 	set_bytecode(bc);
 	setup_entry_bytecode->bytecode_length = bc->size();
 	//proc_table_entry->local_var_count_idx = Core::get_proc("/proc/twelve_locals").proc_table_entry->local_var_count_idx;
@@ -140,12 +140,12 @@ Core::Proc Core::get_proc(unsigned int id)
 	return procs_by_id.at(id);
 }
 
-Core::Proc Core::get_proc(ExecutionContext* ctx)
+Core::Proc Core::get_proc(ExecutionContext *ctx)
 {
 	return get_proc(ctx->constants->proc_id);
 }
 
-std::vector<Core::Proc>& Core::get_all_procs()
+std::vector<Core::Proc> &Core::get_all_procs()
 {
 	return procs_by_id;
 }
@@ -160,7 +160,7 @@ bool Core::populate_proc_list()
 	unsigned int i = 0;
 	while (true)
 	{
-		ProcArrayEntry* entry = GetProcArrayEntry(i);
+		ProcArrayEntry *entry = GetProcArrayEntry(i);
 		if (!entry)
 		{
 			break;

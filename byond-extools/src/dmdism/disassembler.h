@@ -6,7 +6,6 @@
 #include "disassembly.h"
 #include <vector>
 
-
 #include "instruction.h"
 
 class Context;
@@ -14,20 +13,20 @@ class Context;
 class Disassembler
 {
 public:
-	Disassembler(std::vector<std::uint32_t> bc, std::vector<Core::Proc>& ps);
-	Disassembler(std::uint32_t* bc, unsigned int bc_len, std::vector<Core::Proc>& ps);
+	Disassembler(std::vector<std::uint32_t> bc, std::vector<Core::Proc> &ps);
+	Disassembler(std::uint32_t *bc, unsigned int bc_len, std::vector<Core::Proc> &ps);
 	Disassembly disassemble();
 
 	~Disassembler();
 
-	Context* context() const { return context_; }
+	Context *context() const { return context_; }
 
-	bool disassemble_var(Instruction& instr);
-	bool disassemble_var_alt(Instruction& instr);
-	void add_call_args(Instruction& instr, unsigned int num_args);
+	bool disassemble_var(Instruction &instr);
+	bool disassemble_var_alt(Instruction &instr);
+	void add_call_args(Instruction &instr, unsigned int num_args);
 
 private:
-	Context* context_;
+	Context *context_;
 
 	Instruction disassemble_next();
 };

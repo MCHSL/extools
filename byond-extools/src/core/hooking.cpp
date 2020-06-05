@@ -12,7 +12,7 @@ TopicFloodCheckPtr oTopicFloodCheck;
 
 TopicFilter current_topic_filter = nullptr;
 
-std::unordered_map<void*, subhook::Hook*> hooks;
+std::unordered_map<void *, subhook::Hook *> hooks;
 
 //ExecutionContext* last_suspended_ec;
 
@@ -34,7 +34,7 @@ trvh REGPARM3 hCallGlobalProc(char usr_type, int usr_value, int proc_type, unsig
 	if (!queued_calls.empty() && !calling_queue)
 	{
 		calling_queue = true;
-		while(!queued_calls.empty())
+		while (!queued_calls.empty())
 		{
 			auto qc = queued_calls.back();
 			queued_calls.pop_back();
@@ -55,7 +55,7 @@ trvh REGPARM3 hCallGlobalProc(char usr_type, int usr_value, int proc_type, unsig
 
 void hCrashProc(char *error, variadic_arg_hack hack) //this is a hack to pass variadic arguments to the original function, the struct contains a 1024 byte array
 {
-	int argument = *(int*)hack.data;
+	int argument = *(int *)hack.data;
 	if (Core::opcode_handlers.find(argument) != Core::opcode_handlers.end())
 	{
 		Core::opcode_handlers[argument](*Core::current_execution_context_ptr);
@@ -78,16 +78,15 @@ void Core::set_topic_filter(TopicFilter tf)
 	current_topic_filter = tf;
 }
 
-
-void* Core::install_hook(void* original, void* hook)
+void *Core::install_hook(void *original, void *hook)
 {
-	subhook::Hook* /*I am*/ shook = new subhook::Hook;
+	subhook::Hook * /*I am*/ shook = new subhook::Hook;
 	shook->Install(original, hook);
 	hooks[original] = shook;
 	return shook->GetTrampoline();
 }
 
-void Core::remove_hook(void* func)
+void Core::remove_hook(void *func)
 {
 	hooks[func]->Remove();
 	delete hooks[func];
@@ -96,7 +95,7 @@ void Core::remove_hook(void* func)
 
 void Core::remove_all_hooks()
 {
-	for (auto iter = hooks.begin(); iter != hooks.end(); )
+	for (auto iter = hooks.begin(); iter != hooks.end();)
 	{
 		iter->second->Remove();
 		delete iter->second;
@@ -104,9 +103,10 @@ void Core::remove_all_hooks()
 	}
 }
 
-bool Core::hook_custom_opcodes() {
-	oCrashProc = (CrashProcPtr)install_hook((void*)CrashProc, (void*)hCrashProc);
-	oCallGlobalProc = (CallGlobalProcPtr)install_hook((void*)CallGlobalProc, (void*)hCallGlobalProc);
-	oTopicFloodCheck = (TopicFloodCheckPtr)install_hook((void*)TopicFloodCheck, (void*)hTopicFloodCheck);
+bool Core::hook_custom_opcodes()
+{
+	oCrashProc = (CrashProcPtr)install_hook((void *)CrashProc, (void *)hCrashProc);
+	oCallGlobalProc = (CallGlobalProcPtr)install_hook((void *)CallGlobalProc, (void *)hCallGlobalProc);
+	oTopicFloodCheck = (TopicFloodCheckPtr)install_hook((void *)TopicFloodCheck, (void *)hTopicFloodCheck);
 	return oCrashProc && oCallGlobalProc && oTopicFloodCheck;
 }

@@ -3,7 +3,8 @@
 static bool InitOnce()
 {
 	static bool done = false;
-	if (done) {
+	if (done)
+	{
 		return true;
 	}
 	// It doesn't really matter if we call this a couple extra times.
@@ -20,12 +21,12 @@ static bool InitOnce()
 }
 
 // Important ownership stuff to prevent leaks or double-closes.
-Socket::Socket(Socket&& other)
+Socket::Socket(Socket &&other)
 	: raw_socket(other.raw_socket)
 {
 	other.raw_socket = INVALID_SOCKET;
 }
-Socket& Socket::operator=(Socket&& other)
+Socket &Socket::operator=(Socket &&other)
 {
 	close();
 	raw_socket = other.raw_socket;
@@ -59,9 +60,9 @@ bool Socket::create(int family, int socktype, int protocol)
 }
 
 // Listening.
-bool TcpListener::listen(const char* port, const char* iface)
+bool TcpListener::listen(const char *port, const char *iface)
 {
-	struct addrinfo* result = NULL;
+	struct addrinfo *result = NULL;
 	struct addrinfo hints;
 	int iResult;
 
@@ -96,7 +97,7 @@ bool TcpListener::listen(const char* port, const char* iface)
 	// Set SO_REUSEADDR so if the process is killed, the port becomes reusable
 	// immediately rather than after a 60-second delay.
 	int opt = 1;
-	setsockopt(socket.raw(), SOL_SOCKET, SO_REUSEADDR, (const char*) &opt, sizeof(int));
+	setsockopt(socket.raw(), SOL_SOCKET, SO_REUSEADDR, (const char *)&opt, sizeof(int));
 
 	// Setup the TCP listening socket
 	iResult = bind(socket.raw(), result->ai_addr, (int)result->ai_addrlen);
@@ -126,9 +127,9 @@ JsonStream TcpListener::accept()
 	return JsonStream(Socket(::accept(socket.raw(), NULL, NULL)));
 }
 
-bool JsonStream::connect(const char* port, const char* remote)
+bool JsonStream::connect(const char *port, const char *remote)
 {
-	struct addrinfo* result = NULL;
+	struct addrinfo *result = NULL;
 	struct addrinfo hints;
 	int iResult;
 
@@ -173,7 +174,7 @@ bool JsonStream::connect(const char* port, const char* remote)
 	return true;
 }
 
-bool JsonStream::send(const char* type, nlohmann::json content)
+bool JsonStream::send(const char *type, nlohmann::json content)
 {
 	nlohmann::json j = {
 		{"type", type},
@@ -204,14 +205,16 @@ nlohmann::json JsonStream::recv_message()
 	while (true)
 	{
 		size_t zero = recv_buffer.find('\0');
-		if (zero != std::string::npos) {
-			nlohmann::json json = nlohmann::json::parse({ recv_buffer.data(), recv_buffer.data() + zero });
+		if (zero != std::string::npos)
+		{
+			nlohmann::json json = nlohmann::json::parse({recv_buffer.data(), recv_buffer.data() + zero});
 			recv_buffer.erase(0, zero + 1);
 			return json;
 		}
 
 		int received_bytes = ::recv(socket.raw(), data.data(), data.size(), 0);
-		if (received_bytes == 0) {
+		if (received_bytes == 0)
+		{
 			return nlohmann::json();
 		}
 

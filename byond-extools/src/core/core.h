@@ -19,7 +19,7 @@
 #define EXPORT __attribute__((visibility("default")))
 #endif
 
-typedef void(*opcode_handler)(ExecutionContext* ctx);
+typedef void (*opcode_handler)(ExecutionContext *ctx);
 
 #define MIN_COMPATIBLE_MAJOR 512
 #define MIN_COMPATIBLE_MINOR 1484
@@ -31,17 +31,17 @@ namespace Core
 {
 	extern std::map<unsigned int, opcode_handler> opcode_handlers;
 	extern std::map<std::string, unsigned int> name_to_opcode;
-	extern ExecutionContext** current_execution_context_ptr;
-	extern ExecutionContext** parent_context_ptr_hack;
-	extern ProcSetupEntry** proc_setup_table;
-	extern unsigned int* some_flags_including_profile;
+	extern ExecutionContext **current_execution_context_ptr;
+	extern ExecutionContext **parent_context_ptr_hack;
+	extern ProcSetupEntry **proc_setup_table;
+	extern unsigned int *some_flags_including_profile;
 	//extern std::vector<bool> codecov_executed_procs;
 	unsigned int GetStringId(std::string str);
 	std::string GetStringFromId(unsigned int id);
 	Value get_turf(int x, int y, int z);
 	extern unsigned int extended_profiling_insanely_hacky_check_if_its_a_new_call_or_resume;
-	ExecutionContext* get_context();
-	ExecutionContext* _get_parent_context();
+	ExecutionContext *get_context();
+	ExecutionContext *_get_parent_context();
 	unsigned int register_opcode(std::string name, opcode_handler handler);
 	void Alert(std::string what);
 	void Alert(int what);
@@ -58,4 +58,4 @@ namespace Core
 	std::uint32_t get_socket_from_client(unsigned int id);
 	void cleanup();
 	void alert_dd(std::string msg);
-}
+} // namespace Core

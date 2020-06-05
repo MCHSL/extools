@@ -7,23 +7,23 @@
 std::map<Core::Proc, bool> has_been_optimized;
 std::vector<Core::Proc> inlineable_procs;
 
-void inline_into(Disassembly& recipient, Disassembly& donor, int which_instruction, int local_count)
+void inline_into(Disassembly &recipient, Disassembly &donor, int which_instruction, int local_count)
 {
 	int arg_count = 0;
-	for (Instruction& i : donor)
+	for (Instruction &i : donor)
 	{
 		if (i == Bytecode::GETVAR && i.bytes().at(1) == AccessModifier::ARG)
 		{
-			arg_count = std::max(arg_count, (int)i.bytes().at(2)+1);
+			arg_count = std::max(arg_count, (int)i.bytes().at(2) + 1);
 		}
 	}
 	std::vector<Instruction> plop_after_inlining = std::vector<Instruction>(recipient.instructions.begin() + which_instruction + 1, recipient.instructions.end());
-	recipient.instructions.resize(which_instruction+1);
+	recipient.instructions.resize(which_instruction + 1);
 	int starting_bytecount = recipient.bytecount();
 	recipient.instructions.pop_back();
 	if (arg_count)
 	{
-		for (int i = arg_count-1; i >= 0; i--)
+		for (int i = arg_count - 1; i >= 0; i--)
 		{
 			Instruction instr = Instruction::create(SETVAR);
 			instr.add_byte(AccessModifier::LOCAL);
@@ -32,7 +32,7 @@ void inline_into(Disassembly& recipient, Disassembly& donor, int which_instructi
 		}
 	}
 	std::vector<int> return_jump_patch_locations;
-	for (int i=0; i<donor.size(); i++)
+	for (int i = 0; i < donor.size(); i++)
 	{
 		Instruction instr = donor.at(i);
 		if (instr == Bytecode::DBG_LINENO || instr == Bytecode::DBG_FILE)
@@ -75,9 +75,9 @@ void inline_into(Disassembly& recipient, Disassembly& donor, int which_instructi
 	{
 		recipient.at(instr_index).bytes().at(1) = recipient.instructions.back().offset() + 2;
 	}
-	for (int i = 0; i < recipient.size()-1; i++)
+	for (int i = 0; i < recipient.size() - 1; i++)
 	{
-		Instruction& instr = recipient.at(i);
+		Instruction &instr = recipient.at(i);
 		if (instr == JMP || instr == JMP2 || instr == JZ || instr == JNZ)
 		{
 			if (instr.bytes().at(1) == recipient.at(i + 1).offset())
@@ -89,13 +89,13 @@ void inline_into(Disassembly& recipient, Disassembly& donor, int which_instructi
 	int added_instructions = recipient.bytecount() - starting_bytecount;
 	for (int i = 0; i < which_instruction; i++)
 	{
-		Instruction& instr = recipient.at(i);
+		Instruction &instr = recipient.at(i);
 		if (instr == JMP || instr == JMP2 || instr == JZ || instr == JNZ || instr == FOR_RANGE)
 		{
 			instr.bytes().at(1) += added_instructions;
 		}
 	}
-	for (Instruction& instr : plop_after_inlining)
+	for (Instruction &instr : plop_after_inlining)
 	{
 		if (instr == JMP || instr == JMP2 || instr == JZ || instr == JNZ || instr == FOR_RANGE)
 		{
@@ -111,11 +111,11 @@ void inline_into(Disassembly& recipient, Disassembly& donor, int which_instructi
 
 void optimize_proc(Core::Proc recipient);
 
-void optimize_inline(Core::Proc recipient, Disassembly& recipient_code)
+void optimize_inline(Core::Proc recipient, Disassembly &recipient_code)
 {
 	for (int i = 0; i < recipient_code.size(); i++)
 	{
-		Instruction& instr = recipient_code.at(i);
+		Instruction &instr = recipient_code.at(i);
 		if (instr == Bytecode::CALLGLOB)
 		{
 			Core::Proc donor = Core::get_proc(instr.bytes()[2]);
@@ -148,7 +148,7 @@ void dump_proc_to_file(Core::Proc p, std::string name)
 	//Core::Alert("Dumping");
 	std::ofstream fout(name);
 	Disassembly dis = p.disassemble();
-	for (Instruction& i : dis)
+	for (Instruction &i : dis)
 	{
 		fout << i.offset() << " " << i.opcode().tostring() << std::endl;
 	}

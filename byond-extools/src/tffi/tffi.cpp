@@ -6,10 +6,10 @@
 #include <condition_variable>
 #include <mutex>
 
-typedef const char* (byond_ffi_func)(int, const char**);
+typedef const char *(byond_ffi_func)(int, const char **);
 
-std::map<float, SuspendedProc*> suspended_procs;
-std::map<std::string, std::map<std::string, byond_ffi_func*>> library_cache;
+std::map<float, SuspendedProc *> suspended_procs;
+std::map<std::string, std::map<std::string, byond_ffi_func *>> library_cache;
 
 std::uint32_t result_string_id = 0;
 std::uint32_t completed_string_id = 0;
@@ -18,10 +18,10 @@ std::uint32_t internal_id_string_id = 0;
 std::condition_variable unsuspend_ready_cv;
 std::mutex unsuspend_ready_mutex;
 
-void tffi_suspend(ExecutionContext* ctx)
+void tffi_suspend(ExecutionContext *ctx)
 {
 	ctx->current_opcode++;
-	SuspendedProc* proc = Suspend(ctx, 0);
+	SuspendedProc *proc = Suspend(ctx, 0);
 	proc->time_to_resume = 0x7FFFFF;
 	StartTiming(proc);
 	float promise_id = ctx->constants->args[1].valuef;
@@ -37,7 +37,7 @@ bool TFFI::initialize()
 #ifdef _WIN32
 	std::uint32_t suspension_opcode = Core::register_opcode("TFFI_SUSPEND", tffi_suspend);
 	Core::Proc internal_resolve = Core::get_proc("/datum/promise/proc/__internal_resolve");
-	internal_resolve.set_bytecode(new std::vector<std::uint32_t>({ suspension_opcode, 0, 0, 0 }));
+	internal_resolve.set_bytecode(new std::vector<std::uint32_t>({suspension_opcode, 0, 0, 0}));
 #endif
 	result_string_id = Core::GetStringId("result");
 	completed_string_id = Core::GetStringId("completed");
@@ -45,24 +45,24 @@ bool TFFI::initialize()
 	return true;
 }
 
-void ffi_thread(byond_ffi_func* proc, int promise_id, int n_args, std::vector<std::string> args)
+void ffi_thread(byond_ffi_func *proc, int promise_id, int n_args, std::vector<std::string> args)
 {
-	std::vector<const char*> a;
+	std::vector<const char *> a;
 	for (int i = 0; i < n_args; i++)
 	{
 		a.push_back(args[i].c_str());
 	}
-	const char* res = proc(n_args, a.data());
-	SetVariable( 0x21, promise_id , result_string_id, { 0x06, (int)Core::GetStringId(res) });
-	SetVariable( 0x21, promise_id , completed_string_id, { 0x2A, 1 });
-	float internal_id = GetVariable( 0x21, promise_id , internal_id_string_id).valuef;
+	const char *res = proc(n_args, a.data());
+	SetVariable(0x21, promise_id, result_string_id, {0x06, (int)Core::GetStringId(res)});
+	SetVariable(0x21, promise_id, completed_string_id, {0x2A, 1});
+	float internal_id = GetVariable(0x21, promise_id, internal_id_string_id).valuef;
 	std::unique_lock<std::mutex> lk(unsuspend_ready_mutex);
-	unsuspend_ready_cv.wait(lk, [internal_id] { return suspended_procs.find(internal_id) != suspended_procs.end();  });
+	unsuspend_ready_cv.wait(lk, [internal_id] { return suspended_procs.find(internal_id) != suspended_procs.end(); });
 	suspended_procs[internal_id]->time_to_resume = 1;
 	suspended_procs.erase(internal_id);
 }
 
-inline void do_it(byond_ffi_func* proc, std::string promise_datum_ref, int n_args, const char** args)
+inline void do_it(byond_ffi_func *proc, std::string promise_datum_ref, int n_args, const char **args)
 {
 	promise_datum_ref.erase(promise_datum_ref.begin(), promise_datum_ref.begin() + 3);
 	int promise_id = std::stoi(promise_datum_ref.substr(promise_datum_ref.find("0"), promise_datum_ref.length() - 2), nullptr, 16);
@@ -75,10 +75,10 @@ inline void do_it(byond_ffi_func* proc, std::string promise_datum_ref, int n_arg
 	t.detach();
 }
 
-extern "C" EXPORT const char* call_async(int n_args, const char** args)
+extern "C" EXPORT const char *call_async(int n_args, const char **args)
 {
-	const char* dllname = args[1];
-	const char* funcname = args[2];
+	const char *dllname = args[1];
+	const char *funcname = args[2];
 	if (library_cache.find(dllname) != library_cache.end())
 	{
 		if (library_cache[dllname].find(funcname) != library_cache[dllname].end())
@@ -90,16 +90,16 @@ extern "C" EXPORT const char* call_async(int n_args, const char** args)
 #ifdef _WIN32
 	HMODULE lib = LoadLibraryA(dllname);
 #else
-	void* lib = dlopen(dllname, 0);
+	void *lib = dlopen(dllname, 0);
 #endif
 	if (!lib)
 	{
 		return "ERROR: Could not find library!";
 	}
 #ifdef _WIN32
-	byond_ffi_func* proc = (byond_ffi_func*)GetProcAddress(lib, funcname);
+	byond_ffi_func *proc = (byond_ffi_func *)GetProcAddress(lib, funcname);
 #else
-	byond_ffi_func* proc = (byond_ffi_func*)dlsym(lib, funcname);
+	byond_ffi_func *proc = (byond_ffi_func *)dlsym(lib, funcname);
 #endif
 	if (!proc)
 	{
