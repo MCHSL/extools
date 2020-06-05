@@ -53,7 +53,8 @@ typedef trvh(*GetAssocElementPtr)(unsigned int listType, unsigned int listId, un
 #else
 typedef trvh(REGPARM3 *GetAssocElementPtr)(unsigned int listType, unsigned int listId, unsigned int keyType, unsigned int keyValue);
 #endif
-typedef void(*SetAssocElementPtr)(unsigned int listType, unsigned int listId, unsigned int keyType, unsigned int keyValue, unsigned int valueType, unsigned int valueValue);
+typedef void(REGPARM2 *SetAssocElement2Ptr)(unsigned int listType, unsigned int listId, unsigned int keyType, unsigned int keyValue, unsigned int valueType, unsigned int valueValue);
+typedef void(*SetAssocElement1Ptr)(unsigned int listType, unsigned int listId, unsigned int keyType, unsigned int keyValue, unsigned int valueType, unsigned int valueValue);
 typedef unsigned int(*CreateListPtr)(unsigned int reserveSize);
 typedef trvh(*NewPtr)(Value* type, Value* args, unsigned int num_args, int unknown);
 //typedef void(*TempBreakpoint)();
@@ -115,7 +116,8 @@ extern GetTurfPtr GetTurf;
 extern AppendToContainerPtr AppendToContainer;
 extern GetAssocElementPtr GetAssocElement;
 extern GetListPointerByIdPtr GetListPointerById;
-extern SetAssocElementPtr SetAssocElement;
+extern SetAssocElement1Ptr SetAssocElement1;
+extern SetAssocElement2Ptr SetAssocElement2;
 extern CreateListPtr CreateList;
 extern LengthPtr Length;
 extern IsInContainerPtr IsInContainer;
@@ -134,3 +136,12 @@ extern IncRefCountPtr IncRefCount;
 extern DecRefCountPtr DecRefCount;
 extern StdDefDMPtr StdDefDM;
 extern DelDatumPtr DelDatum;
+
+
+inline void *SetAssocElement(unsigned int listType, unsigned int listId, unsigned int keyType, unsigned int keyValue, unsigned int valueType, unsigned int valueValue) {
+	if(SetAssocElement2)
+		SetAssocElement2(listType,listId,keyType,keyValue,valueType,valueValue);
+	else
+		SetAssocElement1(listType,listId,keyType,keyValue,valueType,valueValue);
+}
+
