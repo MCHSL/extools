@@ -14,7 +14,7 @@ struct DungBuilder;
 #define __thiscall __attribute__((thiscall))
 #endif
 
-typedef trvh(REGPARM3 *CallGlobalProcPtr)(char usr_type, int usr_value, int proc_type, unsigned int proc_id, int const_0, DataType src_type, int src_value, Value* argList, unsigned int argListLen, int const_0_2, int const_0_3);
+typedef trvh(REGPARM3 *CallGlobalProcPtr)(char usr_type, int usr_value, int proc_type, unsigned int proc_id, int const_0, DataType src_type, int src_value, Value* argList, unsigned char argListLen, int const_0_2, int const_0_3);
 typedef Value(*Text2PathPtr)(unsigned int text);
 #ifdef _WIN32
 typedef unsigned int(*GetStringTableIndexPtr)(const char* string, int handleEscapes, int duplicateString);
@@ -80,6 +80,7 @@ typedef const char* (__thiscall *StdDefDMPtr)(DungBuilder* this_);
 //typedef String* (*GetMemoryStatsPtr)(String* out);
 typedef unsigned int(*GetRBTreeMemoryUsagePtr)(AssociativeListEntry* root);
 typedef trvh(*InitializeListFromContextPtr)(unsigned int list_id);
+typedef void(*DestroyListPtr)(unsigned int list_id);
 
 extern CrashProcPtr CrashProc;
 extern StartTimingPtr StartTiming;
@@ -125,3 +126,4 @@ extern StdDefDMPtr StdDefDM;
 extern GetRBTreeMemoryUsagePtr GetRBTreeMemoryUsage;
 extern InitializeListFromContextPtr InitializeListFromContext;
 extern RemoveFromContainerPtr RemoveFromContainer;
+extern DestroyListPtr DestroyList;

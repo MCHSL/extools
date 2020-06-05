@@ -43,3 +43,4 @@ StdDefDMPtr StdDefDM;
 GetRBTreeMemoryUsagePtr GetRBTreeMemoryUsage;
 InitializeListFromContextPtr InitializeListFromContext;
 RemoveFromContainerPtr RemoveFromContainer;
+DestroyListPtr DestroyList;

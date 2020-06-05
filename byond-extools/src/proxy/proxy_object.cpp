@@ -14,6 +14,7 @@ AppendToContainerPtr oAppendToContainer;
 RemoveFromContainerPtr oRemoveFromContainer;
 SetAssocElementPtr oSetAssocElement;
 InitializeListFromContextPtr oInitializeListFromContext;
+DestroyListPtr oDestroyList;
 
 std::unordered_map<int, bool> proxies;
 
@@ -161,12 +162,13 @@ void on_data_write(int datumId, int datumType, std::string varName, Value new_va
 
 }
 
-trvh get_backrefs(unsigned int n_args, Value* args, Value src)
+trvh get_backrefs(unsigned int n_args, trvh* args, trvh src)
 {
 	exporting_refs = true;
 	Container result;
 	IncRefCount(result.type, result.id);
-	for (Reference& ref : back_references[src.type][src.value])
+	const Value a = args[0];
+	for (Reference& ref : back_references[a.type][a.value])
 	{
 		result[ref.holder] = Value(DataType::STRING, ref.varname);
 		//result.append(ref.holder);
@@ -175,12 +177,13 @@ trvh get_backrefs(unsigned int n_args, Value* args, Value src)
 	return result;
 }
 
-trvh get_forwardrefs(unsigned int n_args, Value* args, Value src)
+trvh get_forwardrefs(unsigned int n_args, trvh* args, trvh src)
 {
 	exporting_refs = true;
 	Container result;
 	IncRefCount(result.type, result.id);
-	for (Reference& ref : forward_references[src.type][src.value])
+	const Value a = args[0];
+	for (Reference& ref : forward_references[a.type][a.value])
 	{
 		result[Value(DataType::STRING, ref.varname)] = ref.holder;
 		//result.append(ref.holder);
@@ -189,14 +192,15 @@ trvh get_forwardrefs(unsigned int n_args, Value* args, Value src)
 	return result;
 }
 
-trvh clear_refs(unsigned int n_args, Value* args, Value src)
+trvh clear_refs(unsigned char n_args, trvh* args, trvh src)
 {
-	for (Reference& ref : forward_references[src.type][src.value])
+	trvh a = args[0];
+	for (Reference& ref : forward_references[a.type][a.value])
 	{
 		auto& backrefs = back_references[ref.holder.type][ref.holder.value];
-		backrefs.erase(std::remove_if(backrefs.begin(), backrefs.end(), [&src](Reference& ref) { return ref.holder == src; }), backrefs.end());
+		backrefs.erase(std::remove_if(backrefs.begin(), backrefs.end(), [&a](Reference& ref) { return ref.holder == a; }), backrefs.end());
 	}
-	forward_references[src.type][src.value].clear();
+	forward_references[a.type][a.value].clear();
 	return Value::Null();
 }
 
@@ -284,6 +288,17 @@ trvh hInitializeListFromContext(unsigned int list_id)
 	return result;
 }
 
+void hDestroyList(unsigned int list_id)
+{
+	for (Reference& ref : forward_references[DataType::LIST][list_id])
+	{
+		auto& backrefs = back_references[ref.holder.type][ref.holder.value];
+		backrefs.erase(std::remove_if(backrefs.begin(), backrefs.end(), [list_id](Reference& ref) { return ref.holder == Value(DataType::LIST, list_id); }), backrefs.end());
+	}
+	forward_references[DataType::LIST][list_id].clear();
+	oDestroyList(list_id);
+}
+
 bool Proxy::initialize()
 {
 	back_references.clear();
@@ -299,12 +314,13 @@ bool Proxy::initialize()
 	oInitializeListFromContext = Core::install_hook(InitializeListFromContext, hInitializeListFromContext);
 	oRemoveFromContainer = Core::install_hook(RemoveFromContainer, (RemoveFromContainerPtr)hRemoveFromContainer);
 	oSetAssocElement = Core::install_hook(SetAssocElement, (SetAssocElementPtr)hSetAssocElement);
+	oDestroyList = Core::install_hook(DestroyList, hDestroyList);
 	if (false)
 	{
 		Core::get_proc("/datum/proxy_object/proc/__install").hook(install_proxy);
 	}
-	Core::get_proc("/datum/proc/get_backrefs").hook(get_backrefs);
-	Core::get_proc("/datum/proc/get_forwardrefs").hook(get_forwardrefs);
-	Core::get_proc("/datum/proc/clear_refs").hook(clear_refs);
+	Core::get_proc("/proc/get_back_references").hook((ProcHook)get_backrefs);
+	Core::get_proc("/proc/get_forward_references").hook((ProcHook)get_forwardrefs);
+	Core::get_proc("/proc/clear_references").hook((ProcHook)clear_refs);
 	return true;
 }
