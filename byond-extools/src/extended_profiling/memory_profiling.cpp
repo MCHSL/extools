@@ -297,7 +297,7 @@ void to_json(nlohmann::json& j, const DatumMemUsagePerType& dmu)
 	};
 }
 
-void dump_full_obj_mem_usage()
+void dump_full_obj_mem_usage(const std::string& fname)
 {
 	nlohmann::json objs = get_full_obj_mem_usage();
 	nlohmann::json datums = get_full_datum_mem_usage();
@@ -308,6 +308,6 @@ void dump_full_obj_mem_usage()
 	everything["mobs"] = mobs;
 	everything["total"] = objs["total"].get<unsigned int>() + datums["total"].get<unsigned int>() + mobs["total"].get<unsigned int>();
 	everything["total_instances"] = objs["total_instances"].get<unsigned int>() + datums["total_instances"].get<unsigned int>() + mobs["total_instances"].get<unsigned int>();
-	std::ofstream o("memdump.json");
+	std::ofstream o(fname);
 	o << std::setw(2) << everything;
 }
