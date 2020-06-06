@@ -130,4 +130,4 @@ FullMemUsage<DatumMemUsagePerType> get_full_datum_mem_usage();
 FullListMemUsage get_full_list_mem_usage();
 FullMemUsage<MobMemUsagePerType> get_full_mob_mem_usage();
 
-void dump_full_obj_mem_usage();
+void dump_full_obj_mem_usage(const std::string& fname);
