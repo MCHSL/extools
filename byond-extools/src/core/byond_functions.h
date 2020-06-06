@@ -81,6 +81,7 @@ typedef const char* (__thiscall *StdDefDMPtr)(DungBuilder* this_);
 typedef unsigned int(*GetRBTreeMemoryUsagePtr)(AssociativeListEntry* root);
 typedef trvh(*InitializeListFromContextPtr)(unsigned int list_id);
 typedef void(*DestroyListPtr)(unsigned int list_id);
+typedef void(*DestroyDatumPtr)(int unk1, int unk2, trvh datum);
 
 extern CrashProcPtr CrashProc;
 extern StartTimingPtr StartTiming;
@@ -127,3 +128,4 @@ extern GetRBTreeMemoryUsagePtr GetRBTreeMemoryUsage;
 extern InitializeListFromContextPtr InitializeListFromContext;
 extern RemoveFromContainerPtr RemoveFromContainer;
 extern DestroyListPtr DestroyList;
+extern DestroyDatumPtr DestroyDatum;

@@ -44,3 +44,4 @@ GetRBTreeMemoryUsagePtr GetRBTreeMemoryUsage;
 InitializeListFromContextPtr InitializeListFromContext;
 RemoveFromContainerPtr RemoveFromContainer;
 DestroyListPtr DestroyList;
+DestroyDatumPtr DestroyDatum;
