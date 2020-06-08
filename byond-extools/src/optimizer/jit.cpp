@@ -74,7 +74,6 @@ public:
 
 std::map<unsigned int, x86::Mem> locals;
 std::vector<Operand> stack;
-std::vector<Operand> all;
 
 void set_value(x86::Compiler& cc, x86::Mem& loc, Operand& type, Operand& value, unsigned int offset = 0)
 {
@@ -272,6 +271,41 @@ void math_op(x86::Compiler& cc, Bytecode op)
 	stack.push_back(res_value);
 }
 
+trvh call_global_wrapper(unsigned int proc_id, trvh* args, unsigned int num_args)
+{
+	return Core::get_proc(proc_id).call(std::vector<Value>(args, args + num_args));
+}
+
+void call_global(x86::Compiler& cc, unsigned int arg_count, unsigned int proc_id)
+{
+	x86::Mem args = cc.newStack(sizeof(trvh) * arg_count, 4);
+	x86::Mem args_i = args.clone();
+	args.setSize(4);
+	args_i.setSize(4);
+	for (int i = 0; i < arg_count; i++)
+	{
+		args_i.setOffset(sizeof(trvh) * i + offsetof(trvh, type));
+		Operand type = stack.at(stack.size() - arg_count * 2 + i * 2);
+		cc.mov(args_i, type.as<Imm>());
+		args_i.setOffset(sizeof(trvh) * i + offsetof(trvh, value));
+		Operand value = stack.at(stack.size() - arg_count * 2 + i * 2 + 1);
+		cc.mov(args_i, value.as<Imm>());
+	}
+	x86::Gp addrholder = cc.newInt32();
+	cc.lea(addrholder, args);
+	stack.erase(stack.end() - arg_count, stack.end());
+	x86::Gp ret_type = cc.newInt32();
+	x86::Gp ret_value = cc.newInt32();
+	auto call = cc.call((uint64_t)call_global_wrapper, FuncSignatureT<int, int, int*, unsigned int>());
+	call->setArg(0, Imm(proc_id));
+	call->setArg(1, addrholder);
+	call->setArg(2, Imm(arg_count));
+	call->setRet(0, ret_type);
+	cc.mov(ret_value, x86::edx);
+	stack.push_back(ret_type);
+	stack.push_back(ret_value);
+}
+
 void compile_block(x86::Compiler& cc, Block& block, std::map<unsigned int, Block> blocks)
 {
 	cc.bind(block.label);
@@ -336,6 +370,10 @@ void compile_block(x86::Compiler& cc, Block& block, std::map<unsigned int, Block
 		case Bytecode::END:
 			jit_out << "Assembling end" << std::endl;
 			end(cc);
+			break;
+		case Bytecode::CALLGLOB:
+			jit_out << "Assembling call global" << std::endl;
+			call_global(cc, instr.bytes()[1], instr.bytes()[2]);
 			break;
 		default:
 			jit_out << "Unknown instruction: " << instr.opcode().tostring() << std::endl;
