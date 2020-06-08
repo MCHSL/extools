@@ -2,6 +2,7 @@
 #include "../dmdism/disassembly.h"
 #include "../debug_server/debug_server.h"
 #include "../optimizer/optimizer.h"
+#include "../optimizer/jit.h"
 #include "../crash_guard/crash_guard.h"
 #include "../extended_profiling/normal_profiling.h"
 #include "../extended_profiling/memory_profiling.h"
@@ -120,6 +121,7 @@ trvh test_invoke(unsigned int argcount, Value* args, Value src)
 
 void init_testing()
 {
+	jit_compile(Core::get_proc("/proc/jit"));
 	//Value a(5.0f);
 	//Value b = a + 5.0f;
 	//b += 1.0f;

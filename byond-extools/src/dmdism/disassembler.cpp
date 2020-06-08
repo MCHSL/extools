@@ -74,7 +74,19 @@ bool Disassembler::disassemble_var_alt(Instruction& instr)
 	return false;
 }
 
-bool Disassembler::disassemble_var(Instruction& instr)
+std::vector<unsigned int> Disassembler::disassemble_subvar_follows(Instruction& instr)
+{
+	std::vector<unsigned int> result;
+	while (context_->peek() == AccessModifier::SUBVAR)
+	{
+		context_->eat(&instr);
+		result.push_back(context_->eat(&instr));
+	}
+	result.push_back(context_->eat(&instr));
+	return result;
+}
+
+bool Disassembler::disassemble_var(Instruction& instr, bool recursive)
 {
 	switch (context_->peek())
 	{
@@ -82,7 +94,13 @@ bool Disassembler::disassemble_var(Instruction& instr)
 	{
 		std::uint32_t val = context_->eat(&instr);
 		instr.opcode().add_info(" SUBVAR");
-		if (disassemble_var(instr))
+		
+		const AccessModifier mod = (AccessModifier)context_->eat(&instr);
+		const unsigned int id = context_->eat(&instr);
+		instr.acc_base = { mod, id };
+		instr.acc_chain = disassemble_subvar_follows(instr);
+		break;
+		/*if (disassemble_var(instr, true))
 		{
 			return true;
 		}
@@ -90,7 +108,7 @@ bool Disassembler::disassemble_var(Instruction& instr)
 		val = context_->eat(&instr);
 		if (val == SUBVAR)
 		{
-			if (disassemble_var(instr))
+			if (disassemble_var(instr, true))
 			{
 				return true;
 			}
@@ -107,7 +125,7 @@ bool Disassembler::disassemble_var(Instruction& instr)
 			instr.add_comment("." + byond_tostring(val));
 		}
 
-		break;
+		break;*/
 	}
 
 	case LOCAL:

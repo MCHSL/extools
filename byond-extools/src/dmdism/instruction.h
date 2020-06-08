@@ -25,13 +25,14 @@ public:
 	virtual unsigned int arguments() const { return 0; }
 
 
-	std::uint8_t& size() { return size_; }
+	unsigned int size() { return bytes().size(); }
 
 	std::vector<std::uint32_t>& bytes() { return bytes_; }
 	void add_byte(std::uint32_t byte);
 	std::string bytes_str();
 
 	Opcode& opcode() { return opcode_; }
+	const Opcode& opcode() const { return opcode_; }
 
 	std::string comment() { return comment_; }
 	void set_comment(std::string comment) { comment_ = comment; }
@@ -48,6 +49,10 @@ public:
 
 	std::vector<std::string> extra_info() { return extra_info_; }
 	void add_info(std::string s) { extra_info_.push_back(s); }
+
+	std::pair<AccessModifier, unsigned int> acc_base;
+	std::vector<unsigned int> acc_chain;
+	
 protected:
 	std::uint8_t size_;
 	std::vector<std::uint32_t> bytes_;
