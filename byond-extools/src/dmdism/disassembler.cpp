@@ -99,7 +99,11 @@ bool Disassembler::disassemble_var(Instruction& instr, bool raw_var_access)
 		instr.opcode().add_info(" SUBVAR");
 		
 		const AccessModifier mod = (AccessModifier)context_->eat(&instr);
-		const unsigned int id = context_->eat(&instr);
+		unsigned int id = 0;
+		if (mod != AccessModifier::SRC)
+		{
+			id = context_->eat(&instr);
+		}
 		instr.acc_base = { mod, id };
 		instr.acc_chain = disassemble_subvar_follows(instr, raw_var_access);
 		break;

@@ -193,12 +193,12 @@ void get_variable(x86::Compiler& cc, const Instruction& instr)
 
 	for (unsigned int name : instr.acc_chain)
 	{
-		auto call = cc.call((uint64_t)GetVariable, FuncSignatureT<int, int, int, int>());
+		auto call = cc.call((uint64_t)GetVariable, FuncSignatureT<asmjit::Type::I64, int, int, int>());
 		call->setArg(0, type);
 		call->setArg(1, value);
 		call->setArg(2, Imm(name));
 		call->setRet(0, type);
-		cc.mov(value, x86::edx);
+		call->setRet(1, value);
 	}
 	
 	stack.push_back(type);
@@ -461,6 +461,38 @@ void push_value(x86::Compiler& cc, DataType type, unsigned int value, unsigned i
 	stack.push_back(Imm(value));
 }
 
+void set_subvar(x86::Compiler& cc, Instruction& instr)
+{
+	if (instr.acc_chain.size() == 1)
+	{
+		if (instr.acc_base.first == AccessModifier::LOCAL)
+		{
+			get_local(cc, instr.acc_base.second);
+		}
+		else if (instr.acc_base.first == AccessModifier::ARG)
+		{
+			get_arg(cc, instr.acc_base.second);
+		}
+		else if (instr.acc_base.first == AccessModifier::SRC)
+		{
+			get_src(cc);
+		}
+		else
+		{
+			Core::Alert("FUCK!");
+		}
+		x86::Gp vtype = cc.newInt32();
+		x86::Gp vvalue = cc.newInt32();
+		auto call = cc.call((uint64_t)SetVariable, FuncSignatureT<void, int, int, int, int, int>());
+		call->setArg(0, stack.at(stack.size() - 2).as<x86::Gp>());
+		call->setArg(1, stack.at(stack.size() - 1).as<x86::Gp>());
+		call->setArg(2, Imm(instr.acc_chain.at(0)));
+		call->setArg(3, stack.at(stack.size() - 4).as<x86::Gp>());
+		call->setArg(4, stack.at(stack.size() - 3).as<x86::Gp>());
+		stack.erase(stack.end() - 4, stack.end());
+	}
+}
+
 void compile_block(x86::Compiler& cc, Block& block, std::map<unsigned int, Block> blocks)
 {
 	cc.bind(block.label);
@@ -489,6 +521,11 @@ void compile_block(x86::Compiler& cc, Block& block, std::map<unsigned int, Block
 			{
 				jit_out << "Assembling set local" << std::endl;
 				set_local(cc, instr.bytes()[2]);
+			}
+			else if (instr.bytes()[1] == AccessModifier::SUBVAR)
+			{
+				jit_out << "Assembling set subvar" << std::endl;
+				set_subvar(cc, instr);
 			}
 			break;
 		case Bytecode::GETVAR:
@@ -645,6 +682,6 @@ extern "C" EXPORT const char* jit_initialize(int n_args, const char** args)
 	{
 		return Core::FAIL;
 	}
-	jit_compile({&Core::get_proc("/proc/addthesetwo"), &Core::get_proc("/proc/jit"), &Core::get_proc("/obj/proc/jit")});
+	jit_compile({&Core::get_proc("/proc/addthesetwo"), &Core::get_proc("/proc/jit"), &Core::get_proc("/obj/proc/procforjit")});
 	return Core::SUCCESS;
 }
