@@ -9,6 +9,20 @@
 
 using namespace asmjit;
 
+// Shouldn't be globals!!!
+static std::map<unsigned int, FuncNode*> proc_funcs;
+static std::set<std::string> string_set;
+
+static uint32_t EncodeFloat(float f)
+{
+	return *reinterpret_cast<uint32_t*>(&f);
+}
+
+static float DecodeFloat(uint32_t i)
+{
+	return *reinterpret_cast<float*>(&i);
+}
+
 std::map<unsigned int, Block> split_into_blocks(Disassembly& dis, x86::Compiler& cc)
 {
 	std::map<unsigned int, Block> blocks;
@@ -131,13 +145,7 @@ void get_arg(x86::Compiler& cc, unsigned int id)
 void push_integer(x86::Compiler& cc, float f)
 {
 	stack.push_back(Imm(DataType::NUMBER));
-	union
-	{
-		float f;
-		int i;
-	} heck;
-	heck.f = f;
-	stack.push_back(Imm(heck.i));
+	stack.push_back(Imm(EncodeFloat(f)));
 }
 
 bool compare_values(trvh left, trvh right)
@@ -194,9 +202,12 @@ void test_equal(x86::Compiler& cc)
 
 void ret(x86::Compiler& cc)
 {
-	cc.mov(x86::edx, stack.at(stack.size() - 1).as<Imm>());
-	cc.mov(x86::eax, stack.at(stack.size() - 2).as<Imm>());
-	cc.ret();
+	x86::Gp ret_type = cc.newInt32();
+	x86::Gp ret_value = cc.newInt32();
+
+	cc.mov(ret_type, stack.at(stack.size() - 2).as<Imm>());
+	cc.mov(ret_value, stack.at(stack.size() - 1).as<Imm>());
+	cc.ret(ret_type, ret_value);
 	stack.erase(stack.end() - 2, stack.end());
 }
 
@@ -210,9 +221,11 @@ void jump_zero(x86::Compiler& cc, Block& destination)
 
 void end(x86::Compiler& cc)
 {
-	cc.mov(x86::edx, Imm(0));
-	cc.mov(x86::eax, Imm(0));
-	cc.ret();
+	x86::Gp ret_type = cc.newInt32();
+	x86::Gp ret_value = cc.newInt32();
+	cc.mov(ret_type, Imm(0));
+	cc.mov(ret_value, Imm(0));
+	cc.ret(ret_type, ret_value);
 }
 
 void jump(x86::Compiler& cc, Block& dest)
@@ -226,13 +239,13 @@ void math_op(x86::Compiler& cc, Bytecode op)
 	Operand left_v = stack.at(stack.size() - 3);
 	Operand right_t = stack.at(stack.size() - 2);
 	Operand right_v = stack.at(stack.size() - 1);
-	stack.erase(stack.end() - 4);
+	stack.erase(stack.end() - 4, stack.end());
 	x86::Xmm fleft = cc.newXmm("left_op");
 	x86::Xmm fright = cc.newXmm("right_op");
 	if (left_v.isImm())
 	{
-		x86::Mem l = cc.newInt32Const(ConstPool::kScopeLocal, left_v.as<Imm>().value());
-		cc.movd(fleft, l);
+		x86::Mem l = cc.newFloatConst(ConstPool::kScopeLocal, DecodeFloat(left_v.as<Imm>().value()));
+		cc.movss(fleft, l);
 	}
 	else
 	{
@@ -241,8 +254,8 @@ void math_op(x86::Compiler& cc, Bytecode op)
 
 	if (right_v.isImm())
 	{
-		x86::Mem r = cc.newInt32Const(ConstPool::kScopeLocal, right_v.as<Imm>().value());
-		cc.movd(fright, r);
+		x86::Mem r = cc.newFloatConst(ConstPool::kScopeLocal, DecodeFloat(right_v.as<Imm>().value()));
+		cc.movss(fright, r);
 	}
 	else
 	{
@@ -276,8 +289,50 @@ trvh call_global_wrapper(unsigned int proc_id, trvh* args, unsigned int num_args
 	return Core::get_proc(proc_id).call(std::vector<Value>(args, args + num_args));
 }
 
+void call_compiled_global(x86::Compiler& cc, unsigned int arg_count, FuncNode* func)
+{
+	x86::Mem args = cc.newStack(sizeof(trvh) * arg_count, 4);
+	x86::Mem args_i = args.clone();
+	args.setSize(4);
+	args_i.setSize(4);
+	for (int i = 0; i < arg_count; i++)
+	{
+		args_i.setOffset(sizeof(trvh) * i + offsetof(trvh, type));
+		Operand type = stack.at(stack.size() - arg_count * 2 + i * 2);
+		cc.mov(args_i, type.as<Imm>());
+		args_i.setOffset(sizeof(trvh) * i + offsetof(trvh, value));
+		Operand value = stack.at(stack.size() - arg_count * 2 + i * 2 + 1);
+		cc.mov(args_i, value.as<Imm>());
+	}
+
+	x86::Gp argsPtr = cc.newIntPtr();
+	cc.lea(argsPtr, args);
+	stack.erase(stack.end() - arg_count * 2, stack.end());
+
+	x86::Gp ret_type = cc.newInt32();
+	x86::Gp ret_value = cc.newInt32();
+
+	InvokeNode* invocation;
+	cc.invoke(&invocation, func->label(), FuncSignatureT<asmjit::Type::I64, int, int*, int>(CallConv::kIdCDecl));
+	invocation->setArg(0, Imm(arg_count));
+	invocation->setArg(1, argsPtr);			// We only we use this one atm
+	invocation->setArg(2, Imm(0));
+	invocation->setRet(0, ret_type);
+	invocation->setRet(1, ret_value);
+
+	stack.push_back(ret_type);
+	stack.push_back(ret_value);
+}
+
 void call_global(x86::Compiler& cc, unsigned int arg_count, unsigned int proc_id)
 {
+	auto proc_func = proc_funcs.find(proc_id);
+	if(proc_func != proc_funcs.end())
+	{
+		call_compiled_global(cc, arg_count, proc_func->second);
+		return;
+	}
+
 	x86::Mem args = cc.newStack(sizeof(trvh) * arg_count, 4);
 	x86::Mem args_i = args.clone();
 	args.setSize(4);
@@ -293,15 +348,16 @@ void call_global(x86::Compiler& cc, unsigned int arg_count, unsigned int proc_id
 	}
 	x86::Gp addrholder = cc.newInt32();
 	cc.lea(addrholder, args);
-	stack.erase(stack.end() - arg_count, stack.end());
+	stack.erase(stack.end() - arg_count * 2, stack.end());
 	x86::Gp ret_type = cc.newInt32();
 	x86::Gp ret_value = cc.newInt32();
-	auto call = cc.call((uint64_t)call_global_wrapper, FuncSignatureT<int, int, int*, unsigned int>());
+	auto call = cc.call((uint64_t)call_global_wrapper, FuncSignatureT<asmjit::Type::I64, int, int*, int>());
 	call->setArg(0, Imm(proc_id));
 	call->setArg(1, addrholder);
 	call->setArg(2, Imm(arg_count));
 	call->setRet(0, ret_type);
-	cc.mov(ret_value, x86::edx);
+	call->setRet(1, ret_value);
+
 	stack.push_back(ret_type);
 	stack.push_back(ret_value);
 }
@@ -312,6 +368,10 @@ void compile_block(x86::Compiler& cc, Block& block, std::map<unsigned int, Block
 	for (int i=0; i<block.contents.size(); i++)
 	{
 		Instruction& instr = block.contents[i];
+
+		auto it = string_set.insert(instr.opcode().tostring());
+		cc.setInlineComment(it.first->c_str());
+
 		switch (instr.bytes()[0])
 		{
 		case Bytecode::PUSHI:
@@ -383,7 +443,7 @@ void compile_block(x86::Compiler& cc, Block& block, std::map<unsigned int, Block
 }
 
 JitRuntime rt;
-void jit_compile(Core::Proc& p)
+void jit_compile(std::vector<Core::Proc*> procs)
 {
 	FILE* fuck = fopen("asm.txt", "w");
 	FileLogger logger(fuck);
@@ -393,21 +453,40 @@ void jit_compile(Core::Proc& p)
 	code.setLogger(&logger);
 	code.setErrorHandler(&eh);
 	x86::Compiler cc(&code);
-	cc.addFunc(FuncSignatureT<int, int, int*, int, int>(CallConv::kIdHostCDecl));
-
-	Disassembly dis = p.disassemble();
 	std::ofstream asd("raw.txt");
-	for (Instruction& i : dis)
+
+	for (auto& proc : procs)
 	{
-		asd << i.bytes_str() << std::endl;
+		FuncNode* func = cc.newFunc(FuncSignatureT<asmjit::Type::I64, int, int*, int>(CallConv::kIdCDecl));
+		std::string comment = "BEGIN PROC: " + proc->name;
+		auto it = string_set.insert(comment);
+		func->setInlineComment(it.first->c_str());
+
+		proc_funcs[proc->id] = func;
 	}
-	auto blocks = split_into_blocks(dis, cc);
-	set_arg_ptr(cc);
-	for (auto& [k, v] : blocks)
+
+	// Emit funcs
+	for (auto& proc : procs)
 	{
-		compile_block(cc, v, blocks);
+		cc.addFunc(proc_funcs[proc->id]);
+
+		Disassembly dis = proc->disassemble();
+		
+		asd << "BEGIN " << proc->name << '\n';
+		for (Instruction& i : dis)
+		{
+			asd << i.bytes_str() << std::endl;
+		}
+		asd << "END " << proc->name << '\n';
+
+		auto blocks = split_into_blocks(dis, cc);
+		set_arg_ptr(cc);
+		for (auto& [k, v] : blocks)
+		{
+			compile_block(cc, v, blocks);
+		}
+		cc.endFunc();
 	}
-	cc.endFunc();
 
 	jit_out << "Finalizing\n";
 	int err = cc.finalize();
@@ -417,14 +496,31 @@ void jit_compile(Core::Proc& p)
 		return;
 	}
 
-	ProcHook hook;
-	err = rt.add(&hook, &code);
+	char* code_base = nullptr;
+	err = rt.add(&code_base, &code);
 	if (err)
 	{
 		jit_out << "Failed to add to runtime: " << err << std::endl;
 		return;
 	}
-	jit_out << "Compilation successful" << std::endl;
-	jit_out << hook << std::endl;
-	p.hook(hook);
+
+	// Hook procs
+	for (auto& proc : procs)
+	{
+		FuncNode* func = proc_funcs[proc->id];
+		ProcHook func_base = reinterpret_cast<ProcHook>(code_base + code.labelOffset(func->label()));
+		proc->hook(func_base);
+	}
+
+	jit_out << "Compilation successful" << std::endl;	
+}
+
+extern "C" EXPORT const char* jit_initialize(int n_args, const char** args)
+{
+	if (!Core::initialize())
+	{
+		return Core::FAIL;
+	}
+	jit_compile({&Core::get_proc("/proc/test1"), &Core::get_proc("/proc/test2"), &Core::get_proc("/proc/test3")});
+	return Core::SUCCESS;
 }

@@ -121,7 +121,7 @@ trvh test_invoke(unsigned int argcount, Value* args, Value src)
 
 void init_testing()
 {
-	jit_compile(Core::get_proc("/proc/jit"));
+	// jit_compile(Core::get_proc("/proc/jit"));
 	//Value a(5.0f);
 	//Value b = a + 5.0f;
 	//b += 1.0f;

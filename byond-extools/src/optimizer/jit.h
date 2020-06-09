@@ -13,6 +13,7 @@
 #include "../third_party/asmjit/asmjit.h"
 #endif
 
+#include <vector>
 
 class Block
 {
@@ -25,4 +26,4 @@ public:
 };
 
 std::map<unsigned int, Block> split_into_blocks(Disassembly& dis);
-void jit_compile(Core::Proc& p);
+void jit_compile(std::vector<Core::Proc*> procs);
