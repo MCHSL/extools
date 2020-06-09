@@ -42,3 +42,8 @@ DecRefCountPtr DecRefCount;
 IncRefCountPtr IncRefCount;
 StdDefDMPtr StdDefDM;
 DelDatumPtr DelDatum;
+GetRBTreeMemoryUsagePtr GetRBTreeMemoryUsage;
+InitializeListFromContextPtr InitializeListFromContext;
+RemoveFromContainerPtr RemoveFromContainer;
+DestroyListPtr DestroyList;
+DestroyDatumPtr DestroyDatum;

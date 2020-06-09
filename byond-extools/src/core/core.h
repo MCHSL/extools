@@ -31,8 +31,8 @@ extern int ByondBuild;
 
 namespace Core
 {
-	static const char* SUCCESS = "SUCCESS";
-	static const char* FAIL = "FAIL";
+	const char* const SUCCESS = "SUCCESS";
+	const char* const FAIL = "FAIL";
 
 	//not exactly a byond structure so it's here for now
 
@@ -96,6 +96,10 @@ namespace Core
 	extern unsigned int* name_table_id_ptr;
 	extern unsigned int* name_table;
 	extern Value* global_var_table;
+	extern TableHolder2* obj_table;
+	extern TableHolder2* datum_table;
+	extern TableHolder2* list_table; //list list honk
+	extern TableHolder2* mob_table;
 
 	extern RawDatum*** datum_pointer_table;
 	extern unsigned int* datum_pointer_table_length;

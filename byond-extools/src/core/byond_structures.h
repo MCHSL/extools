@@ -139,11 +139,13 @@ struct Value
 struct ManagedValue : Value
 {
 	//This class is used to prevent objects being garbage collected before you are done with them
+	ManagedValue() = delete;
 	ManagedValue(Value val);
 	ManagedValue(DataType type, int value);
 	ManagedValue(trvh trvh);
 	ManagedValue(std::string s);
 	ManagedValue(const ManagedValue& other);
+	ManagedValue(ManagedValue&& other) noexcept;
 	~ManagedValue();
 };
 
@@ -216,7 +218,7 @@ struct ContainerProxy
 
 struct Container //All kinds of lists, including magical snowflake lists like contents
 {
-
+	Container();
 	Container(DataType type, int id);
 	Container(Value val);
 	~Container();
@@ -432,3 +434,80 @@ struct TableHolderThingy
 	unsigned int* elements; //?????
 };
 
+struct TableHolder2
+{
+	void** elements;
+	unsigned int length;
+};
+
+struct VarListEntry;
+
+struct UnknownSimpleLinkedListEntry
+{
+	unsigned int value;
+	UnknownSimpleLinkedListEntry* next;
+};
+
+struct UnknownComplexLinkedListEntry
+{
+	char unknown[0x34];
+	UnknownComplexLinkedListEntry* next;
+	char unknown2[8];
+};
+
+struct TableHolder3
+{
+	void* elements;
+	std::uint32_t size;
+	std::uint32_t capacity;
+	TableHolder3* next; //probably?
+	char unknown[8];
+};
+
+struct Obj
+{
+	trvh loc;
+	char unknown[28];
+	UnknownComplexLinkedListEntry* some_other_linked_list;
+	VarListEntry* modified_vars;
+	std::uint16_t modified_vars_count;
+	std::uint16_t modified_vars_capacity;
+	char unknown2[12];
+	UnknownSimpleLinkedListEntry* some_linked_list;
+	TableHolder3* vis_contents;
+	TableHolder3* vis_locs;
+	char unknown3[84];
+};
+
+struct Datum
+{
+	std::uint32_t type;
+	VarListEntry* modified_vars;
+	std::uint16_t modifier_vars_count;
+	std::uint16_t modified_vars_capacity;
+	std::uint32_t flags;
+	std::uint32_t refcount;
+};
+
+struct Mob
+{
+	char unknown1[0x24];
+	UnknownComplexLinkedListEntry* unknown_list1;
+	VarListEntry* modified_vars;
+	std::uint16_t modified_vars_count;
+	std::uint16_t modified_vars_capacity;
+	char unknown2[0xA];
+	UnknownSimpleLinkedListEntry* unknown_list2;
+	TableHolder3* some_holder1;
+	TableHolder3* some_holder2;
+	char unknown3[0x60];
+	UnknownSimpleLinkedListEntry* unknown_list3;
+	char unknown4[0x10];
+};
+
+struct VarListEntry
+{
+	std::uint32_t unknown;
+	std::uint32_t name_id;
+	trvh value;
+};

@@ -169,3 +169,7 @@ var/next_promise_id = 0
 	
 /proc/disable_profiling()
 	return call(EXTOOLS, "disable_profiling")() == EXTOOLS_SUCCESS
+
+// Will dump the server's in-depth memory profile into the file specified.
+/proc/dump_memory_profile(file_name)
+	return call(EXTOOLS, "dump_memory_usage")(file_name) == EXTOOLS_SUCCESS

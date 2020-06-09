@@ -14,7 +14,7 @@ struct DungBuilder;
 #define __thiscall __attribute__((thiscall))
 #endif
 
-typedef trvh(REGPARM3 *CallGlobalProcPtr)(char usr_type, int usr_value, int proc_type, unsigned int proc_id, int const_0, DataType src_type, int src_value, Value* argList, unsigned int argListLen, int const_0_2, int const_0_3);
+typedef trvh(REGPARM3 *CallGlobalProcPtr)(char usr_type, int usr_value, int proc_type, unsigned int proc_id, int const_0, DataType src_type, int src_value, Value* argList, unsigned char argListLen, int const_0_2, int const_0_3);
 typedef Value(*Text2PathPtr)(unsigned int text);
 #ifdef _WIN32
 typedef unsigned int(*GetStringTableIndexPtr)(const char* string, int handleEscapes, int duplicateString);
@@ -38,11 +38,11 @@ typedef ProcArrayEntry* (*GetProcArrayEntryPtr)(unsigned int index);
 #ifdef _WIN32
 typedef RawList* (*GetListPointerByIdPtr)(unsigned int index);
 typedef void(*AppendToContainerPtr)(unsigned char containerType, int containerValue, unsigned char valueType, int newValue);
-typedef void(*RemoveFromContainerPtr)(unsigned char containerType, int containerValue, unsigned char valueType, int newValue);
+typedef bool(*RemoveFromContainerPtr)(unsigned char containerType, int containerValue, unsigned char valueType, int newValue);
 #else
 typedef RawList* (REGPARM3 *GetListPointerByIdPtr)(unsigned int index);
 typedef void(__attribute__((regparm(2))) *AppendToContainerPtr)(unsigned char containerType, int containerValue, unsigned char valueType, int newValue);
-typedef void(__attribute__((regparm(2))) *RemoveFromContainerPtr)(unsigned char containerType, int containerValue, unsigned char valueType, int newValue);
+typedef bool(__attribute__((regparm(2))) *RemoveFromContainerPtr)(unsigned char containerType, int containerValue, unsigned char valueType, int newValue);
 #endif
 typedef String* (*GetStringTableEntryPtr)(int stringId);
 typedef unsigned int(*Path2TextPtr)(unsigned int pathType, unsigned int pathValue);
@@ -93,6 +93,11 @@ typedef void(*IncRefCountPtr)(int type, int value);
 typedef void(*DecRefCountPtr)(int type, int value);
 typedef void(*DelDatumPtr)(unsigned int id);
 typedef const char* (__thiscall *StdDefDMPtr)(DungBuilder* this_);
+//typedef String* (*GetMemoryStatsPtr)(String* out);
+typedef unsigned int(*GetRBTreeMemoryUsagePtr)(AssociativeListEntry* root);
+typedef trvh(*InitializeListFromContextPtr)(unsigned int list_id);
+typedef void(*DestroyListPtr)(unsigned int list_id);
+typedef void(*DestroyDatumPtr)(int unk1, int unk2, trvh datum);
 
 extern CrashProcPtr CrashProc;
 extern StartTimingPtr StartTiming;
@@ -136,6 +141,12 @@ extern IncRefCountPtr IncRefCount;
 extern DecRefCountPtr DecRefCount;
 extern StdDefDMPtr StdDefDM;
 extern DelDatumPtr DelDatum;
+//extern GetMemoryStatsPtr GetMemoryStats;
+extern GetRBTreeMemoryUsagePtr GetRBTreeMemoryUsage;
+extern InitializeListFromContextPtr InitializeListFromContext;
+extern RemoveFromContainerPtr RemoveFromContainer;
+extern DestroyListPtr DestroyList;
+extern DestroyDatumPtr DestroyDatum;
 
 
 inline void *SetAssocElement(unsigned int listType, unsigned int listId, unsigned int keyType, unsigned int keyValue, unsigned int valueType, unsigned int valueValue) {
@@ -144,4 +155,3 @@ inline void *SetAssocElement(unsigned int listType, unsigned int listId, unsigne
 	else
 		SetAssocElement1(listType,listId,keyType,keyValue,valueType,valueValue);
 }
-

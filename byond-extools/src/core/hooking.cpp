@@ -21,7 +21,7 @@ std::unordered_map<void*, std::unique_ptr<subhook::Hook>> hooks;
 std::vector<QueuedCall> queued_calls;
 bool calling_queue = false;
 
-trvh REGPARM3 hCallGlobalProc(char usr_type, int usr_value, int proc_type, unsigned int proc_id, int const_0, DataType src_type, int src_value, Value *argList, unsigned int argListLen, int const_0_2, int const_0_3)
+trvh REGPARM3 hCallGlobalProc(char usr_type, int usr_value, int proc_type, unsigned int proc_id, int const_0, DataType src_type, int src_value, Value *argList, unsigned char argListLen, int const_0_2, int const_0_3)
 {
 	//if(proc_id < Core::codecov_executed_procs.size())
 	//	Core::codecov_executed_procs[proc_id] = true;
@@ -47,6 +47,10 @@ trvh REGPARM3 hCallGlobalProc(char usr_type, int usr_value, int proc_type, unsig
 	if (proc_hooks.find((unsigned short)proc_id) != proc_hooks.end())
 	{
 		trvh result = proc_hooks[proc_id](argListLen, argList, src_type ? Value(src_type, src_value) : static_cast<Value>(Value::Null()));
+		for (int i = 0; i < argListLen; i++)
+		{
+			DecRefCount(argList[i].type, argList[i].value);
+		}
 		return result;
 	}
 	trvh result = oCallGlobalProc(usr_type, usr_value, proc_type, proc_id, const_0, src_type, src_value, argList, argListLen, const_0_2, const_0_3);

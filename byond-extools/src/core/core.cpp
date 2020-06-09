@@ -30,6 +30,11 @@ unsigned int* Core::name_table = nullptr;
 Value* Core::global_var_table = nullptr;
 std::unordered_map<std::string, Value*> Core::global_direct_cache;
 
+TableHolder2* Core::obj_table = nullptr;
+TableHolder2* Core::datum_table = nullptr;
+TableHolder2* Core::list_table = nullptr;
+TableHolder2* Core::mob_table = nullptr;
+
 Core::ManagedString::ManagedString(unsigned int id) : string_id(id)
 {
 	string_entry = GetStringTableEntry(string_id);
