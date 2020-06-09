@@ -9,6 +9,16 @@
 
 using namespace asmjit;
 
+static uint32_t EncodeFloat(float f)
+{
+	return *reinterpret_cast<uint32_t*>(&f);
+}
+
+static float DecodeFloat(uint32_t i)
+{
+	return *reinterpret_cast<float*>(&i);
+}
+
 std::map<unsigned int, Block> split_into_blocks(Disassembly& dis, x86::Compiler& cc)
 {
 	std::map<unsigned int, Block> blocks;
@@ -131,13 +141,7 @@ void get_arg(x86::Compiler& cc, unsigned int id)
 void push_integer(x86::Compiler& cc, float f)
 {
 	stack.push_back(Imm(DataType::NUMBER));
-	union
-	{
-		float f;
-		int i;
-	} heck;
-	heck.f = f;
-	stack.push_back(Imm(heck.i));
+	stack.push_back(Imm(EncodeFloat(f)));
 }
 
 bool compare_values(trvh left, trvh right)
@@ -231,8 +235,8 @@ void math_op(x86::Compiler& cc, Bytecode op)
 	x86::Xmm fright = cc.newXmm("right_op");
 	if (left_v.isImm())
 	{
-		x86::Mem l = cc.newInt32Const(ConstPool::kScopeLocal, left_v.as<Imm>().value());
-		cc.movd(fleft, l);
+		x86::Mem l = cc.newFloatConst(ConstPool::kScopeLocal, DecodeFloat(left_v.as<Imm>().value()));
+		cc.movss(fleft, l);
 	}
 	else
 	{
@@ -241,8 +245,8 @@ void math_op(x86::Compiler& cc, Bytecode op)
 
 	if (right_v.isImm())
 	{
-		x86::Mem r = cc.newInt32Const(ConstPool::kScopeLocal, right_v.as<Imm>().value());
-		cc.movd(fright, r);
+		x86::Mem r = cc.newFloatConst(ConstPool::kScopeLocal, DecodeFloat(right_v.as<Imm>().value()));
+		cc.movss(fright, r);
 	}
 	else
 	{
