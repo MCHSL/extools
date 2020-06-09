@@ -226,7 +226,7 @@ void math_op(x86::Compiler& cc, Bytecode op)
 	Operand left_v = stack.at(stack.size() - 3);
 	Operand right_t = stack.at(stack.size() - 2);
 	Operand right_v = stack.at(stack.size() - 1);
-	stack.erase(stack.end() - 4);
+	stack.erase(stack.end() - 4, stack.end());
 	x86::Xmm fleft = cc.newXmm("left_op");
 	x86::Xmm fright = cc.newXmm("right_op");
 	if (left_v.isImm())
@@ -427,4 +427,14 @@ void jit_compile(Core::Proc& p)
 	jit_out << "Compilation successful" << std::endl;
 	jit_out << hook << std::endl;
 	p.hook(hook);
+}
+
+extern "C" EXPORT const char* jit_initialize(int n_args, const char** args)
+{
+	if (!Core::initialize())
+	{
+		return Core::FAIL;
+	}
+	jit_compile(Core::get_proc("/proc/test"));
+	return Core::SUCCESS;
 }
