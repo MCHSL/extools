@@ -317,6 +317,15 @@ ManagedValue::ManagedValue(ManagedValue&& other) noexcept
 	IncRefCount(type, value);
 }
 
+ManagedValue& ManagedValue::operator =(ManagedValue& other)
+{
+	DecRefCount(type, value);
+	type = other.type;
+	value = other.value;
+	IncRefCount(type, value);
+	return *this;
+}
+
 ManagedValue::~ManagedValue()
 {
 	DecRefCount(type, value);
