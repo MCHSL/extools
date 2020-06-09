@@ -21,7 +21,7 @@ public:
 	}
 
 	Bytecode opcode() const { return opcode_; }
-	std::string mnemonic() const { return mnemonic_; }
+	const std::string& mnemonic() const { return mnemonic_; }
 	std::string info() const { return info_; }
 	void set_info(std::string info) { info_ = info; }
 	void add_info(std::string info) { info_ += info; }
