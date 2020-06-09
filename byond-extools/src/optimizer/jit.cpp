@@ -273,7 +273,8 @@ void math_op(x86::Compiler& cc, Bytecode op)
 
 trvh call_global_wrapper(unsigned int proc_id, trvh* args, unsigned int num_args)
 {
-	return Core::get_proc(proc_id).call(std::vector<Value>(args, args + num_args));
+	return CallGlobalProc(0, 0, 2, proc_id, 0, DataType::NULL_D, 0, (Value*)args, num_args, 0, 0);
+	//return Core::get_proc(proc_id).call(std::vector<Value>(args, args + num_args));
 }
 
 void call_global(x86::Compiler& cc, unsigned int arg_count, unsigned int proc_id)
@@ -296,10 +297,18 @@ void call_global(x86::Compiler& cc, unsigned int arg_count, unsigned int proc_id
 	stack.erase(stack.end() - arg_count, stack.end());
 	x86::Gp ret_type = cc.newInt32();
 	x86::Gp ret_value = cc.newInt32();
-	auto call = cc.call((uint64_t)call_global_wrapper, FuncSignatureT<int, int, int*, unsigned int>());
-	call->setArg(0, Imm(proc_id));
-	call->setArg(1, addrholder);
-	call->setArg(2, Imm(arg_count));
+	auto call = cc.call((uint64_t)CallGlobalProc, FuncSignatureT<int, int, int, int, int, int, int, int, int*, int, int, int>());
+	call->setArg(0, Imm(0));
+	call->setArg(1, Imm(0));
+	call->setArg(2, Imm(2));
+	call->setArg(3, Imm(proc_id));
+	call->setArg(4, Imm(0));
+	call->setArg(5, Imm(0));
+	call->setArg(6, Imm(0));
+	call->setArg(7, addrholder);
+	call->setArg(8, Imm(arg_count));
+	call->setArg(9, Imm(0));
+	call->setArg(10, Imm(0));
 	call->setRet(0, ret_type);
 	cc.mov(ret_value, x86::edx);
 	stack.push_back(ret_type);
