@@ -1426,7 +1426,7 @@ Error RAPass::runLocalAllocator() noexcept {
     // Get the next block.
     for (;;) {
       if (++blockId >= blockCount())
-        break; //blockId = 0;
+        blockId = 0;
 
       block = _blocks[blockId];
       if (!block->isReachable() || block->isAllocated() || !block->hasEntryAssignment())

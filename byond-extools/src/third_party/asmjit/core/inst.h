@@ -379,7 +379,6 @@ struct OpRWInfo {
   //! Sets physical register id, which would be fixed for this operand.
   inline void setPhysId(uint32_t physId) noexcept { _physId = uint8_t(physId); }
 
-
   //! \}
 
   //! \name Reg/Mem Information
