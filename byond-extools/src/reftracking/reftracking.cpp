@@ -11,7 +11,7 @@
 SetVariablePtr oSetVariable;
 AppendToContainerPtr oAppendToContainer;
 RemoveFromContainerPtr oRemoveFromContainer;
-SetAssocElementPtr oSetAssocElement;
+SetAssocElement1Ptr oSetAssocElement;
 InitializeListFromContextPtr oInitializeListFromContext;
 DestroyListPtr oDestroyList;
 DestroyDatumPtr oDestroyDatum;
@@ -221,7 +221,7 @@ bool RefTracking::initialize()
 	oAppendToContainer = Core::install_hook(AppendToContainer, (AppendToContainerPtr)hAppendToContainer);
 	oInitializeListFromContext = Core::install_hook(InitializeListFromContext, hInitializeListFromContext);
 	oRemoveFromContainer = Core::install_hook(RemoveFromContainer, (RemoveFromContainerPtr)hRemoveFromContainer);
-	oSetAssocElement = Core::install_hook(SetAssocElement, (SetAssocElementPtr)hSetAssocElement);
+	oSetAssocElement = Core::install_hook(SetAssocElement1, (SetAssocElement1Ptr)hSetAssocElement);
 	oDestroyList = Core::install_hook(DestroyList, hDestroyList);
 	oDestroyDatum = Core::install_hook(DestroyDatum, hDestroyDatum);
 

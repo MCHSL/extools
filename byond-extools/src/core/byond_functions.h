@@ -149,7 +149,7 @@ extern DestroyListPtr DestroyList;
 extern DestroyDatumPtr DestroyDatum;
 
 
-inline void *SetAssocElement(unsigned int listType, unsigned int listId, unsigned int keyType, unsigned int keyValue, unsigned int valueType, unsigned int valueValue) {
+inline void SetAssocElement(unsigned int listType, unsigned int listId, unsigned int keyType, unsigned int keyValue, unsigned int valueType, unsigned int valueValue) {
 	if(SetAssocElement2)
 		SetAssocElement2(listType,listId,keyType,keyValue,valueType,valueValue);
 	else
