@@ -98,7 +98,7 @@ public:
 	class Instr_##op : public Instruction																\
 {																										\
 	using Instruction::Instruction;																		\
-	void Disassemble(Context* context, Disassembler* dism) override { dism->disassemble_var(*this); }	\
+	void Disassemble(Context* context, Disassembler* dism) override { dism->disassemble_var(*this, true); }	\
 };
 
 #define ADD_INSTR_JUMP(op, argcount)																		\

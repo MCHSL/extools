@@ -21,8 +21,8 @@ public:
 
 	Context* context() const { return context_.get(); }
 
-	std::vector<unsigned int> disassemble_subvar_follows(Instruction& instr);
-	bool disassemble_var(Instruction& instr, bool recursive=false);
+	std::vector<unsigned int> disassemble_subvar_follows(Instruction& instr, bool raw_var_access);
+	bool disassemble_var(Instruction& instr, bool raw_var_access=false);
 	bool disassemble_var_alt(Instruction& instr);
 	void add_call_args(Instruction& instr, unsigned int num_args);
 

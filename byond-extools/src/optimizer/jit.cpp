@@ -137,6 +137,22 @@ void set_arg_ptr(x86::Compiler& cc)
 	cc.setArg(1, arglist_ptr);
 }
 
+x86::Gp src_type;
+x86::Gp src_value;
+void set_src(x86::Compiler& cc)
+{
+	src_type = cc.newInt32("src_type");
+	src_value = cc.newInt32("src_value");
+	cc.setArg(2, src_type);
+	cc.setArg(3, src_value);
+}
+
+void get_src(x86::Compiler& cc)
+{
+	stack.push_back(src_type);
+	stack.push_back(src_value);
+}
+
 void get_arg(x86::Compiler& cc, unsigned int id)
 {
 	get_value(cc, x86::ptr(arglist_ptr), id);
@@ -163,6 +179,9 @@ void get_variable(x86::Compiler& cc, const Instruction& instr)
 		break;
 	case AccessModifier::LOCAL:
 		get_local(cc, base.second);
+		break;
+	case AccessModifier::SRC:
+		get_src(cc);
 		break;
 	default:
 		Core::Alert("Unknown access modifier in jit get_variable");
@@ -284,12 +303,6 @@ void math_op(x86::Compiler& cc, Bytecode op)
 	stack.push_back(res_value);
 }
 
-trvh call_global_wrapper(unsigned int proc_id, trvh* args, unsigned int num_args)
-{
-	return CallGlobalProc(0, 0, 2, proc_id, 0, DataType::NULL_D, 0, (Value*)args, num_args, 0, 0);
-	//return Core::get_proc(proc_id).call(std::vector<Value>(args, args + num_args));
-}
-
 void call_compiled_global(x86::Compiler& cc, unsigned int arg_count, FuncNode* func)
 {
 	x86::Mem args = cc.newStack(sizeof(trvh) * arg_count, 4);
@@ -371,6 +384,83 @@ void call_global(x86::Compiler& cc, unsigned int arg_count, unsigned int proc_id
 	stack.push_back(ret_value);
 }
 
+void call_proc(x86::Compiler& cc, unsigned int proc_id, unsigned int arg_count)
+{
+	x86::Gp src_t = stack.at(stack.size() - 2).as<x86::Gp>();
+	x86::Gp src_v = stack.at(stack.size() - 1).as<x86::Gp>();
+	stack.erase(stack.end() - 2, stack.end());
+	x86::Mem args = cc.newStack(sizeof(trvh) * arg_count, 4); //TODO: EXTRACT LOADING ARGUMENTS INTO A FUNCTION!
+	x86::Mem args_i = args.clone();
+	args.setSize(4);
+	args_i.setSize(4);
+	for (int i = 0; i < arg_count; i++)
+	{
+		args_i.setOffset(sizeof(trvh) * i + offsetof(trvh, type));
+		Operand type = stack.at(stack.size() - arg_count * 2 + i * 2);
+		cc.mov(args_i, type.as<Imm>());
+		args_i.setOffset(sizeof(trvh) * i + offsetof(trvh, value));
+		Operand value = stack.at(stack.size() - arg_count * 2 + i * 2 + 1);
+		cc.mov(args_i, value.as<Imm>());
+	}
+	x86::Gp arg_ptr = cc.newInt32();
+	cc.lea(arg_ptr, args);
+	stack.erase(stack.end() - arg_count * 2, stack.end());
+	x86::Gp ret_type = cc.newInt32();
+	x86::Gp ret_value = cc.newInt32();
+
+	auto call = cc.call((uint64_t)CallProcByName, FuncSignatureT<asmjit::Type::I64, int, int, int, int, int, int, int*, int, int, int>());
+	call->setArg(0, Imm(0));
+	call->setArg(1, Imm(0));
+	call->setArg(2, Imm(2));
+	call->setArg(3, Imm(proc_id));
+	call->setArg(4, src_t);
+	call->setArg(5, src_v);
+	call->setArg(6, arg_ptr);
+	call->setArg(7, Imm(arg_count));
+	call->setArg(8, Imm(0));
+	call->setArg(9, Imm(0));
+	call->setRet(0, ret_type);
+	call->setRet(1, ret_value);
+
+	stack.push_back(ret_type);
+	stack.push_back(ret_value);
+}
+
+void call(x86::Compiler& cc, Instruction& instr)
+{
+	if (instr.acc_base.first == AccessModifier::SRC)
+	{
+		get_src(cc);
+		call_proc(cc, instr.bytes()[4], instr.bytes()[5]);
+	}
+	else
+	{
+		switch (instr.acc_base.first)
+		{
+		case AccessModifier::ARG:
+			get_arg(cc, instr.acc_base.second);
+			break;
+		case AccessModifier::LOCAL:
+			get_local(cc, instr.acc_base.second);
+			break;
+		default:
+			Core::Alert("Invalid access modifier base");
+			break;
+		}
+		call_proc(cc, instr.bytes()[5], instr.bytes()[6]);
+	}
+}
+
+void push_value(x86::Compiler& cc, DataType type, unsigned int value, unsigned int value2 = 0)
+{
+	if (type == DataType::NUMBER)
+	{
+		value = value << 16 | value2;
+	}
+	stack.push_back(Imm(type));
+	stack.push_back(Imm(value));
+}
+
 void compile_block(x86::Compiler& cc, Block& block, std::map<unsigned int, Block> blocks)
 {
 	cc.bind(block.label);
@@ -417,6 +507,11 @@ void compile_block(x86::Compiler& cc, Block& block, std::map<unsigned int, Block
 				jit_out << "Assembling get subvar" << std::endl;
 				get_variable(cc, instr);	
 			}
+			else if (instr.bytes()[1] == AccessModifier::SRC)
+			{
+				jit_out << "Assembling get src" << std::endl;
+				get_src(cc);
+			}
 			break;
 		case Bytecode::TEQ:
 			jit_out << "Assembling test equal" << std::endl;
@@ -444,6 +539,24 @@ void compile_block(x86::Compiler& cc, Block& block, std::map<unsigned int, Block
 			jit_out << "Assembling call global" << std::endl;
 			call_global(cc, instr.bytes()[1], instr.bytes()[2]);
 			break;
+		case Bytecode::CALL:
+			jit_out << "Assembling normal call" << std::endl;
+			call(cc, instr);
+			break;
+		case Bytecode::PUSHVAL:
+			jit_out << "Assembling push value" << std::endl;
+			if (instr.bytes()[1] == DataType::NUMBER) //numbers take up two DWORDs instead of one
+			{
+				push_value(cc, (DataType)instr.bytes()[1], instr.bytes()[2], instr.bytes()[3]);
+			}
+			else
+			{
+				push_value(cc, (DataType)instr.bytes()[1], instr.bytes()[2]);
+			}
+			break;
+		case Bytecode::DBG_FILE:
+		case Bytecode::DBG_LINENO:
+			break;
 		default:
 			jit_out << "Unknown instruction: " << instr.opcode().tostring() << std::endl;
 			break;
@@ -466,7 +579,7 @@ void jit_compile(std::vector<Core::Proc*> procs)
 
 	for (auto& proc : procs)
 	{
-		FuncNode* func = cc.newFunc(FuncSignatureT<asmjit::Type::I64, int, int*, int>(CallConv::kIdCDecl));
+		FuncNode* func = cc.newFunc(FuncSignatureT<asmjit::Type::I64, int, int*, int, int>(CallConv::kIdCDecl));
 		std::string comment = "BEGIN PROC: " + proc->name;
 		auto it = string_set.insert(comment);
 		func->setInlineComment(it.first->c_str());
@@ -490,6 +603,7 @@ void jit_compile(std::vector<Core::Proc*> procs)
 
 		auto blocks = split_into_blocks(dis, cc);
 		set_arg_ptr(cc);
+		set_src(cc);
 		for (auto& [k, v] : blocks)
 		{
 			compile_block(cc, v, blocks);
@@ -518,6 +632,7 @@ void jit_compile(std::vector<Core::Proc*> procs)
 	{
 		FuncNode* func = proc_funcs[proc->id];
 		ProcHook func_base = reinterpret_cast<ProcHook>(code_base + code.labelOffset(func->label()));
+		jit_out << func_base << std::endl;
 		proc->hook(func_base);
 	}
 
@@ -530,6 +645,6 @@ extern "C" EXPORT const char* jit_initialize(int n_args, const char** args)
 	{
 		return Core::FAIL;
 	}
-	jit_compile({&Core::get_proc("/proc/test1"), &Core::get_proc("/proc/test2"), &Core::get_proc("/proc/test3")});
+	jit_compile({&Core::get_proc("/proc/addthesetwo"), &Core::get_proc("/proc/jit"), &Core::get_proc("/obj/proc/jit")});
 	return Core::SUCCESS;
 }

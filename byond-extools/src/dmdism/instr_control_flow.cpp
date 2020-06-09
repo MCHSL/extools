@@ -12,7 +12,7 @@
 void Instr_CALL::Disassemble(Context* context, Disassembler* dism)
 {
 	comment_ = "";
-	if (dism->disassemble_var(*this))
+	if (dism->disassemble_var(*this, true))
 	{
 		return;
 	}
@@ -29,7 +29,7 @@ void Instr_CALL::Disassemble(Context* context, Disassembler* dism)
 void Instr_CALLNR::Disassemble(Context* context, Disassembler* dism)
 {
 	comment_ = "";
-	if (dism->disassemble_var(*this))
+	if (dism->disassemble_var(*this, true))
 	{
 		return;
 	}

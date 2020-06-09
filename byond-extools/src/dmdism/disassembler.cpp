@@ -74,19 +74,22 @@ bool Disassembler::disassemble_var_alt(Instruction& instr)
 	return false;
 }
 
-std::vector<unsigned int> Disassembler::disassemble_subvar_follows(Instruction& instr)
+std::vector<unsigned int> Disassembler::disassemble_subvar_follows(Instruction& instr, bool raw_var_access)
 {
 	std::vector<unsigned int> result;
-	while (context_->peek() == AccessModifier::SUBVAR)
+	while (context_->peek() == AccessModifier::SUBVAR || context_->peek() == AccessModifier::CACHE)
 	{
 		context_->eat(&instr);
 		result.push_back(context_->eat(&instr));
 	}
-	result.push_back(context_->eat(&instr));
+	if (raw_var_access)
+	{
+		result.push_back(context_->eat(&instr));
+	}
 	return result;
 }
 
-bool Disassembler::disassemble_var(Instruction& instr, bool recursive)
+bool Disassembler::disassemble_var(Instruction& instr, bool raw_var_access)
 {
 	switch (context_->peek())
 	{
@@ -98,7 +101,7 @@ bool Disassembler::disassemble_var(Instruction& instr, bool recursive)
 		const AccessModifier mod = (AccessModifier)context_->eat(&instr);
 		const unsigned int id = context_->eat(&instr);
 		instr.acc_base = { mod, id };
-		instr.acc_chain = disassemble_subvar_follows(instr);
+		instr.acc_chain = disassemble_subvar_follows(instr, raw_var_access);
 		break;
 		/*if (disassemble_var(instr, true))
 		{
