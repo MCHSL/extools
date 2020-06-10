@@ -314,15 +314,28 @@ ManagedValue::ManagedValue(ManagedValue&& other) noexcept
 {
 	type = other.type;
 	value = other.value;
-	IncRefCount(type, value);
+	//IncRefCount(type, value);
+	other.type = DataType::NULL_D;
+	other.value = 0;
 }
 
 ManagedValue& ManagedValue::operator =(const ManagedValue& other)
 {
+	if (&other == this) return *this;
 	DecRefCount(type, value);
 	type = other.type;
 	value = other.value;
 	IncRefCount(type, value);
+	return *this;
+}
+
+ManagedValue& ManagedValue::operator =(ManagedValue&& other) noexcept
+{
+	if (&other == this) return *this;
+	type = other.type;
+	value = other.value;
+	other.type = DataType::NULL_D;
+	other.value = 0;
 	return *this;
 }
 

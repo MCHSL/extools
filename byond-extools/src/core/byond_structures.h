@@ -147,6 +147,7 @@ struct ManagedValue : Value
 	ManagedValue(const ManagedValue& other);
 	ManagedValue(ManagedValue&& other) noexcept;
 	ManagedValue& operator =(const ManagedValue& other);
+	ManagedValue& operator =(ManagedValue&& other) noexcept;
 	~ManagedValue();
 };
 

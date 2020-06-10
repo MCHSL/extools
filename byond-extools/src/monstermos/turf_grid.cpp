@@ -167,7 +167,7 @@ void Tile::update_planet_atmos() {
 			return;
 		}
 		if (!planet_atmos_info) planet_atmos_info = std::make_unique<PlanetAtmosInfo>();
-		planet_atmos_info->last_initial = turf_ref.get_by_id(str_id_initial_gas_mix);
+		planet_atmos_info->last_initial = std::move(turf_ref.get_by_id(str_id_initial_gas_mix));
 		GasMixture air_backup = *air;
 		*air = GasMixture(CELL_VOLUME);
 		turf_ref.get_by_id(str_id_air).invoke("copy_from_turf", { turf_ref });
