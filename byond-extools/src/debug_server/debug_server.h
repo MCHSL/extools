@@ -89,7 +89,7 @@ public:
 
 	NextAction wait_for_action();
 
-	void on_error(ExecutionContext* ctx, char* error);
+	void on_error(ExecutionContext* ctx, const char* error);
 	void on_breakpoint(ExecutionContext* ctx);
 	void on_step(ExecutionContext* ctx);
 	void on_break(ExecutionContext* ctx);

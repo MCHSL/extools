@@ -403,7 +403,7 @@ void DebugServer::on_break(ExecutionContext* ctx)
 	}
 }
 
-void DebugServer::on_error(ExecutionContext* ctx, char* error)
+void DebugServer::on_error(ExecutionContext* ctx, const char* error)
 {
 	Core::Proc& p = Core::get_proc(ctx);
 	send_call_stack(ctx);
@@ -524,7 +524,7 @@ void on_nop(ExecutionContext* ctx)
 
 }
 
-void hRuntime(char* error)
+void hRuntime(const char* error)
 {
 	if (debug_server.break_on_runtimes)
 	{
