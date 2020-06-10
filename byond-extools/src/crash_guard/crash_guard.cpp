@@ -119,7 +119,7 @@ void dump_oor()
 	} while (ctx = ctx->parent_context);
 }
 
-void hRuntimeLL(char* err)
+void hRuntimeLL(const char* err)
 {
 	if (strcmp(err, "Out of resources!") == 0)
 	{
