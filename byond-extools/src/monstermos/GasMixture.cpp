@@ -1,6 +1,10 @@
 #include "GasMixture.h"
+
+#include <algorithm>
 #include <cstring>
 #include <cmath>
+
+using namespace monstermos::constants;
 
 float gas_specific_heat[TOTAL_NUM_GASES];
 
@@ -22,7 +26,7 @@ float GasMixture::heat_capacity() const {
     for(int i = 0; i < TOTAL_NUM_GASES; i++) {
         capacity += (gas_specific_heat[i] * moles[i]);
     }
-    return std::fmax(capacity, min_heat_capacity);
+    return std::max(capacity, min_heat_capacity);
 }
 
 float GasMixture::heat_capacity_archived() const {
@@ -30,7 +34,7 @@ float GasMixture::heat_capacity_archived() const {
     for(int i = 0; i < TOTAL_NUM_GASES; i++) {
         capacity += (gas_specific_heat[i] * moles_archived[i]);
     }
-    return std::fmax(capacity, min_heat_capacity);
+    return std::max(capacity, min_heat_capacity);
 }
 
 void GasMixture::set_min_heat_capacity(float n) {
@@ -169,9 +173,9 @@ void GasMixture::temperature_share(GasMixture &sharer, float conduction_coeffici
         if((sharer_heat_capacity > MINIMUM_HEAT_CAPACITY) && (self_heat_capacity > MINIMUM_HEAT_CAPACITY)) {
             float heat = conduction_coefficient * temperature_delta * (self_heat_capacity*sharer_heat_capacity/(self_heat_capacity+sharer_heat_capacity));
             if(!immutable)
-                temperature = fmax(temperature - heat/self_heat_capacity, TCMB);
+                temperature = std::max(temperature - heat/self_heat_capacity, TCMB);
             if(!sharer.immutable)
-                sharer.temperature = fmax(sharer.temperature + heat/sharer_heat_capacity, TCMB);
+                sharer.temperature = std::max(sharer.temperature + heat/sharer_heat_capacity, TCMB);
         }
     }
 }

@@ -317,7 +317,7 @@ ManagedValue::ManagedValue(ManagedValue&& other) noexcept
 	IncRefCount(type, value);
 }
 
-ManagedValue& ManagedValue::operator =(ManagedValue& other)
+ManagedValue& ManagedValue::operator =(const ManagedValue& other)
 {
 	DecRefCount(type, value);
 	type = other.type;
