@@ -41,7 +41,7 @@ struct Tile
 struct PlanetAtmosInfo
 {
 	ManagedValue last_initial = Value::Null();
-	GasMixture last_mix = GasMixture(CELL_VOLUME);
+	GasMixture last_mix = GasMixture(monstermos::constants::CELL_VOLUME);
 }; // not part of main Tile struct because we don't need it for the whole map
 
 struct MonstermosInfo

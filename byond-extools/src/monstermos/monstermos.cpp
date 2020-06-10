@@ -1,9 +1,14 @@
 #include "monstermos.h"
+
 #include "../core/core.h"
 #include "GasMixture.h"
 #include "turf_grid.h"
 #include "../dmdism/opcodes.h"
+
+#include <cmath>
 #include <chrono>
+
+using namespace monstermos::constants;
 
 trvh fuck(unsigned int args_len, Value* args, Value src)
 {
@@ -180,7 +185,7 @@ trvh gasmixture_get_gases(unsigned int args_len, Value* args, Value src)
 trvh gasmixture_set_temperature(unsigned int args_len, Value* args, Value src)
 {
 	float vf = args_len > 0 ? args[0].valuef : 0;
-	if (isnan(vf) || isinf(vf)) {
+	if (std::isnan(vf) || std::isinf(vf)) {
 		Runtime("Attempt to set temperature to NaN or Infinity");
 	} else {
 		get_gas_mixture(src)->set_temperature(vf);

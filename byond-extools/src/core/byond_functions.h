@@ -76,7 +76,7 @@ typedef void(*ProcCleanupPtr)(ExecutionContext* thing_that_just_executed); //thi
 typedef void(REGPARM3 *CreateContextPtr)(void* unknown, ExecutionContext* new_ctx);
 typedef void(REGPARM3 *ProcCleanupPtr)(ExecutionContext* thing_that_just_executed);
 #endif
-typedef void(*RuntimePtr)(char* error); //Do not call this, it relies on some global state
+typedef void(*RuntimePtr)(const char* error); //Do not call this, it relies on some global state
 typedef trvh(*GetTurfPtr)(int x, int y, int z);
 typedef unsigned int(*LengthPtr)(int type, int value);
 typedef bool(*IsInContainerPtr)(int keyType, int keyValue, int cntType, int cntId);

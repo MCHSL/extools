@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <cstring>
 
+using namespace monstermos::constants;
+
 Tile::Tile()
 {
     //ctor
