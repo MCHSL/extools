@@ -87,6 +87,11 @@ public:
 };
 
 std::map<unsigned int, x86::Mem> locals;
+x86::Gp src_type;
+x86::Gp src_value;
+x86::Gp arglist_ptr;
+x86::Mem dot;
+
 std::vector<Operand> stack;
 
 void set_value(x86::Compiler& cc, x86::Mem& loc, Operand& type, Operand& value, unsigned int offset = 0)
@@ -130,15 +135,12 @@ void get_local(x86::Compiler& cc, unsigned int id)
 	get_value(cc, locals[id]);
 }
 
-x86::Gp arglist_ptr;
 void set_arg_ptr(x86::Compiler& cc)
 {
 	arglist_ptr = cc.newInt32("arglist_ptr");
 	cc.setArg(1, arglist_ptr);
 }
 
-x86::Gp src_type;
-x86::Gp src_value;
 void set_src(x86::Compiler& cc)
 {
 	src_type = cc.newInt32("src_type");
@@ -151,6 +153,25 @@ void get_src(x86::Compiler& cc)
 {
 	stack.push_back(src_type);
 	stack.push_back(src_value);
+}
+
+void set_dot(x86::Compiler& cc)
+{
+	set_value(cc, dot, stack.at(stack.size() - 2), stack.at(stack.size() - 1));
+	stack.erase(stack.end() - 2, stack.end());
+}
+
+void get_dot(x86::Compiler& cc)
+{
+	get_value(cc, dot);
+}
+
+void allocate_dot(x86::Compiler& cc)
+{
+	dot = cc.newStack(8, 4);
+	stack.push_back(Imm(DataType::NULL_D));
+	stack.push_back(Imm(0));
+	set_dot(cc);
 }
 
 void get_arg(x86::Compiler& cc, unsigned int id)
@@ -527,6 +548,11 @@ void compile_block(x86::Compiler& cc, Block& block, std::map<unsigned int, Block
 				jit_out << "Assembling set subvar" << std::endl;
 				set_subvar(cc, instr);
 			}
+			else if (instr.bytes()[1] == AccessModifier::DOT)
+			{
+				jit_out << "Assembling set dot" << std::endl;
+				set_dot(cc);
+			}
 			break;
 		case Bytecode::GETVAR:
 			if (instr.bytes()[1] == AccessModifier::ARG)
@@ -548,6 +574,15 @@ void compile_block(x86::Compiler& cc, Block& block, std::map<unsigned int, Block
 			{
 				jit_out << "Assembling get src" << std::endl;
 				get_src(cc);
+			}
+			else if (instr.bytes()[1] == AccessModifier::DOT)
+			{
+				jit_out << "Assembling get dot" << std::endl;
+				get_dot(cc);
+			}
+			else
+			{
+				jit_out << "Unknown access modifier in get_var" << std::endl;
 			}
 			break;
 		case Bytecode::TEQ:
@@ -641,6 +676,7 @@ void jit_compile(std::vector<Core::Proc*> procs)
 		auto blocks = split_into_blocks(dis, cc);
 		set_arg_ptr(cc);
 		set_src(cc);
+		allocate_dot(cc);
 		for (auto& [k, v] : blocks)
 		{
 			compile_block(cc, v, blocks);
