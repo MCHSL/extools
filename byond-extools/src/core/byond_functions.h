@@ -44,14 +44,14 @@ typedef unsigned int(*CreateListPtr)(unsigned int reserveSize);
 typedef trvh(*NewPtr)(Value* type, Value* args, unsigned int num_args, int unknown);
 //typedef void(*TempBreakpoint)();
 typedef void(*CrashProcPtr)(char* error, variadic_arg_hack hack);
-//typedef SuspendedProc* (*ResumeIn)(ExecutionContext* ctx, float deciseconds);
+//typedef ProcConstants* (*ResumeIn)(ExecutionContext* ctx, float deciseconds);
 typedef void(*SendMapsPtr)(void);
 #ifdef _WIN32
-typedef SuspendedProc* (*SuspendPtr)(ExecutionContext* ctx, int unknown);
-typedef void(*StartTimingPtr)(SuspendedProc*);
+typedef ProcConstants* (*SuspendPtr)(ExecutionContext* ctx, int unknown);
+typedef void(*StartTimingPtr)(ProcConstants*);
 #else
-typedef SuspendedProc* (REGPARM3 *SuspendPtr)(ExecutionContext* ctx, int unknown);
-typedef void(REGPARM3 *StartTimingPtr)(SuspendedProc*);
+typedef ProcConstants* (REGPARM3 *SuspendPtr)(ExecutionContext* ctx, int unknown);
+typedef void(REGPARM3 *StartTimingPtr)(ProcConstants*);
 #endif
 typedef ProfileInfo* (*GetProfileInfoPtr)(unsigned int proc_id);
 #ifdef _WIN32

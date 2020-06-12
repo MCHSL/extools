@@ -259,7 +259,7 @@ void hProcCleanup(ExecutionContext* ctx)
 	oProcCleanup(ctx);
 }
 
-SuspendedProc* hSuspend(ExecutionContext* ctx, int unknown)
+ProcConstants* hSuspend(ExecutionContext* ctx, int unknown)
 {
 	int proc_id = ctx->constants->proc_id;
 	auto profile_iter = profiles.find(proc_id);

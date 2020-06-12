@@ -284,22 +284,20 @@ struct ProcArrayEntry
 	int unknown2;
 };
 
-struct SuspendedProc
-{
-	char unknown[0x88];
-	int time_to_resume;
-};
-
 struct ExecutionContext;
 
 struct ProcConstants
 {
 	int proc_id;
-	int unknown2;
+	int unknown1;
 	Value usr;
 	Value src;
-	ExecutionContext* context;
-	int unknown3;
+	union
+	{
+		ExecutionContext* context;
+		ProcConstants* next; // When we're part of the global `constants_freelist` linked list, this is the next element
+	};
+	int argslist_id;
 	int unknown4; //some callback thing
 	union
 	{
@@ -308,6 +306,8 @@ struct ProcConstants
 	};
 	int arg_count;
 	Value* args;
+	char unknown6[0x58];
+	int time_to_resume;
 };
 
 struct ExecutionContext
@@ -490,4 +490,12 @@ struct VarListEntry
 	std::uint32_t unknown;
 	std::uint32_t name_id;
 	trvh value;
+};
+
+struct SleeperList
+{
+	ProcConstants** buffer;
+	std::uint32_t front;
+	std::uint32_t back;
+	std::uint32_t max_elements;
 };
