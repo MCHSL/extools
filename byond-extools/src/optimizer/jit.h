@@ -23,6 +23,7 @@ public:
 	std::vector<Instruction> contents;
 	unsigned int offset;
 	asmjit::Label label;
+	asmjit::Label label2;
 };
 
 std::map<unsigned int, Block> split_into_blocks(Disassembly& dis);

@@ -19,6 +19,7 @@ struct JitContext
 	{
 		dot = Value::Null();
 		stack_top = &stack[0];
+		stack_base = &stack[0];
 		memset(&stack[0], 0, sizeof(stack));
 	}
 
@@ -28,7 +29,13 @@ struct JitContext
 	// ProcConstants* what_called_us;
 
 	Value dot;
+
+	// Top of the stack. This is where the next stack entry to be pushed ill be located.
 	Value* stack_top;
+
+	// Base of the stack. Different to `&stack[0]` as this is the base of the currently executing proc's stack.
+	Value* stack_base;
+
 	Value stack[1024];
 };
 
@@ -217,8 +224,15 @@ static void EmitEpilogue(x86::Compiler& cc)
 }
 
 // Shouldn't be globals!!!
+static std::map<unsigned int, FuncNode*> proc_funcs;
 static std::map<unsigned int, Label> proc_labels;
+static std::map<unsigned int, Label> proc_epilogues;
 static std::set<std::string> string_set;
+
+static std::vector<Label> resumption_labels;
+static std::vector<JitProc> resumption_procs;
+
+static Label current_epilogue;
 
 static uint32_t EncodeFloat(float f)
 {
@@ -230,7 +244,7 @@ static float DecodeFloat(uint32_t i)
 	return *reinterpret_cast<float*>(&i);
 }
 
-std::map<unsigned int, Block> split_into_blocks(Disassembly& dis, x86::Compiler& cc, size_t& locals_max_count)
+std::map<unsigned int, Block> split_into_blocks(Disassembly& dis, x86::Assembler& ass, size_t& locals_max_count)
 {
 	std::map<unsigned int, Block> blocks;
 	unsigned int current_block_offset = 0;
@@ -275,7 +289,7 @@ std::map<unsigned int, Block> split_into_blocks(Disassembly& dis, x86::Compiler&
 	o << "BEGIN: " << dis.proc->name << '\n';
 	for (auto& [offset, block] : blocks)
 	{
-		block.label = cc.newLabel();
+		block.label2 = ass.newLabel();
 		o << offset << ":\n";
 		for (const Instruction& i : block.contents)
 		{
@@ -598,12 +612,15 @@ void call_global(x86::Compiler& cc, unsigned int arg_count, unsigned int proc_id
 		return;
 	}
 */
+
+/*
 	if (proc_id == jit_co_suspend_proc_id)
 	{
 		cc.setInlineComment("jit_co_suspend");
 		
 		return;
 	}
+*/
 
 
 	cc.setInlineComment("CallGlobal");
@@ -926,9 +943,6 @@ static trvh JitEntryPoint(void* code_base, unsigned int args_len, Value* args, V
 	code(&ctx);
 	current_context = nullptr;
 
-	// TODO: Check only one temp on stack!
-	// Commented this out because it can't handle our implicit vars (locals, etc.) at the front of the stack
-	/*
 	if (ctx.stack_top != &ctx.stack[1])
 	{
 		__debugbreak();
@@ -937,26 +951,291 @@ static trvh JitEntryPoint(void* code_base, unsigned int args_len, Value* args, V
 	trvh ret;
 	ret.type = ctx.stack[0].type;
 	ret.value = ctx.stack[0].value;
-	*/
-
-	Value* ret = ctx.stack_top - 1;
-	return *ret;
+	return ret;
 }
 
+static void jit_co_suspend_internal()
+{
+	memcpy(&stored_context, current_context, sizeof(stored_context));
+	stored_context.stack_base = (current_context->stack_base - current_context->stack) + stored_context.stack;
+	stored_context.stack_top = (current_context->stack_top - current_context->stack) + stored_context.stack;
+}
 
 static trvh jit_co_suspend(unsigned int argcount, Value* args, Value src)
 {
 	// This should never run, it's a compiler intrinsic
 	__debugbreak();
+	return Value::Null();
 }
 
 static trvh jit_co_resume(unsigned int argcount, Value* args, Value src)
 {
-	stored_context.stack_top--;
-	Value resume_data = *stored_context.stack_top;
+	Value resume_data = *(stored_context.stack_top - 1);
 
-	JitProc code = reinterpret_cast<JitProc>(resume_data.value);
+	// Now we push the value to be returned by jit_co_suspend
+	if (argcount > 0)
+	{
+		*(stored_context.stack_top - 1) = args[0];
+	}
+	else
+	{
+		*(stored_context.stack_top - 1) = Value::Null();
+	}
+
+	JitProc code = resumption_procs[resume_data.value];
 	code(&stored_context);
+
+	if (stored_context.stack_top != &stored_context.stack[1])
+	{
+		__debugbreak();
+	}
+
+	trvh ret;
+	ret.type = stored_context.stack[0].type;
+	ret.value = stored_context.stack[0].value;
+	return ret;
+}
+
+
+static void Emit_PushInteger(x86::Assembler& ass, float not_an_integer)
+{
+	ass.mov(x86::ecx, x86::ptr(x86::eax, offsetof(JitContext, stack_top), sizeof(uint32_t)));
+	ass.add(x86::ptr(x86::eax, offsetof(JitContext, stack_top), sizeof(uint32_t)), sizeof(Value));
+
+	ass.mov(x86::ptr(x86::ecx, 0, sizeof(uint32_t)), Imm(DataType::NUMBER));
+	ass.mov(x86::ptr(x86::ecx, sizeof(Value) / 2, sizeof(uint32_t)), Imm(EncodeFloat(not_an_integer)));
+}
+
+static void Emit_SetLocal(x86::Assembler& ass, unsigned int id)
+{
+	ass.sub(x86::ptr(x86::eax, offsetof(JitContext, stack_top), sizeof(uint32_t)), sizeof(Value));
+
+	ass.mov(x86::ecx, x86::ptr(x86::eax, offsetof(JitContext, stack_top), sizeof(uint32_t)));
+	ass.mov(x86::edx, x86::ptr(x86::eax, offsetof(JitContext, stack_base), sizeof(uint32_t)));
+
+	ass.push(x86::ebx);
+
+	ass.mov(x86::ebx, x86::ptr(x86::ecx, 0, sizeof(uint32_t)));
+	ass.mov(x86::ptr(x86::edx, id * sizeof(Value), sizeof(uint32_t)), x86::ebx);
+
+	ass.mov(x86::ebx, x86::ptr(x86::ecx, sizeof(Value) / 2, sizeof(uint32_t)));
+	ass.mov(x86::ptr(x86::edx, id * sizeof(Value) + sizeof(Value) / 2, sizeof(uint32_t)), x86::ebx);
+
+	ass.pop(x86::ebx);
+}
+
+static void Emit_GetLocal(x86::Assembler& ass, unsigned int id)
+{
+	ass.mov(x86::ecx, x86::ptr(x86::eax, offsetof(JitContext, stack_top), sizeof(uint32_t)));
+	ass.mov(x86::edx, x86::ptr(x86::eax, offsetof(JitContext, stack_base), sizeof(uint32_t)));
+
+	ass.add(x86::ptr(x86::eax, offsetof(JitContext, stack_top), sizeof(uint32_t)), sizeof(Value));
+
+	ass.push(x86::ebx);
+
+	ass.mov(x86::ebx, x86::ptr(x86::edx, id * sizeof(Value), sizeof(uint32_t)));
+	ass.mov(x86::ptr(x86::ecx, 0, sizeof(uint32_t)), x86::ebx);
+
+	ass.mov(x86::ebx, x86::ptr(x86::edx, id * sizeof(Value) + sizeof(Value) / 2, sizeof(uint32_t)));
+	ass.mov(x86::ptr(x86::ecx, sizeof(Value) / 2, sizeof(uint32_t)), x86::ebx);
+	
+	ass.pop(x86::ebx);
+}
+
+static void Emit_Pop(x86::Assembler& ass)
+{
+	ass.sub(x86::ptr(x86::eax, offsetof(JitContext, stack_top), sizeof(uint32_t)), sizeof(Value));
+}
+
+static void Emit_PushValue(x86::Assembler& ass, DataType type, unsigned int value, unsigned int value2 = 0)
+{
+	if (type == DataType::NUMBER)
+	{
+		value = value << 16 | value2;
+	}
+
+	ass.mov(x86::ecx, x86::ptr(x86::eax, offsetof(JitContext, stack_top), sizeof(uint32_t)));
+	ass.add(x86::ptr(x86::eax, offsetof(JitContext, stack_top), sizeof(uint32_t)), sizeof(Value));
+
+	ass.mov(x86::ptr(x86::ecx, 0, sizeof(uint32_t)), Imm(type));
+	ass.mov(x86::ptr(x86::ecx, sizeof(Value) / 2, sizeof(uint32_t)), Imm(value));
+}
+
+static void Emit_CallGlobal(x86::Assembler& ass, unsigned int arg_count, unsigned int proc_id)
+{
+	if (proc_id == jit_co_suspend_proc_id)
+	{
+		ass.setInlineComment("jit_co_suspend intrinsic");
+
+		Label resume = ass.newLabel();
+
+		resumption_labels.push_back(resume);
+		uint32_t resumption_index = resumption_labels.size() - 1;
+
+		ass.mov(x86::ecx, x86::ptr(x86::eax, offsetof(JitContext, stack_top), sizeof(uint32_t)));
+		ass.add(x86::ptr(x86::eax, offsetof(JitContext, stack_top), sizeof(uint32_t)), sizeof(Value));
+
+		// where the code should resume
+		ass.mov(x86::ptr(x86::ecx, 0, sizeof(uint32_t)), Imm(DataType::NULL_D));
+		ass.mov(x86::ptr(x86::ecx, sizeof(Value) / 2, sizeof(uint32_t)), resumption_index);
+
+		ass.push(x86::eax);
+		ass.call((uint32_t) jit_co_suspend_internal);
+		ass.pop(x86::eax);
+		ass.jmp(current_epilogue);
+
+		std::string comment = "Resumption Label: " + resumption_index;
+		auto it = string_set.insert(comment);
+		ass.setInlineComment(it.first->c_str());
+
+		ass.bind(resume);
+		// JitContext ptr lives in eax
+		ass.mov(x86::eax, x86::ptr(x86::esp, 4, sizeof(uint32_t)));
+		return;
+	}
+
+
+	ass.sub(x86::ptr(x86::eax, offsetof(JitContext, stack_top), sizeof(uint32_t)), arg_count * sizeof(Value));
+	ass.mov(x86::ecx, x86::ptr(x86::eax, offsetof(JitContext, stack_top), sizeof(uint32_t)));
+
+	ass.sub(x86::esp, 4 * 11 + 4 * 2);
+
+	ass.mov(x86::ptr(x86::esp, 4 * 0, sizeof(uint32_t)), 0); // usr_type
+	ass.mov(x86::ptr(x86::esp, 4 * 1, sizeof(uint32_t)), 0); // usr_value
+	ass.mov(x86::ptr(x86::esp, 4 * 2, sizeof(uint32_t)), 2); // proc_type
+	ass.mov(x86::ptr(x86::esp, 4 * 3, sizeof(uint32_t)), proc_id); // proc_id
+	ass.mov(x86::ptr(x86::esp, 4 * 4, sizeof(uint32_t)), 0); // const_0
+	ass.mov(x86::ptr(x86::esp, 4 * 5, sizeof(uint32_t)), 0); // src_type
+	ass.mov(x86::ptr(x86::esp, 4 * 6, sizeof(uint32_t)), 0); // src_value
+	ass.mov(x86::ptr(x86::esp, 4 * 7, sizeof(uint32_t)), x86::ecx); // argList
+	ass.mov(x86::ptr(x86::esp, 4 * 8, sizeof(uint32_t)), arg_count); // argListLen
+	ass.mov(x86::ptr(x86::esp, 4 * 9, sizeof(uint32_t)), 0); // const_0_2
+	ass.mov(x86::ptr(x86::esp, 4 * 10, sizeof(uint32_t)), 0); // const_0_3
+
+	ass.mov(x86::ptr(x86::esp, 4 * 11, sizeof(uint32_t)), x86::eax);
+	ass.mov(x86::ptr(x86::esp, 4 * 12, sizeof(uint32_t)), x86::ecx);
+
+	ass.call((uint32_t) CallGlobalProc);
+
+	ass.mov(x86::ecx, x86::ptr(x86::esp, 4 * 12, sizeof(uint32_t)));
+
+	ass.mov(x86::ptr(x86::ecx, 0, sizeof(uint32_t)), x86::eax);
+	ass.mov(x86::ptr(x86::ecx, sizeof(Value) / 2, sizeof(uint32_t)), x86::edx);
+
+	ass.mov(x86::eax, x86::ptr(x86::esp, 4 * 11, sizeof(uint32_t)));
+	
+	ass.add(x86::esp, 4 * 11 + 4 * 2);
+
+	// Could merge into the sub above
+	ass.add(x86::ptr(x86::eax, offsetof(JitContext, stack_top), sizeof(uint32_t)), sizeof(Value));
+}
+
+static void Emit_Return(x86::Assembler& ass)
+{
+	ass.jmp(current_epilogue);
+}
+
+static bool EmitBlock(x86::Assembler& ass, Block& block)
+{
+	ass.bind(block.label2);
+	for (size_t i=0; i < block.contents.size(); i++)
+	{
+		Instruction& instr = block.contents[i];
+
+		auto it = string_set.insert(instr.opcode().tostring());
+		ass.setInlineComment(it.first->c_str());
+
+		switch (instr.bytes()[0])
+		{
+		case Bytecode::PUSHI:
+			jit_out << "Assembling push integer" << std::endl;
+			Emit_PushInteger(ass, instr.bytes()[1]);
+			break;
+		case Bytecode::SETVAR:
+			if (instr.bytes()[1] == AccessModifier::LOCAL)
+			{
+				jit_out << "Assembling set local" << std::endl;
+				Emit_SetLocal(ass, instr.bytes()[2]);
+			}
+			break;
+		case Bytecode::GETVAR:
+			if (instr.bytes()[1] == AccessModifier::LOCAL)
+			{
+				jit_out << "Assembling get local" << std::endl;
+				Emit_GetLocal(ass, instr.bytes()[2]);
+			}
+			break;
+		case Bytecode::POP:
+			jit_out << "Assembling pop" << std::endl;
+			Emit_Pop(ass);
+			break;
+		case Bytecode::PUSHVAL:
+			jit_out << "Assembling push value" << std::endl;
+			if (instr.bytes()[1] == DataType::NUMBER) //numbers take up two DWORDs instead of one
+			{
+				Emit_PushValue(ass, (DataType)instr.bytes()[1], instr.bytes()[2], instr.bytes()[3]);
+			}
+			else
+			{
+				Emit_PushValue(ass, (DataType)instr.bytes()[1], instr.bytes()[2]);
+			}
+			break;
+		case Bytecode::CALLGLOB:
+			jit_out << "Assembling call global" << std::endl;
+			Emit_CallGlobal(ass, instr.bytes()[1], instr.bytes()[2]);
+			break;
+		case Bytecode::RET:
+			Emit_Return(ass);
+			break;
+		case Bytecode::DBG_FILE:
+		case Bytecode::DBG_LINENO:
+			break;
+		default:
+			jit_out << "Unknown instruction: " << instr.opcode().tostring() << std::endl;
+			break;
+		}
+	}
+
+	return true;
+}
+
+static void EmitPrologue(x86::Assembler& ass)
+{
+	// JitContext ptr lives in eax
+	ass.mov(x86::eax, x86::ptr(x86::esp, 4, sizeof(uint32_t)));
+
+	// Allocate locals in stack
+	ass.mov(x86::ecx, x86::ptr(x86::eax, offsetof(JitContext, stack_top), sizeof(uint32_t)));
+	ass.add(x86::ptr(x86::eax, offsetof(JitContext, stack_top), sizeof(uint32_t)), locals_count * sizeof(Value));
+
+	// (null the locals too)
+	for (size_t i = 0; i < locals_count; i++)
+	{
+		ass.mov(x86::ptr(x86::ecx, i * sizeof(Value), sizeof(uint32_t)), Imm(0));
+		ass.mov(x86::ptr(x86::ecx, i * sizeof(Value) + sizeof(Value) / 2, sizeof(uint32_t)), Imm(0));
+	}
+}
+
+static void EmitEpilogue(x86::Assembler& ass)
+{
+	ass.mov(x86::ecx, x86::ptr(x86::eax, offsetof(JitContext, stack_top), sizeof(uint32_t)));
+
+	// Remove stack entries for our return value and all locals (except 1)
+	ass.sub(x86::ptr(x86::eax, offsetof(JitContext, stack_top), sizeof(uint32_t)), locals_count * sizeof(Value));
+
+	// Move our return value from its old stack position to its new one
+	{
+		// Type
+		ass.mov(x86::edx, x86::ptr(x86::ecx, -sizeof(Value), sizeof(uint32_t)));
+		ass.mov(x86::ptr(x86::ecx, sizeof(Value) * -locals_count - sizeof(Value), sizeof(uint32_t)), x86::edx);
+	}
+	{
+		// Value
+		ass.mov(x86::edx, x86::ptr(x86::ecx, -(sizeof(Value) / 2), sizeof(uint32_t)));
+		ass.mov(x86::ptr(x86::ecx, sizeof(Value) * -locals_count - (sizeof(Value) / 2), sizeof(uint32_t)), x86::edx);
+	}
+
+	ass.ret();
 }
 
 JitRuntime rt;
@@ -969,13 +1248,16 @@ void jit_compile(std::vector<Core::Proc*> procs)
 	code.init(rt.codeInfo());
 	code.setLogger(&logger);
 	code.setErrorHandler(&eh);
-	x86::Compiler cc(&code);
 	x86::Assembler ass(&code);
 	std::ofstream asd("raw.txt");
+
+	resumption_labels.clear();
+	resumption_procs.clear();
 
 	for (auto& proc : procs)
 	{
 		proc_labels[proc->id] = ass.newLabel();
+		proc_epilogues[proc->id] = ass.newLabel();
 	}
 
 	for (auto& proc : procs)
@@ -988,38 +1270,41 @@ void jit_compile(std::vector<Core::Proc*> procs)
 		}
 		asd << "END " << proc->name << '\n';
 
-		// Prologue
-		// JitContext ptr lives in eax
-		ass.mov(x86::eax, x86::ptr(x86::esp, 4, sizeof(uint32_t)));
+		current_epilogue = proc_epilogues[proc->id];
 
 		// needed?
-		last_commit_size = 0;
-		stack_cache.clear();
+		// last_commit_size = 0;
+		// stack_cache.clear();
 
-		size_t locals_max_count = 0; // Doesn't belong here, just sort of hacking it in ok
-		auto blocks = split_into_blocks(dis, cc, locals_max_count);
-		
-		// Initialize locals
+		// TODO: locals_count here is ass
+		auto blocks = split_into_blocks(dis, ass, locals_count);
 
-		// Initialize locals
-		locals_count = locals_max_count;
-		EmitPrologue(cc);
+		// Prologue
+		std::string comment = "Proc Prologue: " + proc->raw_path;
+		auto it = string_set.insert(comment);
+		ass.setInlineComment(it.first->c_str());
+		ass.bind(proc_labels[proc->id]);
+		EmitPrologue(ass);
 
 		for (auto& [k, v] : blocks)
 		{
-			size_t stack_size = stack_cache.size();
-			compile_block(cc, v, blocks);
-			if (stack_size != stack_cache.size())
-			{
-				__debugbreak();
-			}
+			std::string comment = "Proc Block: " + proc->raw_path + "+" + std::to_string(v.offset);
+			auto it = string_set.insert(comment);
+			ass.setInlineComment(it.first->c_str());
+			//ass.bind(proc_labels[proc->id]);
+			EmitBlock(ass, v);
 		}
 
-		cc.endFunc();
+		// Epilogue
+		std::string comment2 = "Proc Epilogue: " + proc->raw_path;
+		auto it2 = string_set.insert(comment2);
+		ass.setInlineComment(it2.first->c_str());
+		ass.bind(proc_epilogues[proc->id]);
+		EmitEpilogue(ass);
 	}
 
 	jit_out << "Finalizing\n";
-	int err = cc.finalize();
+	int err = ass.finalize();
 	if (err)
 	{
 		jit_out << "Failed to assemble" << std::endl;
@@ -1034,11 +1319,18 @@ void jit_compile(std::vector<Core::Proc*> procs)
 		return;
 	}
 
+	// Setup resumption procs
+	resumption_procs.resize(resumption_labels.size());
+	for (size_t i = 0; i < resumption_labels.size(); i++)
+	{
+		resumption_procs[i] = reinterpret_cast<JitProc>(code_base + code.labelOffset(resumption_labels[i]));
+	}
+
 	// Hook procs
 	for (auto& proc : procs)
 	{
-		FuncNode* func = proc_funcs[proc->id];
-		char* func_base = reinterpret_cast<char*>(code_base + code.labelOffset(func->label()));
+		Label& entry = proc_labels[proc->id];
+		char* func_base = reinterpret_cast<char*>(code_base + code.labelOffset(entry));
 		jit_out << func_base << std::endl;
 		proc->jit_hook(func_base, JitEntryPoint);
 	}
