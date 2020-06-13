@@ -116,11 +116,10 @@ trvh toggle_verb_hidden(unsigned int argcount, Value* args, Value src)
 
 trvh test_invoke(unsigned int argcount, Value* args, Value src)
 {
-	SuspendedProc* fake_ass_sus = new SuspendedProc();
+	ProcConstants* fake_ass_sus = new ProcConstants();
 	fake_ass_sus->time_to_resume = 0x69;
-	ProcConstants* union_lol = (ProcConstants*)fake_ass_sus;
-	union_lol->proc_id = -1;
-	AddSleeperToList(union_lol);
+	fake_ass_sus->proc_id = -1;
+	AddSleeperToList(fake_ass_sus);
 	return Value::Null();
 }
 
