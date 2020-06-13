@@ -11,32 +11,107 @@ using namespace asmjit;
 
 struct JitContext;
 
-typedef bool (*JitProc)(JitContext* ctx);
+enum struct JitProcResult : uint32_t
+{
+	Success,
+	
+	// The proc is sleeping or something - the passed in JitContext is now invalid
+	Yielded,
+};
+
+typedef JitProcResult (*JitProc)(JitContext* ctx);
 
 struct JitContext
 {
+	static const size_t DefaultSlotAllocation = 16;
+
 	JitContext()
+		: stack(new Value[DefaultSlotAllocation])
+		, stack_allocated(DefaultSlotAllocation)
+		, stack_proc_base(nullptr)
+		, stack_top(stack)
+	{}
+
+	~JitContext() noexcept
 	{
-		dot = Value::Null();
-		stack_top = &stack[0];
-		stack_base = &stack[0];
-		memset(&stack[0], 0, sizeof(stack));
+		delete[] stack;
+		stack = nullptr;
 	}
 
-	JitContext(const JitContext&) = delete;
-	JitContext& operator=(const JitContext&) = delete;
+	JitContext(const JitContext& src)
+	{
+		stack_allocated = src.stack_allocated;
+		stack = new Value[stack_allocated];
+		stack_top = &stack[src.stack_top - src.stack];
+		stack_proc_base = &stack[src.stack_proc_base - src.stack];
+		std::copy(src.stack, src.stack_top, stack);
+	}
 
-	// ProcConstants* what_called_us;
+	JitContext& operator=(const JitContext& src)
+	{
+		delete[] stack;
+		stack = new Value[stack_allocated];
+		stack_top = &stack[src.stack_top - src.stack];
+		stack_proc_base = &stack[src.stack_proc_base - src.stack];
+		std::copy(src.stack, src.stack_top, stack);
+	}
 
-	Value dot;
+	JitContext(JitContext&& src) noexcept
+		: stack(std::exchange(src.stack, nullptr))
+		, stack_allocated(std::exchange(src.stack_allocated, 0))
+		, stack_top(std::exchange(src.stack_top, nullptr))
+		, stack_proc_base(std::exchange(src.stack_proc_base, nullptr))
+	{}
 
-	// Top of the stack. This is where the next stack entry to be pushed ill be located.
+	JitContext& operator=(JitContext&& src) noexcept
+	{
+		std::swap(stack, src.stack);
+		std::swap(stack_allocated, src.stack_allocated);
+		std::swap(stack_top, src.stack_top);
+		std::swap(stack_proc_base, src.stack_proc_base);
+		return *this;
+	}
+
+	// The number of slots in use
+	size_t Count()
+	{
+		return stack_top - stack;
+	}
+
+	// Makes sure at least this many free slots are available
+	// Called by JitProc prologues
+	void Reserve(size_t slots)
+	{
+		size_t free_slots = stack_allocated - Count();
+
+		if (free_slots >= slots)
+			return;
+
+		Value* old_stack = stack;
+		Value* old_stack_top = stack_top;
+		Value* old_stack_proc_base = stack_proc_base;
+
+		stack_allocated += slots; // TODO: Growth factor?
+		stack = new Value[stack_allocated];
+		stack_top = &stack[old_stack_top - old_stack];
+		stack_proc_base = &stack[old_stack_proc_base - old_stack];
+		std::copy(old_stack, old_stack_top, stack);
+
+		delete[] old_stack;
+	}
+
+	Value* stack;
+	size_t stack_allocated;
+
+	// Top of the stack. This is where the next stack entry to be pushed will be located.
 	Value* stack_top;
 
-	// Base of the stack. Different to `&stack[0]` as this is the base of the currently executing proc's stack.
-	Value* stack_base;
+	// Base of the current proc's stack
+	Value* stack_proc_base;
 
-	Value stack[1024];
+	// Maybe?
+	// ProcConstants* what_called_us;
+	// Value dot;
 };
 
 x86::Gp jit_context;
@@ -141,30 +216,35 @@ static JitContext* current_context = nullptr;
 
 static trvh JitEntryPoint(void* code_base, unsigned int args_len, Value* args, Value src)
 {
-	// Would be lovely for this to not be so... static
 	JitContext ctx;
 	JitProc code = static_cast<JitProc>(code_base);
 
 	current_context = &ctx;
-	code(&ctx);
+	JitProcResult res = code(&ctx);
 	current_context = nullptr;
 
-	if (ctx.stack_top != &ctx.stack[1])
+	switch (res)
 	{
-		__debugbreak();
+	case JitProcResult::Success:
+		if (ctx.Count() != 1)
+		{
+			__debugbreak();
+			return Value::Null();
+		}
+
+		return ctx.stack[0];
+	case JitProcResult::Yielded:
+		return Value::Null();
 	}
-	
-	trvh ret;
-	ret.type = ctx.stack[0].type;
-	ret.value = ctx.stack[0].value;
-	return ret;
+
+	// Shouldn't be here
+	__debugbreak();
+	return Value::Null();
 }
 
 static void jit_co_suspend_internal()
 {
-	memcpy(&stored_context, current_context, sizeof(stored_context));
-	stored_context.stack_base = (current_context->stack_base - current_context->stack) + stored_context.stack;
-	stored_context.stack_top = (current_context->stack_top - current_context->stack) + stored_context.stack;
+	stored_context = std::move(*current_context);
 }
 
 static trvh jit_co_suspend(unsigned int argcount, Value* args, Value src)
@@ -188,18 +268,25 @@ static trvh jit_co_resume(unsigned int argcount, Value* args, Value src)
 		*(stored_context.stack_top - 1) = Value::Null();
 	}
 
-	JitProc code = resumption_procs[resume_data.value];
-	code(&stored_context);
+	JitProcResult res = resumption_procs[resume_data.value](&stored_context);
 
-	if (stored_context.stack_top != &stored_context.stack[1])
+	switch (res)
 	{
-		__debugbreak();
-	}
+		case JitProcResult::Success:
+			if (stored_context.Count() != 1)
+			{
+				__debugbreak();
+				return Value::Null();
+			}
 
-	trvh ret;
-	ret.type = stored_context.stack[0].type;
-	ret.value = stored_context.stack[0].value;
-	return ret;
+			return stored_context.stack[0];
+		case JitProcResult::Yielded:
+			return Value::Null();
+	}
+	
+	// Shouldn't be here
+	__debugbreak();
+	return Value::Null();
 }
 
 
@@ -217,7 +304,7 @@ static void Emit_SetLocal(x86::Assembler& ass, unsigned int id)
 	ass.sub(x86::ptr(x86::eax, offsetof(JitContext, stack_top), sizeof(uint32_t)), sizeof(Value));
 
 	ass.mov(x86::ecx, x86::ptr(x86::eax, offsetof(JitContext, stack_top), sizeof(uint32_t)));
-	ass.mov(x86::edx, x86::ptr(x86::eax, offsetof(JitContext, stack_base), sizeof(uint32_t)));
+	ass.mov(x86::edx, x86::ptr(x86::eax, offsetof(JitContext, stack_proc_base), sizeof(uint32_t)));
 
 	ass.push(x86::ebx);
 
@@ -233,7 +320,7 @@ static void Emit_SetLocal(x86::Assembler& ass, unsigned int id)
 static void Emit_GetLocal(x86::Assembler& ass, unsigned int id)
 {
 	ass.mov(x86::ecx, x86::ptr(x86::eax, offsetof(JitContext, stack_top), sizeof(uint32_t)));
-	ass.mov(x86::edx, x86::ptr(x86::eax, offsetof(JitContext, stack_base), sizeof(uint32_t)));
+	ass.mov(x86::edx, x86::ptr(x86::eax, offsetof(JitContext, stack_proc_base), sizeof(uint32_t)));
 
 	ass.add(x86::ptr(x86::eax, offsetof(JitContext, stack_top), sizeof(uint32_t)), sizeof(Value));
 
@@ -285,17 +372,17 @@ static void Emit_CallGlobal(x86::Assembler& ass, unsigned int arg_count, unsigne
 		ass.mov(x86::ptr(x86::ecx, 0, sizeof(uint32_t)), Imm(DataType::NULL_D));
 		ass.mov(x86::ptr(x86::ecx, sizeof(Value) / 2, sizeof(uint32_t)), resumption_index);
 
-		ass.push(x86::eax);
+		// Our JitContext* becomes invalid after this call
 		ass.call((uint32_t) jit_co_suspend_internal);
-		ass.pop(x86::eax);
-		ass.jmp(current_epilogue);
+		ass.mov(x86::eax, Imm(static_cast<uint32_t>(JitProcResult::Yielded)));
+		ass.ret();
 
-		std::string comment = "Resumption Label: " + resumption_index;
+		std::string comment = "Resumption Label: " + std::to_string(resumption_index);
 		auto it = string_set.insert(comment);
 		ass.setInlineComment(it.first->c_str());
 
+		// Emit a new entry point for our proc
 		ass.bind(resume);
-		// JitContext ptr lives in eax
 		ass.mov(x86::eax, x86::ptr(x86::esp, 4, sizeof(uint32_t)));
 		return;
 	}
@@ -410,15 +497,26 @@ static void EmitPrologue(x86::Assembler& ass)
 	// JitContext ptr lives in eax
 	ass.mov(x86::eax, x86::ptr(x86::esp, 4, sizeof(uint32_t)));
 
-	// Allocate locals in stack
-	ass.mov(x86::ecx, x86::ptr(x86::eax, offsetof(JitContext, stack_top), sizeof(uint32_t)));
-	ass.add(x86::ptr(x86::eax, offsetof(JitContext, stack_top), sizeof(uint32_t)), locals_count * sizeof(Value));
+	// TODO: Call JitContext::Reserve()
 
-	// (null the locals too)
+	// TODO: We need to just define a struct of the stuff that goes before locals somewhere
+	// Allocate room for our constant data. It's the previous stack_proc_base and our local vars
+	ass.mov(x86::ecx, x86::ptr(x86::eax, offsetof(JitContext, stack_top), sizeof(uint32_t)));
+	ass.add(x86::ptr(x86::eax, offsetof(JitContext, stack_top), sizeof(uint32_t)), (1 + locals_count) * sizeof(Value));
+
+	// Store previous proc's stack_proc_base
+	ass.mov(x86::edx, x86::ptr(x86::eax, offsetof(JitContext, stack_proc_base), sizeof(uint32_t)));
+	ass.mov(x86::ptr(x86::ecx, 0, sizeof(uint32_t)), Imm(0));
+	ass.mov(x86::ptr(x86::ecx, sizeof(Value) / 2, sizeof(uint32_t)), x86::edx);
+
+	// Set new stack_proc_base
+	ass.mov(x86::ptr(x86::eax, offsetof(JitContext, stack_proc_base), sizeof(uint32_t)), x86::ecx);
+
+	// Set the locals to null
 	for (size_t i = 0; i < locals_count; i++)
 	{
-		ass.mov(x86::ptr(x86::ecx, i * sizeof(Value), sizeof(uint32_t)), Imm(0));
-		ass.mov(x86::ptr(x86::ecx, i * sizeof(Value) + sizeof(Value) / 2, sizeof(uint32_t)), Imm(0));
+		ass.mov(x86::ptr(x86::ecx, (1 + i) * sizeof(Value), sizeof(uint32_t)), Imm(0));
+		ass.mov(x86::ptr(x86::ecx, (1 + i) * sizeof(Value) + sizeof(Value) / 2, sizeof(uint32_t)), Imm(0));
 	}
 }
 
@@ -426,21 +524,26 @@ static void EmitEpilogue(x86::Assembler& ass)
 {
 	ass.mov(x86::ecx, x86::ptr(x86::eax, offsetof(JitContext, stack_top), sizeof(uint32_t)));
 
-	// Remove stack entries for our return value and all locals (except 1)
-	ass.sub(x86::ptr(x86::eax, offsetof(JitContext, stack_top), sizeof(uint32_t)), locals_count * sizeof(Value));
+	// Remove stack entries for our return value, the previous stack_proc_base, and all locals (except 1)
+	ass.sub(x86::ptr(x86::eax, offsetof(JitContext, stack_top), sizeof(uint32_t)), (1 + locals_count) * sizeof(Value));
+
+	// Read out the old stack_proc_base
+	ass.mov(x86::edx, x86::ptr(x86::ecx, sizeof(Value) * -(1 + locals_count) - (sizeof(Value) / 2), sizeof(uint32_t)));
+	ass.mov(x86::ptr(x86::eax, offsetof(JitContext, stack_proc_base), sizeof(uint32_t)), x86::edx);
 
 	// Move our return value from its old stack position to its new one
 	{
 		// Type
 		ass.mov(x86::edx, x86::ptr(x86::ecx, -sizeof(Value), sizeof(uint32_t)));
-		ass.mov(x86::ptr(x86::ecx, sizeof(Value) * -locals_count - sizeof(Value), sizeof(uint32_t)), x86::edx);
+		ass.mov(x86::ptr(x86::ecx, sizeof(Value) * -(1 + locals_count) - sizeof(Value), sizeof(uint32_t)), x86::edx);
 	}
 	{
 		// Value
 		ass.mov(x86::edx, x86::ptr(x86::ecx, -(sizeof(Value) / 2), sizeof(uint32_t)));
-		ass.mov(x86::ptr(x86::ecx, sizeof(Value) * -locals_count - (sizeof(Value) / 2), sizeof(uint32_t)), x86::edx);
+		ass.mov(x86::ptr(x86::ecx, sizeof(Value) * -(1 + locals_count) - (sizeof(Value) / 2), sizeof(uint32_t)), x86::edx);
 	}
 
+	ass.mov(x86::eax, Imm(static_cast<uint32_t>(JitProcResult::Success)));
 	ass.ret();
 }
 
