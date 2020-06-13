@@ -84,7 +84,7 @@ std::map<unsigned int, Block> split_into_blocks(Disassembly& dis, x86::Assembler
 			jump_targets.erase(i.offset());
 		}
 		blocks[current_block_offset].contents.push_back(i);
-		if (i == Bytecode::JZ || i == Bytecode::JMP || i == Bytecode::JMP2)
+		if (i == Bytecode::JZ || i == Bytecode::JMP || i == Bytecode::JMP2 || i == Bytecode::JNZ || i == Bytecode::JNZ2)
 		{
 			const unsigned int target = i.jump_locations().at(0);
 			if (target > i.offset())
@@ -267,6 +267,30 @@ static void Emit_PushValue(x86::Assembler& ass, DataType type, unsigned int valu
 	ass.mov(x86::ptr(x86::ecx, sizeof(Value) / 2, sizeof(uint32_t)), Imm(value));
 }
 
+static void Emit_MathOp(x86::Assembler& ass, Bytecode op_type)
+{
+	ass.sub(x86::ptr(x86::eax, offsetof(JitContext, stack_top)), 2 * sizeof(Value)); //pop 2 values from stack
+	ass.mov(x86::ecx, x86::ptr(x86::eax, offsetof(JitContext, stack_top))); //move stack top into ecx
+	ass.movss(x86::xmm0, x86::ptr(x86::ecx, offsetof(Value, valuef))); //move the float val of first value into xmm0
+	switch (op_type)
+	{
+	case Bytecode::ADD:
+		ass.addss(x86::xmm0, x86::ptr(x86::ecx, sizeof(Value) + offsetof(Value, valuef))); //do meth
+		break;
+	case Bytecode::SUB:
+		ass.subss(x86::xmm0, x86::ptr(x86::ecx, sizeof(Value) + offsetof(Value, valuef)));
+		break;
+	case Bytecode::MUL:
+		ass.mulss(x86::xmm0, x86::ptr(x86::ecx, sizeof(Value) + offsetof(Value, valuef)));
+		break;
+	case Bytecode::DIV:
+		ass.divss(x86::xmm0, x86::ptr(x86::ecx, sizeof(Value) + offsetof(Value, valuef)));
+		break;
+	}
+	ass.movss(x86::ptr(x86::ecx, offsetof(Value, valuef)), x86::xmm0); //move result into existing stack value
+	ass.add(x86::ptr(x86::eax, offsetof(JitContext, stack_top), sizeof(uint32_t)), sizeof(Value)); //increment stack size
+}
+
 static void Emit_CallGlobal(x86::Assembler& ass, unsigned int arg_count, unsigned int proc_id)
 {
 	if (proc_id == jit_co_suspend_proc_id)
@@ -356,6 +380,13 @@ static bool EmitBlock(x86::Assembler& ass, Block& block)
 		case Bytecode::PUSHI:
 			jit_out << "Assembling push integer" << std::endl;
 			Emit_PushInteger(ass, instr.bytes()[1]);
+			break;
+		case Bytecode::ADD:
+		case Bytecode::SUB:
+		case Bytecode::MUL:
+		case Bytecode::DIV:
+			jit_out << "Assembling math op" << std::endl;
+			Emit_MathOp(ass, (Bytecode)instr.bytes()[1]);
 			break;
 		case Bytecode::SETVAR:
 			if (instr.bytes()[1] == AccessModifier::LOCAL)
