@@ -82,6 +82,8 @@ typedef unsigned int(*GetRBTreeMemoryUsagePtr)(AssociativeListEntry* root);
 typedef trvh(*InitializeListFromContextPtr)(unsigned int list_id);
 typedef void(*DestroyListPtr)(unsigned int list_id);
 typedef void(*DestroyDatumPtr)(int unk1, int unk2, trvh datum);
+typedef void(*AddSleeperToListPtr)(ProcConstants* sleeper);
+typedef void(*RunDMPtr)(ProcConstants* setup_info);
 
 extern CrashProcPtr CrashProc;
 extern StartTimingPtr StartTiming;
@@ -129,3 +131,5 @@ extern InitializeListFromContextPtr InitializeListFromContext;
 extern RemoveFromContainerPtr RemoveFromContainer;
 extern DestroyListPtr DestroyList;
 extern DestroyDatumPtr DestroyDatum;
+extern AddSleeperToListPtr AddSleeperToList;
+extern RunDMPtr RunDM;

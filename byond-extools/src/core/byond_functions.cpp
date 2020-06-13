@@ -45,3 +45,5 @@ InitializeListFromContextPtr InitializeListFromContext;
 RemoveFromContainerPtr RemoveFromContainer;
 DestroyListPtr DestroyList;
 DestroyDatumPtr DestroyDatum;
+AddSleeperToListPtr AddSleeperToList;
+RunDMPtr RunDM;
