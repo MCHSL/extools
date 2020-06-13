@@ -7,6 +7,7 @@
 std::vector<Core::Proc> procs_by_id;
 std::unordered_map<std::string, std::vector<unsigned int>> procs_by_name;
 std::unordered_map<unsigned int, bool> extended_profiling_procs;
+std::unordered_map<unsigned int, JitLoc> jit_hooks;
 std::unordered_map<unsigned int, ProcHook> proc_hooks;
 
 void strip_proc_path(std::string& name)
@@ -66,6 +67,14 @@ ProfileInfo* Core::Proc::profile() const
 void Core::Proc::extended_profile()
 {
 	procs_to_profile[id] = true;
+}
+
+void Core::Proc::jit_hook(void* code_base, JitHook hook_func)
+{
+	JitLoc loc;
+	loc.base = code_base;
+	loc.func = hook_func;
+	jit_hooks[id] = loc;
 }
 
 void Core::Proc::hook(ProcHook hook_func)

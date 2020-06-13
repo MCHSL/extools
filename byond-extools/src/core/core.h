@@ -80,10 +80,10 @@ namespace Core
 		void resume();
 
 	protected:
-		SuspendedProc* proc;
+		ProcConstants* proc;
 
 	private:
-		ResumableProc(SuspendedProc* sp) : proc(sp) { sp->time_to_resume = 1; }
+		ResumableProc(ProcConstants* sp) : proc(sp) { sp->time_to_resume = 1; }
 
 	};
 
@@ -100,6 +100,7 @@ namespace Core
 	extern TableHolder2* datum_table;
 	extern TableHolder2* list_table; //list list honk
 	extern TableHolder2* mob_table;
+	extern SleeperList* sleeper_list;
 
 	extern std::unordered_map<std::string, Value*> global_direct_cache;
 	void global_direct_set(std::string name, Value val);

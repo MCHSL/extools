@@ -43,6 +43,20 @@ trvh REGPARM3 hCallGlobalProc(char usr_type, int usr_value, int proc_type, unsig
 		}
 		calling_queue = false;
 	}*/
+
+	auto jit_hooks_it = jit_hooks.find((unsigned short)proc_id);
+	if (jit_hooks_it != jit_hooks.end())
+	{
+		void* base = jit_hooks_it->second.base;
+		JitHook func = jit_hooks_it->second.func;
+		trvh result = func(base, argListLen, argList, src_type ? Value(src_type, src_value) : static_cast<Value>(Value::Null()));
+		for (int i = 0; i < argListLen; i++)
+		{
+			DecRefCount(argList[i].type, argList[i].value);
+		}
+		return result;
+	}
+
 	Core::extended_profiling_insanely_hacky_check_if_its_a_new_call_or_resume = proc_id;
 	if (proc_hooks.find((unsigned short)proc_id) != proc_hooks.end())
 	{
@@ -83,7 +97,7 @@ std::recursive_mutex timing_mutex;
 #ifndef _WIN32
 REGPARM3
 #endif
-void hStartTiming(SuspendedProc* sp)
+void hStartTiming(ProcConstants* sp)
 {
 	std::lock_guard<std::recursive_mutex> lk(timing_mutex);
 	oStartTiming(sp);

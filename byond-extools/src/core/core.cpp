@@ -32,6 +32,8 @@ TableHolder2* Core::datum_table = nullptr;
 TableHolder2* Core::list_table = nullptr;
 TableHolder2* Core::mob_table = nullptr;
 
+SleeperList* Core::sleeper_list = nullptr;
+
 Core::ManagedString::ManagedString(unsigned int id) : string_id(id)
 {
 	string_entry = GetStringTableEntry(string_id);
@@ -288,6 +290,7 @@ void Core::cleanup()
 	Core::opcode_handlers.clear();
 	Core::destroy_proc_list();
 	procs_to_profile.clear();
+	jit_hooks.clear();
 	proc_hooks.clear();
 	global_direct_cache.clear();
 	clean_sockets();

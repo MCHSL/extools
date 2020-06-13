@@ -5,6 +5,14 @@
 #include <unordered_map>
 #include <optional>
 
+typedef trvh(*JitHook)(void* code_base, unsigned int args_len, Value* args, Value src);
+
+struct JitLoc
+{
+	void* base;
+	JitHook func;
+};
+
 typedef trvh(*ProcHook)(unsigned int args_len, Value* args, Value src);
 
 class Disassembly;
@@ -50,6 +58,7 @@ namespace Core
 
 		ProfileInfo* profile() const;
 		void extended_profile();
+		void jit_hook(void* code_base, JitHook hook_func);
 		void hook(ProcHook hook_func);
 		Value call(std::vector<Value> arguments, Value usr = Value::Null());
 
@@ -75,6 +84,7 @@ namespace Core
 	Disassembly disassemble_raw(std::vector<int> bytecode);
 }
 
+extern std::unordered_map<unsigned int, JitLoc> jit_hooks;
 extern std::unordered_map<unsigned int, ProcHook> proc_hooks;
 extern std::unordered_map<unsigned int, bool> extended_profiling_procs;
 
