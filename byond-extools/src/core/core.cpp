@@ -290,6 +290,7 @@ void Core::cleanup()
 	Core::opcode_handlers.clear();
 	Core::destroy_proc_list();
 	procs_to_profile.clear();
+	jit_hooks.clear();
 	proc_hooks.clear();
 	global_direct_cache.clear();
 	clean_sockets();
