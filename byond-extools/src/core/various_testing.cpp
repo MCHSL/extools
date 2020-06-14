@@ -116,11 +116,37 @@ trvh toggle_verb_hidden(unsigned int argcount, Value* args, Value src)
 
 trvh test_invoke(unsigned int argcount, Value* args, Value src)
 {
-	return Value(DataType::STRING, args[0]);
+	ProcConstants* fake_ass_sus = new ProcConstants();
+	fake_ass_sus->time_to_resume = 0x69;
+	fake_ass_sus->proc_id = -1;
+	AddSleeperToList(fake_ass_sus);
+	return Value::Null();
+}
+
+void OnResumed()
+{
+	Core::Alert("Proc resumed!!!!!!!!!!!!!!!!!");
+}
+
+void ResumeHook(ProcConstants* pc)
+{
+	if (pc->proc_id == -1)
+	{
+		OnResumed();
+	}
+	else
+	{
+		RunDM(pc);
+	}
 }
 
 void init_testing()
 {
+	int* rundm_offset = (int*)Pocket::Sigscan::FindPattern("byondcore.dll", "E8 ?? ?? ?? ?? A1 ?? ?? ?? ?? 83 C4 04 89 46 18 89 ?? ?? ?? ?? ?? E8 ?? ?? ?? ?? 8B F0 85 F6 75 AB 8B ?? ?? ?? ?? ?? 5F 5E", 1);
+	DWORD old_prot;
+	VirtualProtect(rundm_offset, 4, PAGE_READWRITE, &old_prot);
+	*rundm_offset = (int)&ResumeHook - (int)rundm_offset - 4;
+	VirtualProtect(rundm_offset, 4, old_prot, &old_prot);
 	// jit_compile(Core::get_proc("/proc/jit"));
 	//Value a(5.0f);
 	//Value b = a + 5.0f;
@@ -132,7 +158,7 @@ void init_testing()
 	//Core::global_direct_set("internal_tick_usage", "AYYLMAO");
 	//Core::Alert(Core::global_direct_get("internal_tick_usage"));
 	//Core::Alert(Core::GetStringFromId(0x86));
-	//Core::get_proc("/proc/get_string_by_id").hook(test_invoke);
+	Core::get_proc("/proc/get_string_by_id").hook(test_invoke);
 	//Core::Alert(Core::get_proc("/client/verb/hidden").proc_table_entry->procFlags);
 	//Core::Alert(Core::get_proc("/client/verb/nothidden").proc_table_entry->procFlags);
 	//Core::get_proc("/client/verb/toggle_hidden_verb").hook(toggle_verb_hidden);
