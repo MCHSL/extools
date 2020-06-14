@@ -6,13 +6,162 @@
 #include <fstream>
 #include "jit.h"
 #include <algorithm>
+#include <stack>
 
 using namespace asmjit;
+
+struct RegisterAllocator;
+
+struct Register
+{
+	~Register();
+
+	Register(RegisterAllocator* allocator, size_t index, uint32_t cookie)
+		: allocator(allocator)
+		, index(index)
+		, cookie(cookie)
+	{}
+
+	Register(const Register&) = delete;
+	Register& operator=(const Register&) = delete;
+
+	Register(Register&& src) noexcept
+		: allocator(std::exchange(src.allocator, nullptr))
+		, index(std::exchange(src.index, 0))
+		, cookie(std::exchange(src.cookie, 0))
+	{}
+
+	Register& operator=(Register&& src) noexcept
+	{
+		allocator = std::exchange(src.allocator, nullptr);
+		index = std::exchange(src.index, 0);
+		cookie = std::exchange(src.cookie, 0);
+		return *this;
+	}
+
+	x86::Gp Get();
+
+	operator x86::Gp() { return Get(); }
+
+	RegisterAllocator* allocator;
+	size_t index;
+	uint32_t cookie;
+};
+
+struct RegisterAllocator
+{
+	RegisterAllocator()
+		: registers{{x86::eax, 0}, {x86::ecx, 0}, {x86::edx, 0}, {x86::ebx, 0}, {x86::ebp, 0}, {x86::esi, 0}, {x86::edi, 0}}
+		, next_cookie(1)
+	{
+
+	}
+
+	Register New(x86::Assembler& ass)
+	{
+		auto it = std::find_if(registers.begin(), registers.end(),
+			[](const std::pair<x86::Gp, uint32_t>& pair) { return pair.second == 0; });
+
+		if (it == registers.end())
+			throw;
+
+		if (RegisterNeedsRestoring(it->first))
+		{
+			if (std::find(pushed.begin(), pushed.end(), it->first) == pushed.end())
+			{
+				ass.setInlineComment( "RegisterAllocator::New" );
+				ass.push(it->first);
+				pushed.push_back(it->first);
+			}
+		}
+
+		uint32_t cookie = next_cookie++;
+		it->second = cookie;
+		return Register{this, static_cast<size_t>(it - registers.begin()), cookie};
+	}
+
+	void Release(Register& reg)
+	{
+		if (this != reg.allocator)
+			throw;
+
+		if (reg.index >= registers.size())
+			throw;
+
+		auto& pair = registers[reg.index];
+
+		if (reg.cookie == pair.second)
+		{
+			pair.second = 0;
+		}
+	}
+
+	x86::Gp Get(Register& reg)
+	{
+		if (this != reg.allocator)
+			throw;
+
+		if (reg.index >= registers.size())
+			throw;
+
+		auto& pair = registers[reg.index];
+
+		if (reg.cookie != pair.second)
+			throw;
+
+		return pair.first;
+	}
+
+	void Flush(x86::Assembler& ass)
+	{
+		for (auto& pair : registers)
+		{
+			pair.second = 0;
+		}
+
+		ass.setInlineComment( "RegisterAllocator::Flush" );
+		for (auto it = pushed.rbegin(); it != pushed.rend(); ++it)
+		{
+			ass.pop(*it);
+		}
+		pushed.clear();
+		ass.resetInlineComment();
+	}
+
+	// Does this register need to be restored to its original value before our function returns?
+	static const bool RegisterNeedsRestoring(x86::Gp reg)
+	{
+		if (reg == x86::eax || reg == x86::ecx || reg == x86::edx)
+		{
+			return false;
+		}
+
+		return true;
+	}
+
+	std::vector<x86::Gp> pushed;
+	std::vector<std::pair<x86::Gp, uint32_t>> registers;
+	uint32_t next_cookie;
+};
+
+Register::~Register()
+{
+	if (allocator == nullptr)
+		return;
+
+	allocator->Release(*this);
+}
+
+x86::Gp Register::Get()
+{
+	return allocator->Get(*this);
+}
 
 struct JitContext;
 
 enum struct JitProcResult : uint32_t
 {
+	// The proc finished. The return value is at the top of the stack (and should be the only value there)
 	Success,
 	
 	// The proc is sleeping or something - the passed in JitContext is now invalid
@@ -114,7 +263,7 @@ struct JitContext
 	// Value dot;
 };
 
-x86::Gp jit_context;
+static RegisterAllocator register_allocator;
 static unsigned int jit_co_suspend_proc_id = 0;
 
 // Shouldn't be globals!!!
@@ -211,6 +360,7 @@ public:
 
 // obviously not final, just some global state to test jit pause/resume
 // reentrancy will kill it, don't complain
+static Register jit_context = { nullptr, 0, 0 };
 static JitContext stored_context;
 static JitContext* current_context = nullptr;
 
@@ -292,52 +442,55 @@ static trvh jit_co_resume(unsigned int argcount, Value* args, Value src)
 
 static void Emit_PushInteger(x86::Assembler& ass, float not_an_integer)
 {
-	ass.mov(x86::ecx, x86::ptr(x86::eax, offsetof(JitContext, stack_top), sizeof(uint32_t)));
-	ass.add(x86::ptr(x86::eax, offsetof(JitContext, stack_top), sizeof(uint32_t)), sizeof(Value));
+	auto stack_top = register_allocator.New(ass);
 
-	ass.mov(x86::ptr(x86::ecx, 0, sizeof(uint32_t)), Imm(DataType::NUMBER));
-	ass.mov(x86::ptr(x86::ecx, sizeof(Value) / 2, sizeof(uint32_t)), Imm(EncodeFloat(not_an_integer)));
+	ass.mov(stack_top, x86::ptr(jit_context, offsetof(JitContext, stack_top), sizeof(uint32_t)));
+	ass.add(x86::ptr(jit_context, offsetof(JitContext, stack_top), sizeof(uint32_t)), sizeof(Value));
+
+	ass.mov(x86::ptr(stack_top, 0, sizeof(uint32_t)), Imm(DataType::NUMBER));
+	ass.mov(x86::ptr(stack_top, sizeof(Value) / 2, sizeof(uint32_t)), Imm(EncodeFloat(not_an_integer)));
 }
 
 static void Emit_SetLocal(x86::Assembler& ass, unsigned int id)
 {
-	ass.sub(x86::ptr(x86::eax, offsetof(JitContext, stack_top), sizeof(uint32_t)), sizeof(Value));
+	ass.sub(x86::ptr(jit_context, offsetof(JitContext, stack_top), sizeof(uint32_t)), sizeof(Value));
 
-	ass.mov(x86::ecx, x86::ptr(x86::eax, offsetof(JitContext, stack_top), sizeof(uint32_t)));
-	ass.mov(x86::edx, x86::ptr(x86::eax, offsetof(JitContext, stack_proc_base), sizeof(uint32_t)));
+	auto stack_top = register_allocator.New(ass);
+	auto stack_proc_base = register_allocator.New(ass);
+	ass.mov(stack_top, x86::ptr(jit_context, offsetof(JitContext, stack_top), sizeof(uint32_t)));
+	ass.mov(stack_proc_base, x86::ptr(jit_context, offsetof(JitContext, stack_proc_base), sizeof(uint32_t)));
 
-	ass.push(x86::ebx);
+	auto temp = register_allocator.New(ass);
+	ass.mov(temp, x86::ptr(stack_top, 0, sizeof(uint32_t)));
+	ass.mov(x86::ptr(stack_proc_base, id * sizeof(Value), sizeof(uint32_t)), temp);
 
-	ass.mov(x86::ebx, x86::ptr(x86::ecx, 0, sizeof(uint32_t)));
-	ass.mov(x86::ptr(x86::edx, id * sizeof(Value), sizeof(uint32_t)), x86::ebx);
-
-	ass.mov(x86::ebx, x86::ptr(x86::ecx, sizeof(Value) / 2, sizeof(uint32_t)));
-	ass.mov(x86::ptr(x86::edx, id * sizeof(Value) + sizeof(Value) / 2, sizeof(uint32_t)), x86::ebx);
-
-	ass.pop(x86::ebx);
+	ass.mov(temp, x86::ptr(stack_top, sizeof(Value) / 2, sizeof(uint32_t)));
+	ass.mov(x86::ptr(stack_proc_base, id * sizeof(Value) + sizeof(Value) / 2, sizeof(uint32_t)), temp);
 }
 
 static void Emit_GetLocal(x86::Assembler& ass, unsigned int id)
 {
-	ass.mov(x86::ecx, x86::ptr(x86::eax, offsetof(JitContext, stack_top), sizeof(uint32_t)));
-	ass.mov(x86::edx, x86::ptr(x86::eax, offsetof(JitContext, stack_proc_base), sizeof(uint32_t)));
+	auto stack_top = register_allocator.New(ass);
+	auto stack_proc_base = register_allocator.New(ass);
 
-	ass.add(x86::ptr(x86::eax, offsetof(JitContext, stack_top), sizeof(uint32_t)), sizeof(Value));
+	ass.mov(stack_top, x86::ptr(jit_context, offsetof(JitContext, stack_top), sizeof(uint32_t)));
+	ass.mov(stack_proc_base, x86::ptr(jit_context, offsetof(JitContext, stack_proc_base), sizeof(uint32_t)));
 
-	ass.push(x86::ebx);
+	ass.add(x86::ptr(jit_context, offsetof(JitContext, stack_top), sizeof(uint32_t)), sizeof(Value));
 
-	ass.mov(x86::ebx, x86::ptr(x86::edx, id * sizeof(Value), sizeof(uint32_t)));
-	ass.mov(x86::ptr(x86::ecx, 0, sizeof(uint32_t)), x86::ebx);
+	// Register to copy the type/value with
+	auto temp = register_allocator.New(ass);
 
-	ass.mov(x86::ebx, x86::ptr(x86::edx, id * sizeof(Value) + sizeof(Value) / 2, sizeof(uint32_t)));
-	ass.mov(x86::ptr(x86::ecx, sizeof(Value) / 2, sizeof(uint32_t)), x86::ebx);
-	
-	ass.pop(x86::ebx);
+	ass.mov(temp, x86::ptr(stack_proc_base, id * sizeof(Value), sizeof(uint32_t)));
+	ass.mov(x86::ptr(stack_top, 0, sizeof(uint32_t)), temp);
+
+	ass.mov(temp, x86::ptr(stack_proc_base, id * sizeof(Value) + sizeof(Value) / 2, sizeof(uint32_t)));
+	ass.mov(x86::ptr(stack_top, sizeof(Value) / 2, sizeof(uint32_t)), temp);
 }
 
 static void Emit_Pop(x86::Assembler& ass)
 {
-	ass.sub(x86::ptr(x86::eax, offsetof(JitContext, stack_top), sizeof(uint32_t)), sizeof(Value));
+	ass.sub(x86::ptr(jit_context, offsetof(JitContext, stack_top), sizeof(uint32_t)), sizeof(Value));
 }
 
 static void Emit_PushValue(x86::Assembler& ass, DataType type, unsigned int value, unsigned int value2 = 0)
@@ -347,11 +500,12 @@ static void Emit_PushValue(x86::Assembler& ass, DataType type, unsigned int valu
 		value = value << 16 | value2;
 	}
 
-	ass.mov(x86::ecx, x86::ptr(x86::eax, offsetof(JitContext, stack_top), sizeof(uint32_t)));
-	ass.add(x86::ptr(x86::eax, offsetof(JitContext, stack_top), sizeof(uint32_t)), sizeof(Value));
+	auto stack_top = register_allocator.New(ass);
+	ass.mov(stack_top, x86::ptr(jit_context, offsetof(JitContext, stack_top), sizeof(uint32_t)));
+	ass.add(x86::ptr(jit_context, offsetof(JitContext, stack_top), sizeof(uint32_t)), sizeof(Value));
 
-	ass.mov(x86::ptr(x86::ecx, 0, sizeof(uint32_t)), Imm(type));
-	ass.mov(x86::ptr(x86::ecx, sizeof(Value) / 2, sizeof(uint32_t)), Imm(value));
+	ass.mov(x86::ptr(stack_top, 0, sizeof(uint32_t)), Imm(type));
+	ass.mov(x86::ptr(stack_top, sizeof(Value) / 2, sizeof(uint32_t)), Imm(value));
 }
 
 static void Emit_CallGlobal(x86::Assembler& ass, unsigned int arg_count, unsigned int proc_id)
@@ -365,16 +519,19 @@ static void Emit_CallGlobal(x86::Assembler& ass, unsigned int arg_count, unsigne
 		resumption_labels.push_back(resume);
 		uint32_t resumption_index = resumption_labels.size() - 1;
 
-		ass.mov(x86::ecx, x86::ptr(x86::eax, offsetof(JitContext, stack_top), sizeof(uint32_t)));
-		ass.add(x86::ptr(x86::eax, offsetof(JitContext, stack_top), sizeof(uint32_t)), sizeof(Value));
+		auto stack_top = register_allocator.New(ass);
+
+		ass.mov(stack_top, x86::ptr(jit_context, offsetof(JitContext, stack_top), sizeof(uint32_t)));
+		ass.add(x86::ptr(jit_context, offsetof(JitContext, stack_top), sizeof(uint32_t)), sizeof(Value));
 
 		// where the code should resume
-		ass.mov(x86::ptr(x86::ecx, 0, sizeof(uint32_t)), Imm(DataType::NULL_D));
-		ass.mov(x86::ptr(x86::ecx, sizeof(Value) / 2, sizeof(uint32_t)), resumption_index);
+		ass.mov(x86::ptr(stack_top, 0, sizeof(uint32_t)), Imm(DataType::NULL_D));
+		ass.mov(x86::ptr(stack_top, sizeof(Value) / 2, sizeof(uint32_t)), resumption_index);
 
 		// Our JitContext* becomes invalid after this call
 		ass.call((uint32_t) jit_co_suspend_internal);
 		ass.mov(x86::eax, Imm(static_cast<uint32_t>(JitProcResult::Yielded)));
+		register_allocator.Flush(ass);
 		ass.ret();
 
 		std::string comment = "Resumption Label: " + std::to_string(resumption_index);
@@ -383,44 +540,54 @@ static void Emit_CallGlobal(x86::Assembler& ass, unsigned int arg_count, unsigne
 
 		// Emit a new entry point for our proc
 		ass.bind(resume);
-		ass.mov(x86::eax, x86::ptr(x86::esp, 4, sizeof(uint32_t)));
+		jit_context = register_allocator.New(ass);
+		ass.mov(jit_context, x86::ptr(x86::esp, 4, sizeof(uint32_t)));
 		return;
 	}
 
+	ass.sub(x86::ptr(jit_context, offsetof(JitContext, stack_top), sizeof(uint32_t)), arg_count * sizeof(Value));
 
-	ass.sub(x86::ptr(x86::eax, offsetof(JitContext, stack_top), sizeof(uint32_t)), arg_count * sizeof(Value));
-	ass.mov(x86::ecx, x86::ptr(x86::eax, offsetof(JitContext, stack_top), sizeof(uint32_t)));
+	// TODO: Currently no register allocator allowed while we mess with the stack :/
+	register_allocator.Flush(ass);
+	{
+		ass.mov(x86::eax, x86::ptr(x86::esp, 4, sizeof(uint32_t)));
+		ass.mov(x86::ecx, x86::ptr(x86::eax, offsetof(JitContext, stack_top), sizeof(uint32_t)));
 
-	ass.sub(x86::esp, 4 * 11 + 4 * 2);
+		ass.sub(x86::esp, 4 * 12);
 
-	ass.mov(x86::ptr(x86::esp, 4 * 0, sizeof(uint32_t)), 0); // usr_type
-	ass.mov(x86::ptr(x86::esp, 4 * 1, sizeof(uint32_t)), 0); // usr_value
-	ass.mov(x86::ptr(x86::esp, 4 * 2, sizeof(uint32_t)), 2); // proc_type
-	ass.mov(x86::ptr(x86::esp, 4 * 3, sizeof(uint32_t)), proc_id); // proc_id
-	ass.mov(x86::ptr(x86::esp, 4 * 4, sizeof(uint32_t)), 0); // const_0
-	ass.mov(x86::ptr(x86::esp, 4 * 5, sizeof(uint32_t)), 0); // src_type
-	ass.mov(x86::ptr(x86::esp, 4 * 6, sizeof(uint32_t)), 0); // src_value
-	ass.mov(x86::ptr(x86::esp, 4 * 7, sizeof(uint32_t)), x86::ecx); // argList
-	ass.mov(x86::ptr(x86::esp, 4 * 8, sizeof(uint32_t)), arg_count); // argListLen
-	ass.mov(x86::ptr(x86::esp, 4 * 9, sizeof(uint32_t)), 0); // const_0_2
-	ass.mov(x86::ptr(x86::esp, 4 * 10, sizeof(uint32_t)), 0); // const_0_3
+		ass.mov(x86::ptr(x86::esp, 4 * 0, sizeof(uint32_t)), 0); // usr_type
+		ass.mov(x86::ptr(x86::esp, 4 * 1, sizeof(uint32_t)), 0); // usr_value
+		ass.mov(x86::ptr(x86::esp, 4 * 2, sizeof(uint32_t)), 2); // proc_type
+		ass.mov(x86::ptr(x86::esp, 4 * 3, sizeof(uint32_t)), proc_id); // proc_id
+		ass.mov(x86::ptr(x86::esp, 4 * 4, sizeof(uint32_t)), 0); // const_0
+		ass.mov(x86::ptr(x86::esp, 4 * 5, sizeof(uint32_t)), 0); // src_type
+		ass.mov(x86::ptr(x86::esp, 4 * 6, sizeof(uint32_t)), 0); // src_value
+		ass.mov(x86::ptr(x86::esp, 4 * 7, sizeof(uint32_t)), x86::ecx); // argList
+		ass.mov(x86::ptr(x86::esp, 4 * 8, sizeof(uint32_t)), arg_count); // argListLen
+		ass.mov(x86::ptr(x86::esp, 4 * 9, sizeof(uint32_t)), 0); // const_0_2
+		ass.mov(x86::ptr(x86::esp, 4 * 10, sizeof(uint32_t)), 0); // const_0_3
 
-	ass.mov(x86::ptr(x86::esp, 4 * 11, sizeof(uint32_t)), x86::eax);
-	ass.mov(x86::ptr(x86::esp, 4 * 12, sizeof(uint32_t)), x86::ecx);
+		// Save stack_top on the stack
+		ass.mov(x86::ptr(x86::esp, 4 * 11, sizeof(uint32_t)), x86::ecx);
 
-	ass.call((uint32_t) CallGlobalProc);
+		ass.call((uint32_t) CallGlobalProc);
 
-	ass.mov(x86::ecx, x86::ptr(x86::esp, 4 * 12, sizeof(uint32_t)));
+		// Get stack_top back
+		ass.mov(x86::ecx, x86::ptr(x86::esp, 4 * 11, sizeof(uint32_t)));
 
-	ass.mov(x86::ptr(x86::ecx, 0, sizeof(uint32_t)), x86::eax);
-	ass.mov(x86::ptr(x86::ecx, sizeof(Value) / 2, sizeof(uint32_t)), x86::edx);
+		// Put ret val into the stack
+		ass.mov(x86::ptr(x86::ecx, 0, sizeof(uint32_t)), x86::eax);
+		ass.mov(x86::ptr(x86::ecx, sizeof(Value) / 2, sizeof(uint32_t)), x86::edx);
 
-	ass.mov(x86::eax, x86::ptr(x86::esp, 4 * 11, sizeof(uint32_t)));
+		ass.add(x86::esp, 4 * 12);
+	}
+
+	// restore our jit_context
+	jit_context = register_allocator.New(ass);
+	ass.mov(jit_context, x86::ptr(x86::esp, 4, sizeof(uint32_t)));
 	
-	ass.add(x86::esp, 4 * 11 + 4 * 2);
-
 	// Could merge into the sub above
-	ass.add(x86::ptr(x86::eax, offsetof(JitContext, stack_top), sizeof(uint32_t)), sizeof(Value));
+	ass.add(x86::ptr(jit_context, offsetof(JitContext, stack_top), sizeof(uint32_t)), sizeof(Value));
 }
 
 static void Emit_Return(x86::Assembler& ass)
@@ -494,55 +661,65 @@ static bool EmitBlock(x86::Assembler& ass, Block& block)
 
 static void EmitPrologue(x86::Assembler& ass)
 {
-	// JitContext ptr lives in eax
-	ass.mov(x86::eax, x86::ptr(x86::esp, 4, sizeof(uint32_t)));
+	jit_context = register_allocator.New(ass);
+	ass.mov(jit_context, x86::ptr(x86::esp, 4, sizeof(uint32_t)));
 
 	// TODO: Call JitContext::Reserve()
 
 	// TODO: We need to just define a struct of the stuff that goes before locals somewhere
 	// Allocate room for our constant data. It's the previous stack_proc_base and our local vars
-	ass.mov(x86::ecx, x86::ptr(x86::eax, offsetof(JitContext, stack_top), sizeof(uint32_t)));
-	ass.add(x86::ptr(x86::eax, offsetof(JitContext, stack_top), sizeof(uint32_t)), (1 + locals_count) * sizeof(Value));
+	auto old_stack_top = register_allocator.New(ass);
+
+	ass.mov(old_stack_top, x86::ptr(jit_context, offsetof(JitContext, stack_top), sizeof(uint32_t)));
+	ass.add(x86::ptr(jit_context, offsetof(JitContext, stack_top), sizeof(uint32_t)), (1 + locals_count) * sizeof(Value));
 
 	// Store previous proc's stack_proc_base
-	ass.mov(x86::edx, x86::ptr(x86::eax, offsetof(JitContext, stack_proc_base), sizeof(uint32_t)));
-	ass.mov(x86::ptr(x86::ecx, 0, sizeof(uint32_t)), Imm(0));
-	ass.mov(x86::ptr(x86::ecx, sizeof(Value) / 2, sizeof(uint32_t)), x86::edx);
+	{
+		auto stack_proc_base = register_allocator.New(ass);
+		ass.mov(stack_proc_base, x86::ptr(jit_context, offsetof(JitContext, stack_proc_base), sizeof(uint32_t)));
+		ass.mov(x86::ptr(old_stack_top, 0, sizeof(uint32_t)), Imm(0));
+		ass.mov(x86::ptr(old_stack_top, sizeof(Value) / 2, sizeof(uint32_t)), stack_proc_base);
+	}
 
 	// Set new stack_proc_base
-	ass.mov(x86::ptr(x86::eax, offsetof(JitContext, stack_proc_base), sizeof(uint32_t)), x86::ecx);
+	ass.mov(x86::ptr(jit_context, offsetof(JitContext, stack_proc_base), sizeof(uint32_t)), old_stack_top);
 
 	// Set the locals to null
 	for (size_t i = 0; i < locals_count; i++)
 	{
-		ass.mov(x86::ptr(x86::ecx, (1 + i) * sizeof(Value), sizeof(uint32_t)), Imm(0));
-		ass.mov(x86::ptr(x86::ecx, (1 + i) * sizeof(Value) + sizeof(Value) / 2, sizeof(uint32_t)), Imm(0));
+		ass.mov(x86::ptr(old_stack_top, (1 + i) * sizeof(Value), sizeof(uint32_t)), Imm(0));
+		ass.mov(x86::ptr(old_stack_top, (1 + i) * sizeof(Value) + sizeof(Value) / 2, sizeof(uint32_t)), Imm(0));
 	}
 }
 
 static void EmitEpilogue(x86::Assembler& ass)
 {
-	ass.mov(x86::ecx, x86::ptr(x86::eax, offsetof(JitContext, stack_top), sizeof(uint32_t)));
+	auto stack_top = register_allocator.New(ass);
+	ass.mov(stack_top, x86::ptr(jit_context, offsetof(JitContext, stack_top), sizeof(uint32_t)));
 
 	// Remove stack entries for our return value, the previous stack_proc_base, and all locals (except 1)
-	ass.sub(x86::ptr(x86::eax, offsetof(JitContext, stack_top), sizeof(uint32_t)), (1 + locals_count) * sizeof(Value));
+	ass.sub(x86::ptr(jit_context, offsetof(JitContext, stack_top), sizeof(uint32_t)), (1 + locals_count) * sizeof(Value));
 
-	// Read out the old stack_proc_base
-	ass.mov(x86::edx, x86::ptr(x86::ecx, sizeof(Value) * -(1 + locals_count) - (sizeof(Value) / 2), sizeof(uint32_t)));
-	ass.mov(x86::ptr(x86::eax, offsetof(JitContext, stack_proc_base), sizeof(uint32_t)), x86::edx);
+	// Restore the old stack_proc_base
+	{
+		auto old_stack_proc_base = register_allocator.New(ass);
+		ass.mov(old_stack_proc_base, x86::ptr(stack_top, sizeof(Value) * -(1 + locals_count) - (sizeof(Value) / 2), sizeof(uint32_t)));
+		ass.mov(x86::ptr(jit_context, offsetof(JitContext, stack_proc_base), sizeof(uint32_t)), old_stack_proc_base);
+	}
 
 	// Move our return value from its old stack position to its new one
 	{
-		// Type
-		ass.mov(x86::edx, x86::ptr(x86::ecx, -sizeof(Value), sizeof(uint32_t)));
-		ass.mov(x86::ptr(x86::ecx, sizeof(Value) * -(1 + locals_count) - sizeof(Value), sizeof(uint32_t)), x86::edx);
+		auto type = register_allocator.New(ass);
+		ass.mov(type, x86::ptr(stack_top, -sizeof(Value), sizeof(uint32_t)));
+		ass.mov(x86::ptr(stack_top, sizeof(Value) * -(1 + locals_count) - sizeof(Value), sizeof(uint32_t)), type);
 	}
 	{
-		// Value
-		ass.mov(x86::edx, x86::ptr(x86::ecx, -(sizeof(Value) / 2), sizeof(uint32_t)));
-		ass.mov(x86::ptr(x86::ecx, sizeof(Value) * -(1 + locals_count) - (sizeof(Value) / 2), sizeof(uint32_t)), x86::edx);
+		auto value = register_allocator.New(ass);
+		ass.mov(value, x86::ptr(stack_top, -(sizeof(Value) / 2), sizeof(uint32_t)));
+		ass.mov(x86::ptr(stack_top, sizeof(Value) * -(1 + locals_count) - (sizeof(Value) / 2), sizeof(uint32_t)), value);
 	}
 
+	register_allocator.Flush(ass);
 	ass.mov(x86::eax, Imm(static_cast<uint32_t>(JitProcResult::Success)));
 	ass.ret();
 }
