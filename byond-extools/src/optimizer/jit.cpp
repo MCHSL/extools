@@ -7,8 +7,10 @@
 #include "jit.h"
 #include <algorithm>
 #include <stack>
+#include <variant>
 
 using namespace asmjit;
+
 
 struct RegisterAllocator;
 
@@ -263,6 +265,994 @@ struct JitContext
 	// Value dot;
 };
 
+
+
+struct ProcCompiler
+{
+	enum class InternalLabelRef : size_t
+	{};
+
+	struct InternalLabel
+	{
+		Label label;
+	};
+
+	enum class InternalRegisterRef : size_t
+	{};
+
+	struct InternalRegister
+	{
+		enum class Type
+		{
+			General,
+			Xmm,
+
+			JitContext, // Snowflake: always set to eax
+			ESP, // Snowflake: always set to esp
+		};
+
+		static const uint32_t InvalidLoc = ~1;
+
+		Type type;
+		uint32_t startpoint;
+		uint32_t endpoint;
+	};
+
+	// Either a constant literal or a reference to a virtual register
+	struct Operand
+	{
+		enum class Type
+		{
+			Imm,
+			Gp,
+			Xmm,
+			Label,
+			MemGlobal,
+			MemRegister,
+			MemLabel,
+		};
+
+	protected:
+		// Imm
+		struct _Imm
+		{
+			uint32_t value;
+		};
+
+		// Gp, Xmm
+		struct _Register
+		{
+			InternalRegisterRef ref;
+		};
+
+		// Label
+		struct _Label
+		{
+			InternalLabelRef ref;
+		};
+
+		// Mem
+		struct _MemGlobal
+		{
+			void* data;
+			size_t size;
+		};
+
+		// MemRegister
+		struct _MemRegister
+		{
+			InternalRegisterRef ref;
+			ptrdiff_t offset;
+			size_t size;
+		};
+
+		// MemLabel
+		struct _MemLabel
+		{
+			InternalLabelRef ref;
+			ptrdiff_t offset;
+			size_t size;
+		};
+
+		//
+
+		// Imm
+		Operand(uint32_t value)
+			: type(Type::Imm)
+			, data(_Imm{value})
+		{}
+
+		// Gp / Xmm
+		Operand(Type type, InternalRegisterRef ref)
+			: type(type)
+			, data(_Register{ref})
+		{}
+
+		// Label
+		Operand(InternalLabelRef ref)
+			: type(Type::Label)
+			, data(_Label{ref})
+		{}
+
+		// MemGlobal
+		Operand(void* data, size_t size)
+			: type(Type::MemGlobal)
+			, data(_MemGlobal{data, size})
+		{}
+
+		// MemRegister
+		Operand(InternalRegisterRef ref, ptrdiff_t offset, size_t size)
+			: type(Type::MemRegister)
+			, data(_MemRegister{ref, offset, size})
+		{}
+
+		// MemLabel
+		Operand(InternalLabelRef ref, ptrdiff_t offset, size_t size)
+			: type(Type::MemLabel)
+			, data(_MemLabel{ref, offset, size})
+		{}
+
+		Type type;
+
+		std::variant<_Imm, _Register, _Label, _MemGlobal, _MemRegister, _MemLabel> data;
+
+	public:
+		Type GetType() { return type; }
+
+		bool IsImm() { return type == Type::Imm; }
+		bool IsGp() { return type == Type::Gp; }
+		bool IsXmm() { return type == Type::Xmm; }
+		bool IsLabel() { return type == Type::Label; }
+		bool IsMemGlobal() { return type == Type::MemGlobal; }
+		bool IsMemRegister() { return type == Type::MemRegister; }
+		bool IsMemLabel() { return type == Type::MemLabel; }
+
+		bool IsRegister() { return IsGp() || IsXmm(); }
+		bool IsMem() { return IsMemGlobal() || IsMemRegister() || IsMemLabel(); }
+
+		template<typename T>
+		inline T& As() { return static_cast<T&>(*this); }
+	};
+
+	// A constant 32-bit value.
+	struct Imm : Operand
+	{
+		Imm(uint32_t value)
+			: Operand(value)
+		{}
+
+		uint32_t Value()
+		{
+			if (!IsImm())
+			{
+				throw;
+			}
+
+			return std::get<_Imm>(data).value;
+		}
+	};
+
+	// A register
+	struct Register : Operand
+	{
+	protected:
+		Register(Type type, InternalRegisterRef ref)
+			: Operand(type, ref)
+		{}
+
+	public:
+		InternalRegisterRef Ref()
+		{
+			if (!IsRegister())
+			{
+				throw;
+			}
+
+			return std::get<_Register>(data).ref;
+		}
+	};
+
+	// A general purpose virtual-register. Can be ecx, edx, etc.
+	struct Gp : public Register
+	{
+		Gp() // eck
+			: Register(Type::Gp, static_cast<InternalRegisterRef>(-1))
+		{}
+
+
+		Gp(InternalRegisterRef ref)
+			: Register(Type::Gp, ref)
+		{}
+	};
+
+	// An xmm virtual-register. Can be xmm0, xmm1, etc.
+	struct Xmm : Register
+	{
+		Xmm(InternalRegisterRef ref)
+			: Register(Type::Xmm, ref)
+		{}
+	};
+
+	// A label
+	struct Label : Operand
+	{
+		Label() // eck
+			: Operand(static_cast<InternalLabelRef>(-1))
+		{}
+
+		Label(InternalLabelRef ref)
+			: Operand(ref)
+		{}
+
+		InternalLabelRef Ref()
+		{
+			if (!IsLabel())
+			{
+				throw;
+			}
+
+			return std::get<_Label>(data).ref;
+		}
+	};
+
+	struct Mem : Operand
+	{
+		protected:
+			// MemGlobal
+			Mem(void* data, size_t size)
+				: Operand(data, size)
+			{}
+
+			// MemRegister
+			Mem(InternalRegisterRef ref, ptrdiff_t offset, size_t size)
+				: Operand(ref, offset, size)
+			{}
+
+			// MemLabel
+			Mem(InternalLabelRef ref, ptrdiff_t offset, size_t size)
+				: Operand(ref, offset, size)
+			{}
+	};
+
+	// Memory reference to a global ptr
+	struct MemGlobal : Mem
+	{
+		explicit MemGlobal(void* data, size_t size = sizeof(uint32_t))
+			: Mem(data, size)
+		{}
+
+		void* Ptr()
+		{
+			if (!IsMemGlobal())
+			{
+				throw;
+			}
+
+			return std::get<_MemGlobal>(data).data;
+		}
+
+		size_t Size()
+		{
+			if (!IsMemGlobal())
+			{
+				throw;
+			}
+
+			return std::get<_MemGlobal>(data).size;
+		}
+	};
+
+	// Memory reference to a register with an optional offset
+	struct MemRegister : Mem
+	{
+		explicit MemRegister(Gp& reg, ptrdiff_t offset = 0, size_t size = sizeof(uint32_t))
+			: Mem(reg.Ref(), offset, size)
+		{}
+
+		InternalRegisterRef Ref()
+		{
+			if (!IsMemRegister())
+			{
+				throw;
+			}
+
+			return std::get<_MemRegister>(data).ref;
+		}
+
+		ptrdiff_t Offset()
+		{
+			if (!IsMemRegister())
+			{
+				throw;
+			}
+
+			return std::get<_MemRegister>(data).offset;
+		}
+
+		size_t Size()
+		{
+			if (!IsMemRegister())
+			{
+				throw;
+			}
+
+			return std::get<_MemRegister>(data).size;
+		}
+	};
+
+	// Memory reference to a label with an optional offset
+	struct MemLabel : Mem
+	{
+		explicit MemLabel(Label& label, ptrdiff_t offset = 0, size_t size = sizeof(uint32_t))
+			: Mem(label.Ref(), offset, size)
+		{}
+
+		InternalLabelRef Ref()
+		{
+			if (!IsMemLabel())
+			{
+				throw;
+			}
+
+			return std::get<_MemLabel>(data).ref;
+		}
+
+		ptrdiff_t Offset()
+		{
+			if (!IsMemLabel())
+			{
+				throw;
+			}
+
+			return std::get<_MemLabel>(data).offset;
+		}
+
+		size_t Size()
+		{
+			if (!IsMemLabel())
+			{
+				throw;
+			}
+
+			return std::get<_MemLabel>(data).size;
+		}
+	};
+
+	// Helpers to make writing pointers friendly
+	static MemGlobal Ptr(void* data, size_t size = sizeof(uint32_t))
+	{
+		return MemGlobal(data, size);
+	}
+
+	static MemRegister Ptr(Gp reg, ptrdiff_t offset = 0, size_t size = sizeof(uint32_t))
+	{
+		return MemRegister(reg, offset, size);
+	}
+
+	static MemLabel Ptr(Label label, ptrdiff_t offset = 0, size_t size = sizeof(uint32_t))
+	{
+		return MemLabel(label, offset, size);
+	}
+
+	struct Variable
+	{
+		Operand Type;
+		Operand Value;
+	};
+
+	// these are a bit of a hack
+	Gp jit_context;
+	Gp esp;
+
+	ProcCompiler(x86::Assembler& ass, uint32_t locals_count)
+		: ass(&ass)
+		, consts(&ass._code->_zone)
+	{
+		jit_context = AllocateJitContextPtr();
+		esp = AllocateESP();
+		consts_label = AllocateLabel();
+
+		locals.resize(locals_count);
+	}
+
+	Gp AllocateJitContextPtr()
+	{
+		registers.push_back({InternalRegister::Type::JitContext, InternalRegister::InvalidLoc, InternalRegister::InvalidLoc});
+		return {static_cast<InternalRegisterRef>( registers.size() - 1 )};
+	}
+
+	Gp AllocateESP()
+	{
+		registers.push_back({InternalRegister::Type::ESP, InternalRegister::InvalidLoc, InternalRegister::InvalidLoc});
+		return {static_cast<InternalRegisterRef>( registers.size() - 1 )};
+	}
+
+	Gp AllocateUInt32()
+	{
+		registers.push_back({InternalRegister::Type::General, InternalRegister::InvalidLoc, InternalRegister::InvalidLoc});
+		return {static_cast<InternalRegisterRef>( registers.size() - 1 )};
+	}
+
+	Xmm AllocateXmm()
+	{
+		registers.push_back({InternalRegister::Type::Xmm, InternalRegister::InvalidLoc, InternalRegister::InvalidLoc});
+		return {static_cast<InternalRegisterRef>( registers.size() - 1 )};
+	}
+
+	Label AllocateLabel()
+	{
+		labels.push_back(ass->newLabel());
+		return {static_cast<InternalLabelRef>( labels.size() - 1 )};
+	}
+
+	Mem AllocateConstantUInt32(uint32_t value)
+	{
+		size_t offset;
+		if(consts.add(&value, sizeof(value), offset) != kErrorOk)
+		{
+			throw;
+		}
+
+		uint32_t test = 0x1A1A1A1A;
+		consts.add(&test, sizeof(test), offset);
+
+		return MemLabel(consts_label, offset, sizeof(value));
+	}
+
+	InternalRegister& GetInternalRegister(MemRegister& mem)
+	{
+		return registers[static_cast<size_t>(mem.Ref())];
+	}
+
+	InternalRegister& GetInternalRegister(Register& reg)
+	{
+		return registers[static_cast<size_t>(reg.Ref())];
+	}
+
+	void Bind(Label label)
+	{
+		label_bindings.emplace(instructions.size(), label.Ref());
+	}
+
+	void UseOperand(Operand op)
+	{
+		if (op.IsRegister())
+		{
+			InternalRegister& reg = GetInternalRegister(op.As<Register>());
+			if (reg.startpoint == InternalRegister::InvalidLoc)
+				reg.startpoint = instructions.size();
+			reg.endpoint = instructions.size();
+		}
+
+		if (op.IsMemRegister())
+		{
+			InternalRegister& reg = GetInternalRegister(op.As<MemRegister>());
+			if (reg.startpoint == InternalRegister::InvalidLoc)
+				reg.startpoint = instructions.size();
+			reg.endpoint = instructions.size();
+		}
+	}
+
+	void emit_movss(Xmm op1, Xmm op2)
+	{
+		UseOperand(op1);
+		UseOperand(op2);
+		instructions.emplace_back(x86::Inst::Id::kIdMovss, op1, op2);
+	}
+
+	void emit_movss(Mem op1, Xmm op2)
+	{
+		UseOperand(op1);
+		UseOperand(op2);
+		instructions.emplace_back(x86::Inst::Id::kIdMovss, op1, op2);
+	}
+
+	void emit_movss(Xmm op1, Mem op2)
+	{
+		UseOperand(op1);
+		UseOperand(op2);
+		instructions.emplace_back(x86::Inst::Id::kIdMovss, op1, op2);
+	}
+
+	void emit_addss(Operand op1, Operand op2)
+	{
+		UseOperand(op1);
+		UseOperand(op2);
+		instructions.emplace_back(x86::Inst::Id::kIdAddss, op1, op2);
+	}
+
+	void emit_mov(Gp op1, Gp op2)
+	{
+		UseOperand(op1);
+		UseOperand(op2);
+		instructions.emplace_back(x86::Inst::Id::kIdMov, op1, op2);
+	}
+
+	void emit_mov(Mem op1, Imm op2)
+	{
+		UseOperand(op1);
+		UseOperand(op2);
+		instructions.emplace_back(x86::Inst::Id::kIdMov, op1, op2);
+	}
+
+	void emit_mov(Mem op1, Gp op2)
+	{
+		UseOperand(op1);
+		UseOperand(op2);
+		instructions.emplace_back(x86::Inst::Id::kIdMov, op1, op2);
+	}
+
+	void emit_mov(Gp op1, Mem op2)
+	{
+		UseOperand(op1);
+		UseOperand(op2);
+		instructions.emplace_back(x86::Inst::Id::kIdMov, op1, op2);
+	}
+
+
+	void emit_movd(Xmm op1, Gp op2)
+	{
+		UseOperand(op1);
+		UseOperand(op2);
+		instructions.emplace_back(x86::Inst::Id::kIdMovd, op1, op2);
+	}
+
+	void emit_movd(Gp op1, Xmm op2)
+	{
+		UseOperand(op1);
+		UseOperand(op2);
+		instructions.emplace_back(x86::Inst::Id::kIdMovd, op1, op2);
+	}
+
+	void emit_sub(Operand op1, Operand op2)
+	{
+		UseOperand(op1);
+		UseOperand(op2);
+		instructions.emplace_back(x86::Inst::Id::kIdSub, op1, op2);
+	}
+
+	void emit_sub(Mem op1, Operand op2)
+	{
+		UseOperand(op1);
+		UseOperand(op2);
+		instructions.emplace_back(x86::Inst::Id::kIdSub, op1, op2);
+	}
+
+	void emit_add(Operand op1, Mem op2)
+	{
+		UseOperand(op1);
+		UseOperand(op2);
+		instructions.emplace_back(x86::Inst::Id::kIdAdd, op1, op2);
+	}
+
+	void emit_add(Mem op1, Operand op2)
+	{
+		UseOperand(op1);
+		UseOperand(op2);
+		instructions.emplace_back(x86::Inst::Id::kIdAdd, op1, op2);
+	}
+
+	void SetLocal(size_t index, Variable& var)
+	{
+		locals[index] = var;
+	}
+
+	Variable GetLocal(size_t index)
+	{
+		auto& entry = locals[index];
+		if (entry.has_value())
+		{
+			return *entry;
+		}
+
+		auto stack_proc_base = AllocateUInt32();
+		emit_mov(stack_proc_base, Ptr(jit_context, offsetof(JitContext, stack_proc_base)));
+
+		auto type = AllocateUInt32();
+		auto value = AllocateUInt32();
+
+		emit_mov(type, Ptr(stack_proc_base, sizeof(Value) * (index + 1)));
+		emit_mov(value, Ptr(stack_proc_base, sizeof(Value) *  (index + 1)));
+
+		Variable var{type, value};
+		locals[index] = var; // TODO: This will cause the local to be set by CommitLocals even though we haven't changed it
+		return var;
+	}
+
+	void PushStack(Variable entry)
+	{
+		stack.push_back(entry);
+	}
+
+	Variable PopStack()
+	{
+		// Our cached stack could be empty if something was already pushed before our block of code was entered
+		if (!stack.empty())
+		{
+			auto entry = stack.back();
+			stack.pop_back();
+
+			if (entry.has_value())
+			{
+				return *entry;
+			}
+		}
+
+		auto stack_top = AllocateUInt32();
+		emit_mov(stack_top, Ptr(jit_context, offsetof(JitContext, stack_top), sizeof(uint32_t)));
+
+		auto type = AllocateUInt32();
+		auto value = AllocateUInt32();
+		emit_mov(type, Ptr(stack_top, -sizeof(Value)));
+		emit_mov(value, Ptr(stack_top, -(sizeof(Value) / 2)));
+		return {type, value};
+	}
+
+
+	void Add()
+	{
+		auto xmm0 = AllocateXmm();
+		auto xmm1 = AllocateXmm();
+		auto res = AllocateUInt32();
+
+		{
+			auto lhs = PopStack();
+
+			if (lhs.Value.IsGp())
+			{
+				emit_movd(xmm0, lhs.Value.As<Gp>());
+			}
+			else
+			{
+				auto data = AllocateConstantUInt32(lhs.Value.As<Imm>().Value());
+				emit_movss(xmm0, data);
+			}
+		}
+
+		{
+			auto rhs = PopStack();
+			if (rhs.Value.IsGp())
+			{
+				emit_movd(xmm1, rhs.Value.As<Gp>());
+			}
+			else
+			{
+				auto data = AllocateConstantUInt32(rhs.Value.As<Imm>().Value());
+				emit_movss(xmm1, data);
+			}
+		}
+
+		emit_addss(xmm0, xmm1);
+		emit_movd(res, xmm0);
+
+		PushStack({Imm{DataType::NUMBER}, res});
+	}
+
+	// Does this register need to be restored to its original value before our function returns?
+	static const bool RegisterNeedsRestoring(x86::Gp reg)
+	{
+		if (reg == x86::eax || reg == x86::ecx || reg == x86::edx)
+		{
+			return false;
+		}
+
+		return true;
+	}
+
+	std::map<InternalRegisterRef, x86::Reg> AllocateRegisters()
+	{
+		// register, allocated, type
+		std::vector<std::tuple<x86::Reg, bool, InternalRegister::Type>> register_states{
+			{x86::ecx, false, InternalRegister::Type::General},
+			{x86::edx, false, InternalRegister::Type::General},
+			{x86::ebx, false, InternalRegister::Type::General},
+			{x86::ebp, false, InternalRegister::Type::General},
+			{x86::esi, false, InternalRegister::Type::General},
+			{x86::edi, false, InternalRegister::Type::General},
+			{x86::xmm0, false, InternalRegister::Type::Xmm},
+			{x86::xmm1, false, InternalRegister::Type::Xmm},
+			{x86::xmm2, false, InternalRegister::Type::Xmm},
+			{x86::xmm3, false, InternalRegister::Type::Xmm},
+			{x86::xmm4, false, InternalRegister::Type::Xmm},
+			{x86::xmm5, false, InternalRegister::Type::Xmm},
+			{x86::xmm6, false, InternalRegister::Type::Xmm},
+			{x86::xmm7, false, InternalRegister::Type::Xmm}};
+		
+		std::map<InternalRegisterRef, x86::Reg> allocated_registers;
+
+		std::vector<InternalRegisterRef> active;
+
+		// Sorted in the order that they are first used
+		std::vector<InternalRegisterRef> register_init_order;
+		{
+			register_init_order.resize(registers.size());
+			for (size_t i = 0; i < registers.size(); i++)
+			{
+				register_init_order[i] = static_cast<InternalRegisterRef>(i);
+			}
+			std::sort(register_init_order.begin(), register_init_order.end(),
+				[this](const InternalRegisterRef& lhs, const InternalRegisterRef& rhs) { return registers[static_cast<size_t>(lhs)].startpoint < registers[static_cast<size_t>(rhs)].startpoint; });
+		}
+
+		for (auto i : register_init_order)
+		{
+			auto& i_reg = registers[static_cast<size_t>(i)];
+
+			// Register was never referenced?
+			if (i_reg.startpoint == InternalRegister::InvalidLoc)
+				continue;
+
+			// Free any active registers no longer being used
+			auto it = active.begin();
+			while (it != active.end())
+			{
+				auto& active_reg = registers[static_cast<size_t>(*it)];
+				if (active_reg.endpoint >= i_reg.startpoint)
+					break;
+
+				// Mark the register as available
+				x86::Reg allocated_register = allocated_registers.at(*it);
+				auto register_state = std::find_if(register_states.begin(), register_states.end(),
+					[allocated_register](const std::tuple<x86::Reg, bool, InternalRegister::Type> v) { return std::get<0>(v)== allocated_register; });
+				std::get<1>(*register_state) = false;
+				
+				// Remove us from active
+				it = active.erase(it);
+			}
+
+			// Early exit for our special cases
+			switch (i_reg.type)
+			{
+			case InternalRegister::Type::ESP:
+				allocated_registers.emplace(i, x86::esp);
+				continue;
+			case InternalRegister::Type::JitContext:
+				allocated_registers.emplace(i, x86::eax);
+				continue;
+			}
+
+			// Find a free register for this var
+			auto allocated_register = std::find_if(register_states.begin(), register_states.end(),
+				[&i_reg](const std::tuple<x86::Reg, bool, InternalRegister::Type> v) { return std::get<1>(v) == false && std::get<2>(v) == i_reg.type; });
+
+			if (allocated_register == register_states.end())
+			{
+				// Ran out of registers. We'll need to implement spillover to the stack
+				__debugbreak();
+			}
+
+			allocated_registers.emplace(i, std::get<0>(*allocated_register));
+			std::get<1>(*allocated_register) = true;
+
+			// Mark us as active, the vector has to remain sorted by ascending endpoint
+			active.insert(std::upper_bound(active.begin(), active.end(), i_reg.endpoint,
+				[this](const uint32_t& endpoint, const InternalRegisterRef& ref) { return endpoint < registers[static_cast<size_t>(ref)].endpoint; }), static_cast<InternalRegisterRef>(i));
+		}
+
+		return allocated_registers;
+	}
+
+	asmjit::Operand ConvertOperand(std::map<InternalRegisterRef, x86::Reg>& allocated_registers, Operand& op)
+	{
+		switch (op.GetType())
+		{
+			case Operand::Type::Imm:
+				return asmjit::Imm(op.As<Imm>().Value());
+			case Operand::Type::Gp:
+			case Operand::Type::Xmm:
+				return allocated_registers[op.As<Register>().Ref()];
+			case Operand::Type::Label:
+				return labels[static_cast<size_t>(op.As<Label>().Ref())];
+			case Operand::Type::MemGlobal:
+			{
+				MemGlobal& mem = op.As<MemGlobal>();
+				return asmjit::x86::ptr(reinterpret_cast<uint32_t>( mem.Ptr() ), mem.Size());
+			}
+			case Operand::Type::MemRegister:
+			{
+				MemRegister& mem = op.As<MemRegister>();
+				return asmjit::x86::ptr(allocated_registers[mem.Ref()].as<asmjit::x86::Gp>(), mem.Offset(), mem.Size());
+			}
+			case Operand::Type::MemLabel:
+			{
+				MemLabel& mem = op.As<MemLabel>();
+				return asmjit::x86::ptr(labels[static_cast<size_t>(mem.Ref())], mem.Offset(), mem.Size());
+			}
+		}
+
+		__debugbreak();
+		return asmjit::Operand();
+	}
+
+	void Compile()
+	{
+		std::map<InternalRegisterRef, x86::Reg> allocated_registers = AllocateRegisters();
+
+		for (size_t i = 0; i < instructions.size(); i++)
+		{
+			auto& tuple = instructions[i];
+			uint32_t instruction = std::get<0>(tuple);
+			Operand& op1 = std::get<1>(tuple);
+			Operand& op2 = std::get<2>(tuple);
+
+			auto range = label_bindings.equal_range(i);
+			for (auto i = range.first; i != range.second; i++)
+			{
+				ass->bind(labels[static_cast<size_t>(i->second)]);
+			}
+
+			ass->emit(instruction, ConvertOperand(allocated_registers, op1), ConvertOperand(allocated_registers, op2));
+		}
+
+		// TODO: Make the current InternalRegisterRefs all fail if used after this
+		registers.clear();
+		instructions.clear();
+		label_bindings.clear();
+
+		// TODO: move me
+		ass->embedConstPool(labels[static_cast<size_t>(consts_label.Ref())], consts);
+	}
+
+	void EmitPrologue()
+	{
+		// Get JitContext* from our received arguments
+		emit_mov(jit_context, Ptr(esp, 4));
+
+		// TODO: Allocate space in the stack if necessary
+
+		// Reserve static space in the stack for our locals
+		// stack_top = stack_top + (room the current stack_proc_base and our locals)
+		auto new_stack_proc_base = AllocateUInt32();
+		emit_mov(new_stack_proc_base, Ptr(jit_context, offsetof(JitContext, stack_top)));
+		emit_add(Ptr(jit_context, offsetof(JitContext, stack_top)), Imm((1 +  locals.size()) * sizeof(Value)));
+
+		// Store previous proc's stack_proc_base at the start of our stack
+		// *new_stack_proc_base = {DataType::NULL, stack_proc_base}
+		auto old_stack_proc_base = AllocateUInt32();
+		emit_mov(old_stack_proc_base, Ptr(jit_context, offsetof(JitContext, stack_proc_base)));
+		emit_mov(Ptr(new_stack_proc_base), Imm(DataType::NULL_D));
+		emit_mov(Ptr(new_stack_proc_base, sizeof(Value) / 2), old_stack_proc_base);
+
+		// Set new stack_proc_base
+		emit_mov(Ptr(jit_context, offsetof(JitContext, stack_proc_base)), new_stack_proc_base);
+	}
+
+	void EmitEpilogue()
+	{
+		auto return_value = PopStack();
+
+		// We don't need to commit any changed locals here because they're all about to die anyway
+		// CommitLocals();
+
+		// We don't need to commit the stack either because the whole thing's about to disappear (and we push our ret val manually at the end)
+		// CommitStack();
+
+		// stack_top = stack_proc_base
+		auto stack_proc_base = AllocateUInt32();
+		emit_mov(stack_proc_base, Ptr(jit_context, offsetof(JitContext, stack_proc_base)));
+		emit_mov(Ptr(jit_context, offsetof(JitContext, stack_top)), stack_proc_base);
+
+		// stack_proc_base = *stack_proc_base
+		auto old_stack_proc_base = AllocateUInt32();
+		emit_mov(old_stack_proc_base, Ptr(stack_proc_base, sizeof(Value) / 2));
+		emit_mov(Ptr(jit_context, offsetof(JitContext, stack_proc_base)), old_stack_proc_base);
+
+		// Push the return value on to the stack manually
+		if (return_value.Type.IsGp())
+		{
+			emit_mov(Ptr(stack_proc_base), return_value.Type.As<Gp>());
+		}
+		else
+		{
+			emit_mov(Ptr(stack_proc_base), return_value.Type.As<Imm>());
+		}
+
+		if (return_value.Value.IsGp())
+		{
+			emit_mov(Ptr(stack_proc_base, sizeof(Value) / 2), return_value.Value.As<Gp>());
+		}
+		else
+		{
+			emit_mov(Ptr(stack_proc_base, sizeof(Value) / 2), return_value.Value.As<Imm>());
+		}
+
+		emit_add(Ptr(jit_context, offsetof(JitContext, stack_top)), Imm(sizeof(Value)));
+	}
+
+	void CommitLocals()
+	{
+		auto stack_proc_base = AllocateUInt32();
+		emit_mov(stack_proc_base, Ptr(jit_context, offsetof(JitContext, stack_proc_base), sizeof(uint32_t)));
+
+		for (size_t i = 0; i < locals.size(); i++)
+		{
+			auto& entry = locals[i];
+
+			// We haven't changed this one
+			if (!entry.has_value())
+				continue;
+
+			if (entry->Type.IsGp())
+			{
+				emit_mov(Ptr(stack_proc_base, (1 + i) * sizeof(Value)), entry->Type.As<Gp>());
+			}
+			else
+			{
+				emit_mov(Ptr(stack_proc_base, (1 + i) * sizeof(Value)), entry->Type.As<Imm>());
+			}
+
+			if (entry->Value.IsGp())
+			{
+				emit_mov(Ptr(stack_proc_base, (1 + i) * sizeof(Value) + sizeof(Value) / 2), entry->Value.As<Gp>());
+			}
+			else
+			{
+				emit_mov(Ptr(stack_proc_base, (1 + i) * sizeof(Value) + sizeof(Value) / 2), entry->Value.As<Imm>());
+			}
+		}
+	}
+
+	void CommitStack()
+	{
+		auto stack_top = AllocateUInt32();
+		emit_mov(stack_top, Ptr(jit_context, offsetof(JitContext, stack_top), sizeof(uint32_t)));
+
+		for (size_t i = 0; i < stack.size(); i++)
+		{
+			auto& entry = stack[i];
+			size_t offset = stack.size() - i;
+
+			// We haven't changed this one
+			if (!entry.has_value())
+				continue;
+
+			if (entry->Type.IsGp())
+			{
+				emit_mov(Ptr(stack_top, -offset * sizeof(Value)), entry->Type.As<Gp>());
+			}
+			else
+			{
+				emit_mov(Ptr(stack_top, -offset * sizeof(Value)), entry->Type.As<Imm>());
+			}
+
+			if (entry->Value.IsGp())
+			{
+				emit_mov(Ptr(stack_top, -offset * sizeof(Value) + sizeof(Value) / 2), entry->Value.As<Gp>());
+			}
+			else
+			{
+				emit_mov(Ptr(stack_top, -offset * sizeof(Value) + sizeof(Value) / 2), entry->Value.As<Imm>());
+			}
+		}
+
+		// Forget about everything
+		// TODO: Might belong in StartBlock really
+		stack.clear();
+	}
+
+private:
+
+	Label consts_label;
+	ConstPool consts;
+
+	std::vector<std::tuple<uint32_t, Operand, Operand>> instructions;
+
+	x86::Assembler* ass;
+
+	std::multimap<size_t, InternalLabelRef> label_bindings;
+
+	std::vector<asmjit::Label> labels;
+	std::vector<InternalRegister> registers;
+
+	std::vector<std::optional<Variable>> locals;
+	std::vector<std::optional<Variable>> stack;
+};
+
+
+
+
+
+
 static RegisterAllocator register_allocator;
 static unsigned int jit_co_suspend_proc_id = 0;
 
@@ -341,6 +1331,7 @@ std::map<unsigned int, Block> split_into_blocks(Disassembly& dis, x86::Assembler
 		o << "\n";
 	}
 	o << '\n';
+
 	return blocks;
 }
 
@@ -444,11 +1435,11 @@ static void Emit_PushInteger(x86::Assembler& ass, float not_an_integer)
 {
 	auto stack_top = register_allocator.New(ass);
 
-	ass.mov(stack_top, x86::ptr(jit_context, offsetof(JitContext, stack_top), sizeof(uint32_t)));
-	ass.add(x86::ptr(jit_context, offsetof(JitContext, stack_top), sizeof(uint32_t)), sizeof(Value));
+	ass.mov(stack_top, x86::ptr(jit_context, offsetof(JitContext, stack_top)));
+	ass.add(x86::ptr(jit_context, offsetof(JitContext, stack_top)), sizeof(Value));
 
-	ass.mov(x86::ptr(stack_top, 0, sizeof(uint32_t)), Imm(DataType::NUMBER));
-	ass.mov(x86::ptr(stack_top, sizeof(Value) / 2, sizeof(uint32_t)), Imm(EncodeFloat(not_an_integer)));
+	ass.mov(x86::ptr(stack_top, 0), Imm(DataType::NUMBER));
+	ass.mov(x86::ptr(stack_top, sizeof(Value) / 2), Imm(EncodeFloat(not_an_integer)));
 }
 
 static void Emit_SetLocal(x86::Assembler& ass, unsigned int id)
@@ -457,15 +1448,15 @@ static void Emit_SetLocal(x86::Assembler& ass, unsigned int id)
 
 	auto stack_top = register_allocator.New(ass);
 	auto stack_proc_base = register_allocator.New(ass);
-	ass.mov(stack_top, x86::ptr(jit_context, offsetof(JitContext, stack_top), sizeof(uint32_t)));
-	ass.mov(stack_proc_base, x86::ptr(jit_context, offsetof(JitContext, stack_proc_base), sizeof(uint32_t)));
+	ass.mov(stack_top, x86::ptr(jit_context, offsetof(JitContext, stack_top)));
+	ass.mov(stack_proc_base, x86::ptr(jit_context, offsetof(JitContext, stack_proc_base)));
 
 	auto temp = register_allocator.New(ass);
-	ass.mov(temp, x86::ptr(stack_top, 0, sizeof(uint32_t)));
-	ass.mov(x86::ptr(stack_proc_base, id * sizeof(Value), sizeof(uint32_t)), temp);
+	ass.mov(temp, x86::ptr(stack_top, 0));
+	ass.mov(x86::ptr(stack_proc_base, id * sizeof(Value)), temp);
 
-	ass.mov(temp, x86::ptr(stack_top, sizeof(Value) / 2, sizeof(uint32_t)));
-	ass.mov(x86::ptr(stack_proc_base, id * sizeof(Value) + sizeof(Value) / 2, sizeof(uint32_t)), temp);
+	ass.mov(temp, x86::ptr(stack_top, sizeof(Value) / 2));
+	ass.mov(x86::ptr(stack_proc_base, id * sizeof(Value) + sizeof(Value) / 2), temp);
 }
 
 static void Emit_GetLocal(x86::Assembler& ass, unsigned int id)
@@ -473,24 +1464,24 @@ static void Emit_GetLocal(x86::Assembler& ass, unsigned int id)
 	auto stack_top = register_allocator.New(ass);
 	auto stack_proc_base = register_allocator.New(ass);
 
-	ass.mov(stack_top, x86::ptr(jit_context, offsetof(JitContext, stack_top), sizeof(uint32_t)));
-	ass.mov(stack_proc_base, x86::ptr(jit_context, offsetof(JitContext, stack_proc_base), sizeof(uint32_t)));
+	ass.mov(stack_top, x86::ptr(jit_context, offsetof(JitContext, stack_top)));
+	ass.mov(stack_proc_base, x86::ptr(jit_context, offsetof(JitContext, stack_proc_base)));
 
-	ass.add(x86::ptr(jit_context, offsetof(JitContext, stack_top), sizeof(uint32_t)), sizeof(Value));
+	ass.add(x86::ptr(jit_context, offsetof(JitContext, stack_top)), sizeof(Value));
 
 	// Register to copy the type/value with
 	auto temp = register_allocator.New(ass);
 
-	ass.mov(temp, x86::ptr(stack_proc_base, id * sizeof(Value), sizeof(uint32_t)));
+	ass.mov(temp, x86::ptr(stack_proc_base, id * sizeof(Value)));
 	ass.mov(x86::ptr(stack_top, 0, sizeof(uint32_t)), temp);
 
-	ass.mov(temp, x86::ptr(stack_proc_base, id * sizeof(Value) + sizeof(Value) / 2, sizeof(uint32_t)));
-	ass.mov(x86::ptr(stack_top, sizeof(Value) / 2, sizeof(uint32_t)), temp);
+	ass.mov(temp, x86::ptr(stack_proc_base, id * sizeof(Value) + sizeof(Value) / 2));
+	ass.mov(x86::ptr(stack_top, sizeof(Value) / 2), temp);
 }
 
 static void Emit_Pop(x86::Assembler& ass)
 {
-	ass.sub(x86::ptr(jit_context, offsetof(JitContext, stack_top), sizeof(uint32_t)), sizeof(Value));
+	ass.sub(x86::ptr(jit_context, offsetof(JitContext, stack_top)), sizeof(Value));
 }
 
 static void Emit_PushValue(x86::Assembler& ass, DataType type, unsigned int value, unsigned int value2 = 0)
@@ -501,11 +1492,11 @@ static void Emit_PushValue(x86::Assembler& ass, DataType type, unsigned int valu
 	}
 
 	auto stack_top = register_allocator.New(ass);
-	ass.mov(stack_top, x86::ptr(jit_context, offsetof(JitContext, stack_top), sizeof(uint32_t)));
-	ass.add(x86::ptr(jit_context, offsetof(JitContext, stack_top), sizeof(uint32_t)), sizeof(Value));
+	ass.mov(stack_top, x86::ptr(jit_context, offsetof(JitContext, stack_top)));
+	ass.add(x86::ptr(jit_context, offsetof(JitContext, stack_top)), sizeof(Value));
 
-	ass.mov(x86::ptr(stack_top, 0, sizeof(uint32_t)), Imm(type));
-	ass.mov(x86::ptr(stack_top, sizeof(Value) / 2, sizeof(uint32_t)), Imm(value));
+	ass.mov(x86::ptr(stack_top, 0), Imm(type));
+	ass.mov(x86::ptr(stack_top, sizeof(Value) / 2), Imm(value));
 }
 
 static void Emit_CallGlobal(x86::Assembler& ass, unsigned int arg_count, unsigned int proc_id)
@@ -693,6 +1684,11 @@ static bool EmitBlock(x86::Assembler& ass, Block& block)
 	return true;
 }
 
+static void ReserveStack(JitContext* ctx, uint32_t slots)
+{
+	ctx->Reserve(slots);
+}
+
 static void EmitPrologue(x86::Assembler& ass)
 {
 	jit_context = register_allocator.New(ass);
@@ -770,6 +1766,37 @@ void jit_compile(std::vector<Core::Proc*> procs)
 	code.setErrorHandler(&eh);
 	x86::Assembler ass(&code);
 	std::ofstream asd("raw.txt");
+
+	ProcCompiler compiler(ass, 0);
+
+	auto lab = compiler.AllocateLabel();
+	compiler.Bind(lab);
+	compiler.EmitPrologue();
+	compiler.PushStack({ProcCompiler::Imm(DataType::NUMBER), ProcCompiler::Imm(EncodeFloat(12))});
+	compiler.PushStack({ProcCompiler::Imm(DataType::NUMBER), ProcCompiler::Imm(EncodeFloat(8))});
+	compiler.Add();
+	compiler.EmitEpilogue();
+
+	compiler.Compile();
+
+	int eerr = ass.finalize();
+	if (eerr)
+	{
+		jit_out << "Failed to assemble" << std::endl;
+		return;
+	}
+
+	char* ccode_base = nullptr;
+	eerr = rt.add(&ccode_base, &code);
+	if (eerr)
+	{
+		jit_out << "Failed to add to runtime: " << eerr << std::endl;
+		return;
+	}
+
+	return;
+
+
 
 	resumption_labels.clear();
 	resumption_procs.clear();
