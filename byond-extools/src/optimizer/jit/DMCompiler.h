@@ -136,9 +136,8 @@ public:
 
 struct VirtualRegister
 {
-	VirtualRegister(uint32_t id, RegInfo& info, uint32_t size, uint32_t typeId)
+	VirtualRegister(uint32_t id, const RegInfo& info, uint32_t typeId)
 		: _id(id)
-		, _size(size)
 		, _typeId(typeId)
 	{
 		_info.setSignature(info.signature());
@@ -148,9 +147,8 @@ struct VirtualRegister
 	VirtualRegister& operator=(const VirtualRegister&) = delete;
 
 	uint32_t _id;
-	RegInfo _info;
-	uint32_t _size; // can be smaller than _info.size()
 	uint32_t _typeId;
+	RegInfo _info;
 };
 
 class DMCompiler
@@ -192,8 +190,9 @@ private:
 public:
 	BaseReg DMCompiler::newRegister(uint32_t typeId);
 
-private:
 	VirtualRegister* newVirtualRegister(uint32_t typeId, RegInfo& info);
+
+	// This gets looked up later by the BlockRegisterAllocator
 	ZoneVector<VirtualRegister*> _virtualRegisters;
 
 public:

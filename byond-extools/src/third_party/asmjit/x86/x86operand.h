@@ -317,7 +317,7 @@ public:
     kIdCx  = 1,  //!< Physical id of CL|CH|CX|ECX|RCX registers.
     kIdDx  = 2,  //!< Physical id of DL|DH|DX|EDX|RDX registers.
     kIdBx  = 3,  //!< Physical id of BL|BH|BX|EBX|RBX registers.
-    kIdSp  = 4,  //!< Physical id of SPL|SP|ESP|RSP registers.
+    kIdSp  = 4,  //!< Physical id of SPL|SP|ESP|RSP registers.`
     kIdBp  = 5,  //!< Physical id of BPL|BP|EBP|RBP registers.
     kIdSi  = 6,  //!< Physical id of SIL|SI|ESI|RSI registers.
     kIdDi  = 7,  //!< Physical id of DIL|DI|EDI|RDI registers.

@@ -29,9 +29,8 @@ VirtualRegister* DMCompiler::newVirtualRegister(uint32_t typeId, RegInfo& info)
 	uint32_t index = _virtualRegisters.size();
 
 	VirtualRegister* reg = _allocator.allocZeroedT<VirtualRegister>();
-	uint32_t size = asmjit::Type::sizeOf(typeId);
-
-	return new(reg) VirtualRegister(Operand::indexToVirtId(index), info, size, typeId);
+	_virtualRegisters.append(&_allocator, reg);
+	return new(reg) VirtualRegister(Operand::indexToVirtId(index), info, typeId);
 }
 
 BaseReg DMCompiler::newRegister(uint32_t typeId)
@@ -41,7 +40,7 @@ BaseReg DMCompiler::newRegister(uint32_t typeId)
 		__debugbreak();
 
 	VirtualRegister* reg = newVirtualRegister(typeId, info);
-	return BaseReg(typeId, reg->_id);
+	return BaseReg(info.signature(), reg->_id);
 }
 
 ProcNode* DMCompiler::addProc(uint32_t locals_count)
@@ -163,7 +162,11 @@ Variable DMCompiler::popStack()
 	auto type = newUInt32();
 	auto value = newUInt32();
 	mov(type, x86::ptr(stack_top, -sizeof(Value), sizeof(uint32_t)));
-	mov(value, x86::ptr(stack_top, -(sizeof(value) / 2), sizeof(uint32_t)));
+	mov(value, x86::ptr(stack_top, -(sizeof(Value) / 2), sizeof(uint32_t)));
+
+	// TODO: can cache this too (and apply it to our offsets)
+	sub(x86::ptr(stack_top, 0, sizeof(uint32_t)), -sizeof(Value));
+
 	return {type, value};
 }
 
