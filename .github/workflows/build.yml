@@ -1,0 +1,62 @@
+name: Build
+
+on: 
+ push: 
+   branches: master
+ pull_request: 
+   branches: master
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+      
+    - name: Setup cmake
+      uses: jwlawson/actions-setup-cmake@v1.0
+      with:
+        github-api-token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Build Linux
+      run: |
+        sudo dpkg --add-architecture i386
+        sudo apt update && sudo apt install gcc-multilib g++-multilib -y
+        mkdir build
+        cd build
+        cmake ../byond-extools 
+        cmake --build .
+
+    - name: Prepare Artifacts
+      run: |
+        mkdir artifacts
+        cp build/libbyond-extools.so artifacts
+
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v1
+      with: 
+        name: Linux
+        path: ${{github.workspace}}/artifacts
+        
+  windows:
+     runs-on: windows-2019
+     steps:
+     - uses: actions/checkout@v2
+     
+     - name: Build Windows
+       run: |
+         mkdir build
+         cd build
+         cmake ../byond-extools -A Win32 
+         cmake --build . --config RelWithDebInfo
+         
+     - name: Prepare Artifacts
+       run: |
+        mkdir artifacts
+        cp build/RelWithDebInfo/byond-extools.dll artifacts
+        cp build/RelWithDebInfo/byond-extools.pdb artifacts
+
+     - name: Upload Artifacts
+       uses: actions/upload-artifact@v1
+       with: 
+         name: Windows
+         path: ${{github.workspace}}/artifacts
