@@ -156,6 +156,8 @@ Variable DMCompiler::popStack()
 		return block._stack.pop();
 	}
 
+	setInlineComment("PopStack (Stale)");
+
 	auto stack_top = newUInt32();
 	mov(stack_top, x86::ptr(x86::eax, offsetof(JitContext, stack_top), sizeof(uint32_t)));
 
@@ -165,7 +167,7 @@ Variable DMCompiler::popStack()
 	mov(value, x86::ptr(stack_top, -(sizeof(Value) / 2), sizeof(uint32_t)));
 
 	// TODO: can cache this too (and apply it to our offsets)
-	sub(x86::ptr(stack_top, 0, sizeof(uint32_t)), -sizeof(Value));
+	sub(x86::ptr(stack_top, 0, sizeof(uint32_t)), sizeof(Value));
 
 	return {type, value};
 }

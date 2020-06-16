@@ -8,13 +8,6 @@ namespace jit
 
 using namespace asmjit;
 
-// Current allocation state of a physical register
-struct RegisterState
-{
-	x86::Reg reg;
-	bool active;
-};
-
 Error BlockRegisterAllocator::run(Zone* zone, Logger* logger)
 {
 	BaseNode* node = cb()->firstNode();
@@ -38,19 +31,27 @@ Error BlockRegisterAllocator::run(Zone* zone, Logger* logger)
 	return kErrorOk;
 }
 
+static const bool needsRestoring(uint32_t physIndex)
+{
+	if (physIndex == x86::Gp::kIdAx || physIndex == x86::Gp::kIdCx || physIndex == x86::Gp::kIdDx)
+		return false;
+
+	return true;
+}
+
 void BlockRegisterAllocator::visitBlock(BlockNode* block, Zone* zone, Logger* logger)
 {
 	// This sucks. Order matters. Whole thing matters!!!
 	// Pre-activates eax and esp because I've reserved them.
-	// physical_register_groups[x86::Reg::kGroupGp], physical_register_groups[x86::Reg::kGroupVec]
-	std::array<std::vector<RegisterState>, 2> physical_register_groups{{
-		{{x86::eax, false}, {x86::ecx, false}, {x86::edx, false}, {x86::ebx, false}, {x86::esp, false}, {x86::ebp, false}, {x86::esi, false}, {x86::edi, false}},
-		{{x86::xmm0, false}, {x86::xmm1, false}, {x86::xmm2, false}, {x86::xmm3, false}, {x86::xmm4, false}, {x86::xmm5, false}, {x86::xmm6, false}, {x86::xmm7, false}}
+	// physical_register_groups[x86::Reg::kGroupGp][x86::Gp::kIdAx] = active
+	std::array<std::array<bool, 8>, 2> physical_registers_active{{
+		{{false, false, false, false, false, false, false, false}},
+		{{false, false, false, false, false, false, false, false}}
 	}};
 
 	// eax and esp are reserved for our other code (yes there's no pretty API here to do this)
-	physical_register_groups[x86::Reg::kGroupGp][x86::Gp::kIdAx].active = true;
-	physical_register_groups[x86::Reg::kGroupGp][x86::Gp::kIdSp].active = true;
+	physical_registers_active[x86::Reg::kGroupGp][x86::Gp::kIdAx] = true;
+	physical_registers_active[x86::Reg::kGroupGp][x86::Gp::kIdSp] = true;
 
 	// Get all of the instructions into a nice vector
 	std::vector<InstNode*> instructions = GatherInstructions(block, zone, logger);	
@@ -76,26 +77,26 @@ void BlockRegisterAllocator::visitBlock(BlockNode* block, Zone* zone, Logger* lo
 				break;
 
 			// Mark the register as available
-			physical_register_groups[active_info.group][*active_info.phys_id].active = false;
+			physical_registers_active[active_info.group][*active_info.phys_id] = false;
 
 			// Remove us from active
 			active_it = active.erase(active_it);
 		}
 
-		auto& physical_registers = physical_register_groups[info.group];
+		auto& physical_registers_group = physical_registers_active[info.group];
 
 		// Find a free register for this var
-		auto allocated_register = std::find_if(physical_registers.begin(), physical_registers.end(),
-			[&info](const RegisterState& v) { return v.active == false; });
+		auto allocated_register_it = std::find_if(physical_registers_group.begin(), physical_registers_group.end(),
+			[&info](const bool& active) { return !active; });
 
-		if (allocated_register == physical_registers.end())
+		if (allocated_register_it == physical_registers_group.end())
 		{
 			// TODO: Spill
 			__debugbreak();
 		}
 
-		info.phys_id = allocated_register->reg.id();
-		allocated_register->active = true;
+		info.phys_id = (allocated_register_it - physical_registers_group.begin());
+		*allocated_register_it = true;
 
 		// Mark us as active, the vector has to remain sorted by ascending endpoint
 		active.insert(std::upper_bound(active.begin(), active.end(), info.endpoint,
