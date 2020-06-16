@@ -1,0 +1,35 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+#-DCMAKE_TOOLCHAIN_FILE=../byond-extools/cmake/i686-w64-mingw32.cmake
+    steps:
+    - uses: actions/checkout@v2
+      
+    - name: Setup cmake
+      uses: jwlawson/actions-setup-cmake@v1.0
+      with:
+        github-api-token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Build Linux
+      run: |
+        dpkg --add-architecture i386
+        apt update && apt install gcc-multilib g++-multilib -y
+        mkdir build
+        cd build
+        cmake ../byond-extools 
+        cmake --build .
+
+    - name: Prepare Artifacts
+      run: |
+        mkdir artifacts
+        cp build/libbyond-extools.so artifacts
+
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v1
+      with: 
+        name: Build Artifact
+        path: ${{github.workspace}}/artifacts
