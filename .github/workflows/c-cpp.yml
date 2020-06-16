@@ -17,7 +17,7 @@ jobs:
     - name: Build Linux
       run: |
         sudo dpkg --add-architecture i386
-        sudo apt update && apt install gcc-multilib g++-multilib -y
+        sudo apt update && sudo apt install gcc-multilib g++-multilib -y
         mkdir build
         cd build
         cmake ../byond-extools 
