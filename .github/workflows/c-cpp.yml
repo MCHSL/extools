@@ -31,5 +31,29 @@ jobs:
     - name: Upload Artifacts
       uses: actions/upload-artifact@v1
       with: 
-        name: Build Artifact
+        name: Linux
         path: ${{github.workspace}}/artifacts
+        
+  windows:
+     runs-on: windows-2019
+     steps:
+     - uses: actions/checkout@v2
+     
+     - name: Build Windows
+       run: |
+         mkdir build
+         cd build
+         cmake ../byond-extools
+         cmake --build . --config RelWithDebInfo
+         
+     - name: Prepare Artifacts
+       run: |
+        mkdir artifacts
+        cp build/RelWithDebInfo/byond-extools.dll artifacts
+        cp build/RelWithDebInfo/byond-extools.pdb artifacts
+
+     - name: Upload Artifacts
+       uses: actions/upload-artifact@v1
+       with: 
+         name: Windows
+         path: ${{github.workspace}}/artifacts
