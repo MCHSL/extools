@@ -1,11 +1,14 @@
 name: CI
 
-on: [push, pull_request]
+on: 
+ push: 
+   branches: master
+ pull_request: 
+   branches: master
 
 jobs:
   linux:
     runs-on: ubuntu-latest
-#-DCMAKE_TOOLCHAIN_FILE=../byond-extools/cmake/i686-w64-mingw32.cmake
     steps:
     - uses: actions/checkout@v2
       
@@ -43,8 +46,8 @@ jobs:
        run: |
          mkdir build
          cd build
-         cmake ../byond-extools
-         cmake --build . --config RelWithDebInfo
+         cmake ../byond-extools -DCMAKE_CXX_FLAGS=-m32 -DCMAKE_C_FLAGS=-m32
+         cmake --build . --config RelWithDebInfo -DCMAKE_CXX_FLAGS=-m32 -DCMAKE_C_FLAGS=-m32
          
      - name: Prepare Artifacts
        run: |
