@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <stack>
 #include <variant>
+#include <array>
 
 using namespace asmjit;
 
@@ -642,6 +643,7 @@ struct ProcCompiler
 
 	// these are a bit of a hack
 	Gp jit_context;
+	Gp ret;
 	Gp esp;
 
 	ProcCompiler(x86::Assembler& ass, uint32_t locals_count)
@@ -649,10 +651,10 @@ struct ProcCompiler
 		, consts(&ass._code->_zone)
 	{
 		jit_context = AllocateJitContextPtr();
+		ret = jit_context;
 		esp = AllocateESP();
 		consts_label = AllocateLabel();
-
-		locals.resize(locals_count);
+		epilogue_label = AllocateLabel();
 	}
 
 	Gp AllocateJitContextPtr()
@@ -762,6 +764,13 @@ struct ProcCompiler
 	}
 
 	void emit_mov(Gp op1, Gp op2)
+	{
+		UseOperand(op1);
+		UseOperand(op2);
+		instructions.emplace_back(x86::Inst::Id::kIdMov, op1, op2);
+	}
+
+	void emit_mov(Gp op1, Imm op2)
 	{
 		UseOperand(op1);
 		UseOperand(op2);
@@ -939,98 +948,135 @@ struct ProcCompiler
 		return true;
 	}
 
-	std::map<InternalRegisterRef, x86::Reg> AllocateRegisters()
+	struct RegisterAllocator
 	{
-		// register, allocated, type
-		std::vector<std::tuple<x86::Reg, bool, InternalRegister::Type>> register_states{
-			{x86::ecx, false, InternalRegister::Type::General},
-			{x86::edx, false, InternalRegister::Type::General},
-			{x86::ebx, false, InternalRegister::Type::General},
-			{x86::ebp, false, InternalRegister::Type::General},
-			{x86::esi, false, InternalRegister::Type::General},
-			{x86::edi, false, InternalRegister::Type::General},
-			{x86::xmm0, false, InternalRegister::Type::Xmm},
-			{x86::xmm1, false, InternalRegister::Type::Xmm},
-			{x86::xmm2, false, InternalRegister::Type::Xmm},
-			{x86::xmm3, false, InternalRegister::Type::Xmm},
-			{x86::xmm4, false, InternalRegister::Type::Xmm},
-			{x86::xmm5, false, InternalRegister::Type::Xmm},
-			{x86::xmm6, false, InternalRegister::Type::Xmm},
-			{x86::xmm7, false, InternalRegister::Type::Xmm}};
-		
-		std::map<InternalRegisterRef, x86::Reg> allocated_registers;
+		// Virtual-Register -> Physical-Register
+		std::map<InternalRegisterRef, x86::Reg> Allocations;
 
-		std::vector<InternalRegisterRef> active;
+		// Virtual-Registers that are currently stored in memory @ stack+offset
+		// Only for Gp registers
+		std::map<InternalRegisterRef, size_t> Spilled;
 
-		// Sorted in the order that they are first used
-		std::vector<InternalRegisterRef> register_init_order;
+		// Physical-Registers that we need to restore to their origin value at the end of our block
+		// In order from stack+0 -> stack+n
+		std::vector<x86::Reg> Saved;
+
+		// How much space our block requires on the stack
+		size_t CalculateStackSize()
 		{
-			register_init_order.resize(registers.size());
-			for (size_t i = 0; i < registers.size(); i++)
+			size_t size = Saved.size() * sizeof(uint32_t);
+
+			// TODO: We only need to count 
+			for (auto& [k, v] : Spilled)
 			{
-				register_init_order[i] = static_cast<InternalRegisterRef>(i);
+				size += sizeof(uint32_t);
 			}
-			std::sort(register_init_order.begin(), register_init_order.end(),
-				[this](const InternalRegisterRef& lhs, const InternalRegisterRef& rhs) { return registers[static_cast<size_t>(lhs)].startpoint < registers[static_cast<size_t>(rhs)].startpoint; });
+
+			return size;
 		}
 
-		for (auto i : register_init_order)
+		void AllocateRegisters()
 		{
-			auto& i_reg = registers[static_cast<size_t>(i)];
+			Allocations.clear();
+			Spilled.clear();
+			Saved.clear();
 
-			// Register was never referenced?
-			if (i_reg.startpoint == InternalRegister::InvalidLoc)
-				continue;
+			// register, allocated, type
+			using RegisterState = std::tuple<x86::Reg, bool, InternalRegister::Type>;
+			std::array<RegisterState, 14> register_states{{
+				{x86::ecx, false, InternalRegister::Type::General},
+				{x86::edx, false, InternalRegister::Type::General},
+				{x86::ebx, false, InternalRegister::Type::General},
+				{x86::ebp, false, InternalRegister::Type::General},
+				{x86::esi, false, InternalRegister::Type::General},
+				{x86::edi, false, InternalRegister::Type::General},
+				{x86::xmm0, false, InternalRegister::Type::Xmm},
+				{x86::xmm1, false, InternalRegister::Type::Xmm},
+				{x86::xmm2, false, InternalRegister::Type::Xmm},
+				{x86::xmm3, false, InternalRegister::Type::Xmm},
+				{x86::xmm4, false, InternalRegister::Type::Xmm},
+				{x86::xmm5, false, InternalRegister::Type::Xmm},
+				{x86::xmm6, false, InternalRegister::Type::Xmm},
+				{x86::xmm7, false, InternalRegister::Type::Xmm}}};
 
-			// Free any active registers no longer being used
-			auto it = active.begin();
-			while (it != active.end())
+			std::vector<InternalRegisterRef> active;
+			/*
+			// Sorted in the order that they are first used
+			std::vector<InternalRegisterRef> register_init_order;
 			{
-				auto& active_reg = registers[static_cast<size_t>(*it)];
-				if (active_reg.endpoint >= i_reg.startpoint)
-					break;
-
-				// Mark the register as available
-				x86::Reg allocated_register = allocated_registers.at(*it);
-				auto register_state = std::find_if(register_states.begin(), register_states.end(),
-					[allocated_register](const std::tuple<x86::Reg, bool, InternalRegister::Type> v) { return std::get<0>(v)== allocated_register; });
-				std::get<1>(*register_state) = false;
-				
-				// Remove us from active
-				it = active.erase(it);
+				register_init_order.resize(registers.size());
+				for (size_t i = 0; i < registers.size(); i++)
+				{
+					register_init_order[i] = static_cast<InternalRegisterRef>(i);
+				}
+				std::sort(register_init_order.begin(), register_init_order.end(),
+					[this](const InternalRegisterRef& lhs, const InternalRegisterRef& rhs) { return registers[static_cast<size_t>(lhs)].startpoint < registers[static_cast<size_t>(rhs)].startpoint; });
 			}
 
-			// Early exit for our special cases
-			switch (i_reg.type)
+			for (auto i : register_init_order)
 			{
-			case InternalRegister::Type::ESP:
-				allocated_registers.emplace(i, x86::esp);
-				continue;
-			case InternalRegister::Type::JitContext:
-				allocated_registers.emplace(i, x86::eax);
-				continue;
+				auto& i_reg = registers[static_cast<size_t>(i)];
+
+				// Register was never referenced?
+				if (i_reg.startpoint == InternalRegister::InvalidLoc)
+					continue;
+
+				// Early exit for our special cases
+				switch (i_reg.type)
+				{
+					case InternalRegister::Type::ESP:
+						Allocations.emplace(i, x86::esp);
+						continue;
+					case InternalRegister::Type::JitContext:
+						Allocations.emplace(i, x86::eax);
+						continue;
+				}
+
+				// Free any active registers no longer being used
+				auto it = active.begin();
+				while (it != active.end())
+				{
+					auto& active_reg = registers[static_cast<size_t>(*it)];
+					if (active_reg.endpoint >= i_reg.startpoint)
+						break;
+
+					// Mark the register as available
+					x86::Reg allocated_register = Allocations.at(*it);
+					auto register_state = std::find_if(register_states.begin(), register_states.end(),
+						[allocated_register](const std::tuple<x86::Reg, bool, InternalRegister::Type> v) { return std::get<0>(v)== allocated_register; });
+					std::get<1>(*register_state) = false;
+
+					// Remove us from active
+					it = active.erase(it);
+				}
+
+				// Find a free register for this var
+				auto allocated_register = std::find_if(register_states.begin(), register_states.end(),
+					[&i_reg](const std::tuple<x86::Reg, bool, InternalRegister::Type> v) { return std::get<1>(v) == false && std::get<2>(v) == i_reg.type; });
+
+				if (allocated_register == register_states.end())
+				{
+					if (i_reg.type == InternalRegister::Type::General)
+					{
+						Spilled.emplace(i);
+					}
+
+					// Ran out of registers. We'll need to implement spillover to the stack
+					__debugbreak();
+				}
+
+				Allocations.emplace(i, std::get<0>(*allocated_register));
+				std::get<1>(*allocated_register) = true;
+
+				// Mark us as active, the vector has to remain sorted by ascending endpoint
+				active.insert(std::upper_bound(active.begin(), active.end(), i_reg.endpoint,
+					[this](const uint32_t& endpoint, const InternalRegisterRef& ref) { return endpoint < registers[static_cast<size_t>(ref)].endpoint; }), static_cast<InternalRegisterRef>(i));
 			}
-
-			// Find a free register for this var
-			auto allocated_register = std::find_if(register_states.begin(), register_states.end(),
-				[&i_reg](const std::tuple<x86::Reg, bool, InternalRegister::Type> v) { return std::get<1>(v) == false && std::get<2>(v) == i_reg.type; });
-
-			if (allocated_register == register_states.end())
-			{
-				// Ran out of registers. We'll need to implement spillover to the stack
-				__debugbreak();
-			}
-
-			allocated_registers.emplace(i, std::get<0>(*allocated_register));
-			std::get<1>(*allocated_register) = true;
-
-			// Mark us as active, the vector has to remain sorted by ascending endpoint
-			active.insert(std::upper_bound(active.begin(), active.end(), i_reg.endpoint,
-				[this](const uint32_t& endpoint, const InternalRegisterRef& ref) { return endpoint < registers[static_cast<size_t>(ref)].endpoint; }), static_cast<InternalRegisterRef>(i));
+			*/
 		}
+	};
 
-		return allocated_registers;
-	}
+
 
 	asmjit::Operand ConvertOperand(std::map<InternalRegisterRef, x86::Reg>& allocated_registers, Operand& op)
 	{
@@ -1066,7 +1112,7 @@ struct ProcCompiler
 
 	void Compile()
 	{
-		std::map<InternalRegisterRef, x86::Reg> allocated_registers = AllocateRegisters();
+		std::map<InternalRegisterRef, x86::Reg> allocated_registers; // = AllocateRegisters();
 
 		for (size_t i = 0; i < instructions.size(); i++)
 		{
@@ -1157,6 +1203,7 @@ struct ProcCompiler
 		}
 
 		emit_add(Ptr(jit_context, offsetof(JitContext, stack_top)), Imm(sizeof(Value)));
+		// emit_ret()
 	}
 
 	void CommitLocals()
@@ -1230,8 +1277,72 @@ struct ProcCompiler
 		stack.clear();
 	}
 
+	void BeginProc(uint32_t locals_count)
+	{
+		locals.resize(locals_count);
+		for (uint32_t i = 0; i < locals_count; i++)
+		{
+			SetLocal(0, ProcCompiler::Variable{Imm(DataType::NULL_D), Imm(0)});
+		}
+	}
+
+	void FinishProc()
+	{
+		Bind(epilogue_label);
+		EmitEpilogue();
+		// emit_ret()
+	}
+
+	void BeginBlock()
+	{
+
+	}
+
+	void FinishBlock()
+	{
+		// We have to compile at the end of every block
+		Compile();
+
+		// We have to forget about any registers/imms we had for stack values & locals
+		stack.clear();
+
+		for (auto& entry : locals)
+		{
+			entry.reset();
+		}
+
+		CommitLocals(); // TODO: don't need to do this for the last block?
+	}
+
+	void Return()
+	{
+		// emit_jmp(epilogue_label);
+	}
+
+	void Yield(Label& resume)
+	{
+		uint32_t resumption_index = 1337; // TODO:
+
+		// We'll need this later
+		PushStack({Imm(DataType::NULL_D), Imm(resumption_index)});
+
+		CommitLocals();
+		CommitStack();
+
+		// emit_call(jit_co_suspend_internal)
+		emit_mov(ret, Imm(static_cast<uint32_t>(JitProcResult::Yielded)));
+		// emit_ret()
+
+		FinishBlock();
+
+		// Our new entry-point
+		Bind(resume);
+		emit_mov(jit_context, Ptr(esp, 4));
+	}
+
 private:
 
+	Label epilogue_label;
 	Label consts_label;
 	ConstPool consts;
 
