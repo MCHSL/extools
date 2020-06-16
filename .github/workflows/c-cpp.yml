@@ -46,8 +46,8 @@ jobs:
        run: |
          mkdir build
          cd build
-         cmake ../byond-extools -DCMAKE_CXX_FLAGS=-m32 -DCMAKE_C_FLAGS=-m32
-         cmake --build . --config RelWithDebInfo -DCMAKE_CXX_FLAGS=-m32 -DCMAKE_C_FLAGS=-m32
+         cmake ../byond-extools 
+         cmake --build . --config RelWithDebInfo -A Win32 
          
      - name: Prepare Artifacts
        run: |
