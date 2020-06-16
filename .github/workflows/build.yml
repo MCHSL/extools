@@ -1,4 +1,4 @@
-name: CI
+name: Build
 
 on: 
  push: 
@@ -46,8 +46,8 @@ jobs:
        run: |
          mkdir build
          cd build
-         cmake ../byond-extools 
-         cmake --build . --config RelWithDebInfo -A Win32 
+         cmake ../byond-extools -A Win32 
+         cmake --build . --config RelWithDebInfo
          
      - name: Prepare Artifacts
        run: |
