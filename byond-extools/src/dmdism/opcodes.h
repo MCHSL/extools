@@ -83,6 +83,8 @@ enum Bytecode
 	POP = 0x51,
 	ITERLOAD = 0x52,
 	ITERNEXT = 0x53,
+	ITERATOR_PUSH = 0x54,
+	ITERATOR_POP = 0x55,
 
 	LOCATE_POS = 0x5A,
 	LOCATE_REF = 0x5B,
@@ -304,6 +306,8 @@ const std::unordered_map<Bytecode, std::string> mnemonics = {
 	{POP, "POP"},
 	{ITERLOAD, "ITERLOAD"},
 	{ITERNEXT, "ITERNEXT"},
+	{ITERATOR_PUSH, "ITERATOR_PUSH"},
+	{ITERATOR_POP, "ITERATOR_POP"},
 	{LOCATE_POS, "LOCATE_POS"},
 	{LOCATE_REF, "LOCATE_REF"},
 	{PUSHVAL, "PUSHVAL"},

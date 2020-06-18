@@ -167,12 +167,12 @@ void init_testing()
 	//enable_crash_guard();
 	//optimizer_initialize();
 	//Core::Alert(Core::stringify({ 0x0C, 0x00 }));
-	//Core::Proc p = "/proc/pickdism";
-	//std::ofstream o("out.txt");
-	//for (Instruction& i : p.disassemble())
-	//{
-	//	o << i.offset() << "\t\t\t" << i.bytes_str() << "\t\t\t" << i.opcode().mnemonic() << "\n";
-	//}
+	Core::Proc& p = Core::get_proc("/proc/disme");
+	std::ofstream o("out.txt");
+	for (Instruction& i : p.disassemble())
+	{
+		o << std::hex << i.offset() << std::dec << "\t\t\t" << i.bytes_str() << "\t\t\t" << i.opcode().mnemonic() << "\n";
+	}
 	/*Core::Proc p = "/proc/bench_intrinsic_add";
 	Disassembly d = p.disassemble();
 	Core::Proc intrinsic_add = "/proc/__intrinsic_add_locals";

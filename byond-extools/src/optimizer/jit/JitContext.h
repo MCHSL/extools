@@ -16,14 +16,24 @@ enum struct ProcResult : uint32_t
 
 typedef ProcResult (*Proc)(JitContext* ctx, uint32_t continuation_index);
 
+struct DMListIterator
+{
+	DMListIterator* previous;
+	Value* elements;
+	std::uint32_t length;
+	std::uint32_t current_index;
+};
+
 // This is pushed on the stack at the beginning of every proc call
 struct ProcStackFrame
 {
 	// The ProcFrame of the function that called us. We need to restore this when we return.
 	// If this is null it means we were directly called from DM and need to ret to our entrypoint
 	ProcStackFrame* previous;
-
 	uint32_t padding;
+	// The stack of iterators implemented as a linked list. Points to the iterator currently being iterated.
+	DMListIterator* current_iterator;
+	uint32_t padding2;
 
 	// TODO: This is where these will live
 	// Value src;
@@ -47,8 +57,9 @@ struct JitContext
 		: stack(new Value[DefaultSlotAllocation])
 		, stack_allocated(DefaultSlotAllocation)
 		, stack_frame(nullptr)
-		, stack_top(stack)
-	{}
+	{
+		stack_top = stack;
+	}
 
 	~JitContext() noexcept
 	{
@@ -71,6 +82,7 @@ struct JitContext
 		stack = new Value[stack_allocated];
 		stack_top = &stack[src.stack_top - src.stack];
 		stack_frame = reinterpret_cast<ProcStackFrame*>(&stack[reinterpret_cast<Value*>(src.stack_frame) - src.stack]);
+		stack_allocated = src.stack_allocated;
 		std::copy(src.stack, src.stack_top, stack);
 	}
 

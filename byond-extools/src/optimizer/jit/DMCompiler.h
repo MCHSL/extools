@@ -5,6 +5,7 @@
 
 #include <stdint.h>
 #include <vector>
+#include <array>
 
 namespace dmjit
 {
@@ -65,7 +66,49 @@ public:
 	Variable getLocal(uint32_t index);
 	void setLocal(uint32_t index, Variable& variable);
 
-	Variable popStack();
+	template<std::size_t I>
+	std::array<Variable, I> popStack()
+	{
+		if (_currentBlock == nullptr)
+			__debugbreak();
+		BlockNode& block = *_currentBlock;
+
+		// The stack cache could be empty if something was pushed to it before jumping to a new block
+		if (!block._stack.empty())
+		{
+			std::array<Variable, I> res;
+			for (int i = 1; i <= I; i++)
+			{
+				res[I - i] = block._stack.pop(); // Pop and place in correct order
+			}
+			_currentBlock->_stack_top_offset -= I;
+			return res;
+		}
+
+		setInlineComment("popStack (overpopped)");
+
+		auto stack_top = block._stack_top;
+
+		std::array<Variable, I> result;
+		for (int i = 1; i <= I; i++)
+		{
+			auto type = newUInt32();
+			auto value = newUInt32();
+			mov(type, x86::ptr(stack_top, (block._stack_top_offset - (i - 1)) * sizeof(Value) - sizeof(Value), sizeof(uint32_t)));
+			mov(value, x86::ptr(stack_top, (block._stack_top_offset - (i - 1)) * sizeof(Value) - (sizeof(Value) / 2), sizeof(uint32_t)));
+			result[I - i] = { type, value };
+		}
+
+		_currentBlock->_stack_top_offset -= I;
+		return result;
+	}
+
+	Variable popStack()
+	{
+		return popStack<1>()[0];
+	}
+
+
 	void pushStack(Variable& variable);
 	void clearStack();
 
@@ -78,6 +121,13 @@ public:
 	void jump_zero(BlockNode* block);
 
 	void jump(BlockNode* block);
+
+	void jump_ge(BlockNode* block);
+
+	x86::Gp getStackFrame();
+
+	x86::Gp getCurrentIterator();
+	void setCurrentIterator(Operand iter);
 
 	// Returns the value at the top of the stack
 	void doReturn();
@@ -102,13 +152,13 @@ public:
 
 		_stack_top = dmc.newUIntPtr();
 		cb->_newNodeT<BlockEndNode>(&_end);
-		_stack.init(&cb->_allocator);		
+		//_stack.init(&cb->_allocator);		
 	}
 
 	Label _label;
 	x86::Gp _stack_top;
 	int32_t _stack_top_offset;
-	ZoneStack<Variable> _stack;
+	ZoneVector<Variable> _stack;
 
 	BlockEndNode* _end;	
 };
@@ -137,6 +187,7 @@ public:
 
 		_jit_context = dmc.newUIntPtr();
 		_stack_frame = dmc.newUIntPtr();
+		_current_iterator = dmc.newUIntPtr();
 		_entryPoint = dmc.newLabel();
 		_prolog = dmc.newLabel();
 		dmc._newNodeT<ProcEndNode>(&_end);
@@ -157,6 +208,7 @@ public:
 
 	x86::Gp _jit_context;
 	x86::Gp _stack_frame;
+	x86::Gp _current_iterator;
 
 	Label _entryPoint;
 	Label _prolog;

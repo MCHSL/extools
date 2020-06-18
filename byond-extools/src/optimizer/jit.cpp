@@ -181,7 +181,7 @@ enum struct JitProcResult : uint32_t
 	Yielded,
 };
 
-typedef JitProcResult (*JitProc)(JitContext* ctx);
+//typedef JitProcResult (*JitProc)(JitContext* ctx);
 
 struct JitContext
 {
@@ -1384,7 +1384,7 @@ static std::map<unsigned int, Label> proc_epilogues;
 static std::set<std::string> string_set;
 
 static std::vector<Label> resumption_labels;
-static std::vector<JitProc> resumption_procs;
+static std::vector<void*> resumption_procs;
 
 static Label current_epilogue;
 
@@ -1456,7 +1456,7 @@ std::map<unsigned int, Block> split_into_blocks(Disassembly& dis, x86::Assembler
 	return blocks;
 }
 
-std::ofstream jit_out("jit_out.txt");
+std::ofstream jit_out("jit_out_old.txt");
 
 class SimpleErrorHandler : public asmjit::ErrorHandler
 {
@@ -1476,7 +1476,7 @@ static Register jit_context = { nullptr, 0, 0 };
 static JitContext stored_context;
 static JitContext* current_context = nullptr;
 
-static trvh JitEntryPoint(void* code_base, unsigned int args_len, Value* args, Value src)
+/*static trvh JitEntryPoint(void* code_base, unsigned int args_len, Value* args, Value src)
 {
 	JitContext ctx;
 	JitProc code = static_cast<JitProc>(code_base);
@@ -1551,7 +1551,7 @@ static trvh jit_co_resume(unsigned int argcount, Value* args, Value src)
 	return Value::Null();
 }
 
-
+*/
 static void Emit_PushInteger(x86::Assembler& ass, float not_an_integer)
 {
 	auto stack_top = register_allocator.New(ass);
@@ -1622,7 +1622,7 @@ static void Emit_PushValue(x86::Assembler& ass, DataType type, unsigned int valu
 
 static void Emit_CallGlobal(x86::Assembler& ass, unsigned int arg_count, unsigned int proc_id)
 {
-	if (proc_id == jit_co_suspend_proc_id)
+	/*if (proc_id == jit_co_suspend_proc_id)
 	{
 		ass.setInlineComment("jit_co_suspend intrinsic");
 
@@ -1655,7 +1655,7 @@ static void Emit_CallGlobal(x86::Assembler& ass, unsigned int arg_count, unsigne
 		jit_context = register_allocator.New(ass);
 		ass.mov(jit_context, x86::ptr(x86::esp, 4, sizeof(uint32_t)));
 		return;
-	}
+	}*/
 
 	ass.sub(x86::ptr(jit_context, offsetof(JitContext, stack_top), sizeof(uint32_t)), arg_count * sizeof(Value));
 
@@ -1991,7 +1991,7 @@ void jit_compile(std::vector<Core::Proc*> procs)
 	resumption_procs.resize(resumption_labels.size());
 	for (size_t i = 0; i < resumption_labels.size(); i++)
 	{
-		resumption_procs[i] = reinterpret_cast<JitProc>(code_base + code.labelOffset(resumption_labels[i]));
+		//resumption_procs[i] = reinterpret_cast<JitProc>(code_base + code.labelOffset(resumption_labels[i]));
 	}
 
 	// Hook procs
@@ -2000,7 +2000,7 @@ void jit_compile(std::vector<Core::Proc*> procs)
 		Label& entry = proc_labels[proc->id];
 		char* func_base = reinterpret_cast<char*>(code_base + code.labelOffset(entry));
 		jit_out << func_base << std::endl;
-		proc->jit_hook(func_base, JitEntryPoint);
+		//proc->jit_hook(func_base, JitEntryPoint);
 	}
 
 	jit_out << "Compilation successful" << std::endl;	
@@ -2013,11 +2013,11 @@ extern "C" EXPORT const char* jit_initialize(int n_args, const char** args)
 		return Core::FAIL;
 	}
 	
-	Core::get_proc("/proc/jit_co_suspend").hook(jit_co_suspend);
-	Core::get_proc("/proc/jit_co_resume").hook(jit_co_resume);
+	//Core::get_proc("/proc/jit_co_suspend").hook(jit_co_suspend);
+	//Core::get_proc("/proc/jit_co_resume").hook(jit_co_resume);
 
-	jit_co_suspend_proc_id = Core::get_proc("/proc/jit_co_suspend").id;
+	//jit_co_suspend_proc_id = Core::get_proc("/proc/jit_co_suspend").id;
 
-	jit_compile({&Core::get_proc("/proc/jit_test_compiled_proc")});
+	//jit_compile({&Core::get_proc("/proc/jit_test_compiled_proc")});
 	return Core::SUCCESS;
 }

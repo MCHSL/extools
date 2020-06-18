@@ -160,6 +160,8 @@ __forceinline std::unique_ptr<Instruction> get_instr(std::uint32_t op) {
 		ADD_CALLBACK(BROWSE_RSC)
 		ADD_CALLBACK(BROWSE)
 		ADD_CALLBACK(BROWSE_OPT)
+		ADD_CALLBACK(ITERATOR_PUSH)
+		ADD_CALLBACK(ITERATOR_POP)
 	}
 	return std::make_unique<Instr_UNK>();
 }

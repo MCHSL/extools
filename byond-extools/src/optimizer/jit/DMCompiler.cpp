@@ -2,6 +2,7 @@
 #include "JitContext.h"
 
 #include <algorithm>
+#include <array>
 
 using namespace asmjit;
 
@@ -43,7 +44,7 @@ ProcNode* DMCompiler::addProc(uint32_t locals_count)
 	mov(_currentProc->_stack_frame, stack_top);
 	mov(old_stack_frame, x86::ptr(_currentProc->_jit_context, offsetof(JitContext, stack_frame), sizeof(uint32_t)));
 
-	static_assert(sizeof(ProcStackFrame) == sizeof(Value) * 1);
+	static_assert(sizeof(ProcStackFrame) == sizeof(Value) * 2);
 	mov(x86::ptr(stack_top, offsetof(Value, type), sizeof(uint32_t)), old_stack_frame);
 	mov(x86::ptr(stack_top, offsetof(Value, value), sizeof(uint32_t)), old_stack_frame);
 	add(x86::ptr(_currentProc->_jit_context, offsetof(JitContext, stack_top), sizeof(uint32_t)), sizeof(ProcStackFrame));
@@ -142,39 +143,13 @@ void DMCompiler::setLocal(uint32_t index, Variable& variable)
 	proc._locals[index] = {Local::CacheState::Modified, variable};
 }
 
-Variable DMCompiler::popStack()
-{
-	if (_currentBlock == nullptr)
-		__debugbreak();
-	BlockNode& block = *_currentBlock;
-
-	// The stack cache could be empty if something was pushed to it before jumping to a new block
-	if (!block._stack.empty())
-	{
-		_currentBlock->_stack_top_offset--;
-		return block._stack.pop();
-	}
-
-	setInlineComment("popStack (overpopped)");
-
-	auto stack_top = block._stack_top;
-
-	auto type = newUInt32();
-	auto value = newUInt32();
-	mov(type, x86::ptr(stack_top, block._stack_top_offset * sizeof(Value) - sizeof(Value), sizeof(uint32_t)));
-	mov(value, x86::ptr(stack_top, block._stack_top_offset * sizeof(Value) - (sizeof(Value) / 2), sizeof(uint32_t)));
-
-	_currentBlock->_stack_top_offset--;
-	return {type, value};
-}
-
 void DMCompiler::pushStack(Variable& variable)
 {
 	if (_currentBlock == nullptr)
 		__debugbreak();
 	BlockNode& block = *_currentBlock;
 	_currentBlock->_stack_top_offset++;
-	_currentBlock->_stack.append(variable);
+	_currentBlock->_stack.append(&_allocator, variable);
 }
 
 void DMCompiler::clearStack()
@@ -325,6 +300,27 @@ void DMCompiler::jump(BlockNode* block)
 	jmp(block->_label);
 }
 
+x86::Gp DMCompiler::getStackFrame()
+{
+	if(_currentProc == nullptr)
+		__debugbreak();
+	return _currentProc->_stack_frame;
+}
+
+x86::Gp DMCompiler::getCurrentIterator()
+{
+	if (_currentProc == nullptr)
+		__debugbreak();
+	return _currentProc->_current_iterator;
+}
+
+void DMCompiler::setCurrentIterator(Operand iter)
+{
+	if (_currentProc == nullptr)
+		__debugbreak();
+	mov(_currentProc->_current_iterator, iter.as<x86::Gp>());
+}
+
 void DMCompiler::doReturn()
 {
 	if (_currentProc == nullptr)
@@ -336,7 +332,7 @@ void DMCompiler::doReturn()
 	BlockNode& block = *_currentBlock;
 
 	// The only thing our proc should leave on the stack is the return value
-	Variable retval = popStack();
+	auto retval = popStack();
 	
 	setInlineComment("doReturn");
 
