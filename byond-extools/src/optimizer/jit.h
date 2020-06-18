@@ -15,6 +15,7 @@
 
 #include <vector>
 
+/*
 class Block
 {
 public:
@@ -25,6 +26,6 @@ public:
 	asmjit::Label label;
 	asmjit::Label label2;
 };
+*/
 
-std::map<unsigned int, Block> split_into_blocks(Disassembly& dis);
 void jit_compile(std::vector<Core::Proc*> procs);

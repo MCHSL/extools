@@ -12,6 +12,16 @@
 
 using namespace asmjit;
 
+class Block
+{
+public:
+	Block(unsigned int o) : offset(o) { contents = {}; }
+	Block() { offset = 0; contents = {}; }
+	std::vector<Instruction> contents;
+	unsigned int offset;
+	asmjit::Label label;
+	asmjit::Label label2;
+};
 
 struct RegisterAllocator;
 

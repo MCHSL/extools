@@ -1,7 +1,20 @@
 #include "../../core/core.h"
 
-namespace jit
+namespace dmjit
 {
+
+class JitContext;
+
+enum struct ProcResult : uint32_t
+{
+	// The proc finished. The return value is at the top of the stack (and should be the only value there)
+	Success,
+
+	// The proc is sleeping or something - the passed in JitContext is now invalid
+	Yielded,
+};
+
+typedef ProcResult (*Proc)(JitContext* ctx, uint32_t continuation_index);
 
 // This is pushed on the stack at the beginning of every proc call
 struct ProcStackFrame
