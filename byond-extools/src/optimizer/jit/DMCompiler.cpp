@@ -17,12 +17,12 @@ DMCompiler::DMCompiler(asmjit::CodeHolder& holder)
 
 }
 
-ProcNode* DMCompiler::addProc(uint32_t locals_count)
+ProcNode* DMCompiler::addProc(uint32_t locals_count, uint32_t args_count)
 {
 	if (_currentProc != nullptr)
 		__debugbreak();
-	addFunc(FuncSignatureT<uint32_t, JitContext*, uint32_t>(CallConv::kIdCDecl));
-	_newNodeT<ProcNode>(&_currentProc, locals_count);
+	addFunc(FuncSignatureT<uint32_t, JitContext*, uint32_t, uint32_t, Value*, uint32_t, uint32_t, uint32_t, uint32_t>(CallConv::kIdCDecl));
+	_newNodeT<ProcNode>(&_currentProc, locals_count, args_count);
 	addNode(_currentProc);
 
 	setInlineComment("Proc Entrypoint");
@@ -30,6 +30,7 @@ ProcNode* DMCompiler::addProc(uint32_t locals_count)
 	mov(_currentProc->_stack_frame, x86::ptr(_currentProc->_jit_context, offsetof(JitContext, stack_frame), sizeof(uint32_t)));
 
 	x86::Gp continuation_index = newUInt32();
+	setArg(1, continuation_index);
 	// TODO: jump table
 
 	setInlineComment("Proc Prolog");
@@ -44,10 +45,32 @@ ProcNode* DMCompiler::addProc(uint32_t locals_count)
 	mov(_currentProc->_stack_frame, stack_top);
 	mov(old_stack_frame, x86::ptr(_currentProc->_jit_context, offsetof(JitContext, stack_frame), sizeof(uint32_t)));
 
-	static_assert(sizeof(ProcStackFrame) == sizeof(Value) * 2);
+	static_assert(sizeof(ProcStackFrame) == sizeof(Value) * 5);
 	mov(x86::ptr(stack_top, offsetof(Value, type), sizeof(uint32_t)), old_stack_frame);
 	mov(x86::ptr(stack_top, offsetof(Value, value), sizeof(uint32_t)), old_stack_frame);
 	add(x86::ptr(_currentProc->_jit_context, offsetof(JitContext, stack_top), sizeof(uint32_t)), sizeof(ProcStackFrame));
+
+	x86::Gp args_ptr = newUInt32();
+	x86::Gp arg_count = newUInt32();
+	setArg(2, arg_count);
+	setArg(3, args_ptr);
+	//todo: have the loop read the actual arg count and not the procnode one
+	for (uint32_t i = 0; i < args_count; i++) // Copy args to stack frame
+	{
+		setInlineComment("mov arg");
+		x86::Gp type = newUInt32();
+		x86::Gp value = newUInt32();
+		mov(type, x86::ptr(args_ptr, i * sizeof(Value) + offsetof(Value, type)));
+		mov(value, x86::ptr(args_ptr, i * sizeof(Value) + offsetof(Value, value)));
+		_currentProc->_args[i] = { Local::CacheState::Modified, Variable{type, value} };
+	}
+
+	x86::Gp copy_thingy = newUInt32();
+	x86::Gp copy_thingy2 = newUInt32();
+	setArg(4, copy_thingy);
+	mov(x86::ptr(_currentProc->_stack_frame, offsetof(ProcStackFrame, src) + offsetof(Value, type)), copy_thingy);
+	setArg(5, copy_thingy2);
+	mov(x86::ptr(_currentProc->_stack_frame, offsetof(ProcStackFrame, src) + offsetof(Value, value)), copy_thingy2);
 
 	// Default locals to null
 	Variable null{Imm(DataType::NULL_D), Imm(0)};
@@ -124,13 +147,49 @@ Variable DMCompiler::getLocal(uint32_t index)
 	// Locals live after our stack frame
 	auto type = newUInt32();
 	auto value = newUInt32();
-	mov(type, x86::ptr(stack_frame, sizeof(ProcStackFrame) + sizeof(Value) * index, sizeof(uint32_t)));
-	mov(value, x86::ptr(stack_frame, sizeof(ProcStackFrame) + sizeof(Value) * index + (sizeof(Value) / 2), sizeof(uint32_t)));
+	mov(type, x86::ptr(stack_frame, sizeof(ProcStackFrame) + sizeof(Value) * proc._args_count + sizeof(Value) * index, sizeof(uint32_t))); // Locals are located after args.
+	mov(value, x86::ptr(stack_frame, sizeof(ProcStackFrame) + sizeof(Value) * proc._args_count + sizeof(Value) * index + offsetof(Value, value), sizeof(uint32_t)));
 
 	// Update the cache
 	local = {Local::CacheState::Ok, {type, value}};
 
 	return local.Variable;
+}
+
+// This and the above method have a lot in common, should be refactored.
+Variable DMCompiler::getArg(uint32_t index)
+{
+	if (_currentProc == nullptr)
+		__debugbreak();
+	ProcNode& proc = *_currentProc;
+	if (index >= proc._args_count)
+		__debugbreak();
+
+	Local& arg = proc._args[index];
+
+	switch (arg.State)
+	{
+	case Local::CacheState::Ok:
+	case Local::CacheState::Modified:
+		return arg.Variable;
+	case Local::CacheState::Stale:
+		break;
+	default:
+		break;
+	}
+
+	auto stack_frame = proc._stack_frame;
+
+	// Locals live after our stack frame
+	auto type = newUInt32();
+	auto value = newUInt32();
+	mov(type, x86::ptr(stack_frame, sizeof(ProcStackFrame) + sizeof(Value) * index, sizeof(uint32_t)));
+	mov(value, x86::ptr(stack_frame, sizeof(ProcStackFrame) + sizeof(Value) * index + offsetof(Value, value), sizeof(uint32_t)));
+
+	// Update the cache
+	arg = { Local::CacheState::Ok, {type, value} };
+
+	return arg.Variable;
 }
 
 void DMCompiler::setLocal(uint32_t index, Variable& variable)
@@ -141,6 +200,40 @@ void DMCompiler::setLocal(uint32_t index, Variable& variable)
 	if (index >= proc._locals_count)
 		__debugbreak();
 	proc._locals[index] = {Local::CacheState::Modified, variable};
+}
+
+Variable DMCompiler::getFrameEmbeddedValue(uint32_t offset)
+{
+	auto val = newUInt32();
+	auto type = newUInt32();
+	auto value = newUInt32();
+	lea(val, x86::ptr(_currentProc->_stack_frame, offset));
+	mov(type, x86::ptr(val, offsetof(Value, type)));
+	mov(value, x86::ptr(val, offsetof(Value, value)));
+	return { type, value };
+}
+
+Variable DMCompiler::getSrc()
+{
+	return getFrameEmbeddedValue(offsetof(ProcStackFrame, src));
+}
+
+Variable DMCompiler::getUsr()
+{
+	return getFrameEmbeddedValue(offsetof(ProcStackFrame, usr));
+}
+
+Variable DMCompiler::getDot()
+{
+	return getFrameEmbeddedValue(offsetof(ProcStackFrame, dot));
+}
+
+void DMCompiler::setDot(Variable& variable)
+{
+	auto dot = newUInt32();
+	lea(dot, x86::ptr(_currentProc->_stack_frame, offsetof(ProcStackFrame, dot)));
+	mov(x86::ptr(dot, offsetof(Value, type)), variable.Type.as<x86::Gp>());
+	mov(x86::ptr(dot, offsetof(Value, value)), variable.Value.as<x86::Gp>());
 }
 
 void DMCompiler::pushStack(Variable& variable)

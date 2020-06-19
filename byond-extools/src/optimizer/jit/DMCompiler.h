@@ -57,7 +57,7 @@ public:
 	DMCompiler(CodeHolder& holder);
 
 public:
-	ProcNode* addProc(uint32_t locals_count);
+	ProcNode* addProc(uint32_t locals_count, uint32_t args_count);
 	void endProc();
 
 	BlockNode* addBlock(Label& label, uint32_t continuation_index = -1);
@@ -66,6 +66,16 @@ public:
 	Variable getLocal(uint32_t index);
 	void setLocal(uint32_t index, Variable& variable);
 
+	Variable getArg(uint32_t index);
+
+	Variable getFrameEmbeddedValue(uint32_t offset);
+
+	Variable getSrc();
+	Variable getUsr();
+
+	Variable getDot();
+	void setDot(Variable& variable);
+
 	template<std::size_t I>
 	std::array<Variable, I> popStack()
 	{
@@ -73,34 +83,43 @@ public:
 			__debugbreak();
 		BlockNode& block = *_currentBlock;
 
+		std::array<Variable, I> res;
+		int popped_count = 0;
+
 		// The stack cache could be empty if something was pushed to it before jumping to a new block
-		if (!block._stack.empty())
+		for (popped_count; popped_count < I && !block._stack.empty(); popped_count++)
 		{
-			std::array<Variable, I> res;
-			for (int i = 1; i <= I; i++)
-			{
-				res[I - i] = block._stack.pop(); // Pop and place in correct order
-			}
-			_currentBlock->_stack_top_offset -= I;
+			res[I - popped_count - 1] = block._stack.pop(); // Pop and place in correct order
+		}
+		_currentBlock->_stack_top_offset -= popped_count;
+
+		if (popped_count == I)
+		{
 			return res;
 		}
+
+		int diff = I - popped_count;
 
 		setInlineComment("popStack (overpopped)");
 
 		auto stack_top = block._stack_top;
 
-		std::array<Variable, I> result;
-		for (int i = 1; i <= I; i++)
+		for (popped_count; popped_count < I && _currentBlock->_stack_top_offset - popped_count >= 0; popped_count++)
 		{
 			auto type = newUInt32();
 			auto value = newUInt32();
-			mov(type, x86::ptr(stack_top, (block._stack_top_offset - (i - 1)) * sizeof(Value) - sizeof(Value), sizeof(uint32_t)));
-			mov(value, x86::ptr(stack_top, (block._stack_top_offset - (i - 1)) * sizeof(Value) - (sizeof(Value) / 2), sizeof(uint32_t)));
-			result[I - i] = { type, value };
+			mov(type, x86::ptr(stack_top, (block._stack_top_offset - popped_count) * sizeof(Value) - sizeof(Value), sizeof(uint32_t)));
+			mov(value, x86::ptr(stack_top, (block._stack_top_offset - popped_count) * sizeof(Value) - offsetof(Value, value), sizeof(uint32_t)));
+			res[I - popped_count - 1] = { type, value };
+		}
+		if (popped_count == I)
+		{
+			_currentBlock->_stack_top_offset -= diff;
+			return res;
 		}
 
-		_currentBlock->_stack_top_offset -= I;
-		return result;
+		Core::Alert("Failed to pop enough arguments from the stack");
+		abort();
 	}
 
 	Variable popStack()
@@ -121,8 +140,6 @@ public:
 	void jump_zero(BlockNode* block);
 
 	void jump(BlockNode* block);
-
-	void jump_ge(BlockNode* block);
 
 	x86::Gp getStackFrame();
 
@@ -178,9 +195,10 @@ class ProcNode
 	: public BaseNode
 {
 public:
-	ProcNode(BaseBuilder* cb, uint32_t locals_count)
+	ProcNode(BaseBuilder* cb, uint32_t locals_count, uint32_t args_count)
 		: BaseNode(cb, static_cast<uint32_t>(NodeTypes::kNodeProc), kFlagHasNoEffect)
 		, _locals_count(locals_count)
+		, _args_count(args_count)
 		, _end(nullptr)
 	{
 		DMCompiler& dmc = *static_cast<DMCompiler*>(cb);
@@ -202,6 +220,13 @@ public:
 			_locals[i] = default_local;
 		}
 
+		// Do the same for arguments
+		_args = dmc._allocator.allocT<Local>(args_count * sizeof(Local));
+		for (uint32_t i = 0; i < args_count; i++)
+		{
+			_args[i] = default_local;
+		}
+
 		_blocks.reset();
 		_continuationPoints.reset();
 	}
@@ -217,6 +242,9 @@ public:
 
 	Local* _locals;
 	uint32_t _locals_count;
+
+	Local* _args;
+	uint32_t _args_count;
 
 	// The very very end of our proc. Nothing of this proc exists after this node.
 	ProcEndNode* _end;

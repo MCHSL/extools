@@ -14,7 +14,7 @@ enum struct ProcResult : uint32_t
 	Yielded,
 };
 
-typedef ProcResult (*Proc)(JitContext* ctx, uint32_t continuation_index);
+typedef ProcResult (*Proc)(JitContext* ctx, uint32_t continuation_index, unsigned int n_args, Value* args, trvh src, trvh usr);
 
 struct DMListIterator
 {
@@ -36,11 +36,12 @@ struct ProcStackFrame
 	uint32_t padding2;
 
 	// TODO: This is where these will live
-	// Value src;
-	// Value usr;
-	// Value dot;
+	Value src;
+	Value usr;
+	Value dot;
 
 	// These variable-length arrays follow in memory, but are not strictly part of this struct
+	// Value[] args;
 	// Value[] locals;
 	// Value[] temp_stack;
 };

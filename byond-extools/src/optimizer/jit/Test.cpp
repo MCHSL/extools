@@ -42,7 +42,7 @@ struct ProcBlock
 	BlockNode* node;
 };
 
-static std::map<unsigned int, ProcBlock> split_into_blocks(Disassembly& dis, DMCompiler& dmc, size_t& locals_max_count)
+static std::map<unsigned int, ProcBlock> split_into_blocks(Disassembly& dis, DMCompiler& dmc, size_t& locals_max_count, size_t& args_max_count)
 {
 	std::map<unsigned int, ProcBlock> blocks;
 	unsigned int current_block_offset = 0;
@@ -50,10 +50,19 @@ static std::map<unsigned int, ProcBlock> split_into_blocks(Disassembly& dis, DMC
 	std::set<unsigned int> jump_targets;
 	for (Instruction& i : dis)
 	{
-		if((i == Bytecode::SETVAR || i == Bytecode::GETVAR) && i.bytes()[1] == AccessModifier::LOCAL)
+		if(i == Bytecode::SETVAR || i == Bytecode::GETVAR)
 		{
-			uint32_t local_idx = i.bytes()[2];
-			locals_max_count = std::max(locals_max_count, local_idx + 1);
+			switch(i.bytes()[1])
+			{
+			case AccessModifier::LOCAL:
+				locals_max_count = std::max(locals_max_count, i.bytes()[2] + 1);
+				break;
+			case AccessModifier::ARG:
+				args_max_count = std::max(args_max_count, i.bytes()[2] + 1);
+				break;
+			default:
+				break;
+			}
 		}
 
 		if (jump_targets.find(i.offset()) != jump_targets.end())
@@ -254,11 +263,12 @@ static void Emit_CallGlobal(DMCompiler& dmc, uint32_t arg_count, uint32_t proc_i
 static DMListIterator* create_iterator(ProcStackFrame* psf, int list_id)
 {
 	DMListIterator* iter = new DMListIterator;
-	RawList* list = GetListPointerById(7);
+	RawList* list = GetListPointerById(list_id);
 	iter->elements = new Value[list->length];
 	std::copy(list->vector_part, list->vector_part + list->length, iter->elements);
 	iter->length = list->length;
 	iter->current_index = -1; // -1 because the index is imemdiately incremented by ITERNEXT
+	iter->previous = nullptr;
 	if (psf->current_iterator)
 	{
 		DMListIterator* current = psf->current_iterator;
@@ -298,6 +308,12 @@ static void Emit_Iterpop(DMCompiler& dmc)
 	dmc.setCurrentIterator(new_iter);
 }
 
+// 
+unsigned int shift(unsigned int n)
+{
+	return log2(n);
+}
+
 // DM bytecode pushes the next value to the stack, immediately sets a local variable to it then checks to zero flag.
 // Doing it the same way by compiling the next few instructions would screw up our zero flag, so we do all of it here.
 static void Emit_Iternext(DMCompiler& dmc, Instruction& setvar, Instruction& jmp, std::map<unsigned int, ProcBlock>& blocks)
@@ -313,15 +329,54 @@ static void Emit_Iternext(DMCompiler& dmc, Instruction& setvar, Instruction& jmp
 	auto elements = dmc.newUIntPtr();
 	dmc.mov(elements, x86::ptr(current_iter, offsetof(DMListIterator, elements)));
 	auto type = dmc.newUInt32();
-	dmc.mov(type, x86::ptr(elements, reg, 3));
+	dmc.mov(type, x86::ptr(elements, reg, shift(sizeof(Value))));
 	auto value = dmc.newUInt32();
-	dmc.mov(value, x86::ptr(elements, reg, 3, offsetof(Value, value)));
+	dmc.mov(value, x86::ptr(elements, reg, shift(sizeof(Value)), offsetof(Value, value)));
 	dmc.setLocal(setvar.bytes().at(2), Variable{type, value});
 }
 
 static void Emit_Jump(DMCompiler& dmc, uint32_t target, std::map<unsigned int, ProcBlock>& blocks)
 {
 	dmc.jump(blocks.at(target).node);
+}
+
+static void Emit_GetListElement(DMCompiler& dmc)
+{
+	auto [container, key] = dmc.popStack<2>();
+	auto getelem = dmc.call((uint32_t)GetAssocElement, FuncSignatureT<asmjit::Type::I64, int, int, int, int>());
+	getelem->setArg(0, container.Type.as<x86::Gp>());
+	getelem->setArg(1, container.Value.as<x86::Gp>());
+	getelem->setArg(2, key.Type.as<x86::Gp>());
+	getelem->setArg(3, key.Value.as<x86::Gp>());
+	auto type = dmc.newUInt32();
+	auto value = dmc.newUInt32();
+	getelem->setRet(0, type);
+	getelem->setRet(1, value);
+	dmc.pushStack(Variable{ type, value });
+}
+
+static void Emit_SetListElement(DMCompiler& dmc)
+{
+	auto [container, key, value] = dmc.popStack<3>();
+	auto getelem = dmc.call((uint32_t)SetAssocElement, FuncSignatureT<void, int, int, int, int, int, int>());
+	getelem->setArg(0, container.Type.as<x86::Gp>());
+	getelem->setArg(1, container.Value.as<x86::Gp>());
+	getelem->setArg(2, key.Type.as<x86::Gp>());
+	getelem->setArg(3, key.Value.as<x86::Gp>());
+	getelem->setArg(4, value.Type.as<x86::Gp>());
+	getelem->setArg(5, value.Value.as<x86::Gp>());
+}
+
+static void Emit_Output(DMCompiler& dmc)
+{
+
+}
+
+// TEMPORARY!!! THIS NEEDS TO RETURN DOT, NOT NULL!!!
+static void Emit_End(DMCompiler& dmc)
+{
+	dmc.pushStack(Variable{ Imm(0), Imm(0) });
+	dmc.doReturn();
 }
 
 static bool Emit_Block(DMCompiler& dmc, ProcBlock& block, std::map<unsigned int, ProcBlock>& blocks)
@@ -348,19 +403,37 @@ static bool Emit_Block(DMCompiler& dmc, ProcBlock& block, std::map<unsigned int,
 			Emit_MathOp(dmc, (Bytecode)instr.bytes()[0]);
 			break;
 		case Bytecode::SETVAR:
-			if (instr.bytes()[1] == AccessModifier::LOCAL)
+			switch (instr.bytes()[1])
 			{
-				dmc.setInlineComment("set local");
-				jit_out << "Assembling set local" << std::endl;
-				Emit_SetLocal(dmc, instr.bytes()[2]);
+			case AccessModifier::LOCAL:
+				dmc.setLocal(instr.bytes()[2], dmc.popStack());
+				break;
+			case AccessModifier::DOT:
+				dmc.setDot(dmc.popStack());
+				break;
+			default:
+				Core::Alert("Failed to assemble setvar");
+				break;
 			}
 			break;
 		case Bytecode::GETVAR:
-			if (instr.bytes()[1] == AccessModifier::LOCAL)
+			switch (instr.bytes()[1])
 			{
-				dmc.setInlineComment("get local");
-				jit_out << "Assembling get local" << std::endl;
-				Emit_GetLocal(dmc, instr.bytes()[2]);
+			case AccessModifier::LOCAL:
+				dmc.pushStack(dmc.getLocal(instr.bytes()[2]));
+				break;
+			case AccessModifier::ARG:
+				dmc.pushStack(dmc.getArg(instr.bytes()[2]));
+				break;
+			case AccessModifier::SRC:
+				dmc.pushStack(dmc.getSrc());
+				break;
+			case AccessModifier::DOT:
+				dmc.pushStack(dmc.getDot());
+				break;
+			default:
+				Core::Alert("Failed to assemble getvar");
+				break;
 			}
 			break;
 		case Bytecode::POP:
@@ -385,6 +458,16 @@ static bool Emit_Block(DMCompiler& dmc, ProcBlock& block, std::map<unsigned int,
 			dmc.setInlineComment("call global proc");
 			Emit_CallGlobal(dmc, instr.bytes()[1], instr.bytes()[2]);
 			break;
+		case Bytecode::LISTGET:
+			jit_out << "Assembling list get" << std::endl;
+			dmc.setInlineComment("list get");
+			Emit_GetListElement(dmc);
+			break;
+		case Bytecode::LISTSET:
+			jit_out << "Assembling list set" << std::endl;
+			dmc.setInlineComment("list set");
+			Emit_SetListElement(dmc);
+			break;
 		case Bytecode::ITERLOAD:
 			jit_out << "Assembling iterator load" << std::endl;
 			dmc.setInlineComment("load iterator");
@@ -406,8 +489,12 @@ static bool Emit_Block(DMCompiler& dmc, ProcBlock& block, std::map<unsigned int,
 		case Bytecode::JMP2:
 			jit_out << "Assembling jump" << std::endl;
 			Emit_Jump(dmc, instr.bytes()[1], blocks);
+			break;
 		case Bytecode::RET:
 			Emit_Return(dmc);
+			break;
+		case Bytecode::END:
+			Emit_End(dmc);
 			break;
 		case Bytecode::DBG_FILE:
 		case Bytecode::DBG_LINENO:
@@ -422,12 +509,12 @@ static bool Emit_Block(DMCompiler& dmc, ProcBlock& block, std::map<unsigned int,
 	return true;
 }
 
-static trvh JitEntryPoint(void* code_base, unsigned int args_len, Value* args, Value src)
+static trvh JitEntryPoint(void* code_base, unsigned int args_len, Value* args, Value src, Value usr)
 {
 	JitContext ctx;
 	Proc code = static_cast<Proc>(code_base);
 
-	ProcResult res = code(&ctx, 0);
+	ProcResult res = code(&ctx, 0, args_len, args, src, usr);
 
 	switch (res)
 	{
@@ -472,10 +559,11 @@ static void compile(std::vector<Core::Proc*> procs)
 		}
 		byteout_out << "END " << proc->name << '\n';
 
-		size_t locals_count = 1;
-		auto blocks = split_into_blocks(dis, dmc, locals_count);
+		size_t locals_count = 1; // Defaulting to 1 because asmjit does not like empty vectors apparently (causes an assertion error)
+		size_t args_count = 1;
+		auto blocks = split_into_blocks(dis, dmc, locals_count, args_count);
 
-		dmc.addProc(locals_count);
+		dmc.addProc(locals_count, args_count);
 		for (auto& [k, v] : blocks)
 		{
 			Emit_Block(dmc, v, blocks);
@@ -492,7 +580,7 @@ static void compile(std::vector<Core::Proc*> procs)
 
 trvh invoke_hook(unsigned int n_args, Value* args, Value src)
 {
-	return JitEntryPoint(honk, 0, nullptr, Value::Null());
+	return JitEntryPoint(honk, n_args, args, src, Value::Null());
 }
 
 EXPORT const char* ::jit_test(int n_args, const char** args)
@@ -502,7 +590,7 @@ EXPORT const char* ::jit_test(int n_args, const char** args)
 		return Core::FAIL;
 	}
 
-	compile({&Core::get_proc("/proc/jit_test_compiled_proc")});
-	Core::get_proc("/proc/jit_test_compiled_proc").hook(invoke_hook);
+	compile({&Core::get_proc("/obj/proc/jit_test_compiled_proc")});
+	Core::get_proc("/obj/proc/jit_test_compiled_proc").hook(invoke_hook);
 	return Core::SUCCESS;
 }

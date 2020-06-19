@@ -903,7 +903,7 @@ struct ProcCompiler
 		auto type = AllocateUInt32();
 		auto value = AllocateUInt32();
 		emit_mov(type, Ptr(stack_top, -sizeof(Value)));
-		emit_mov(value, Ptr(stack_top, -(sizeof(Value) / 2)));
+		emit_mov(value, Ptr(stack_top, -offsetof(Value, value)));
 		return {type, value};
 	}
 
@@ -1854,7 +1854,7 @@ static void EmitEpilogue(x86::Assembler& ass)
 	// Restore the old stack_proc_base
 	{
 		auto old_stack_proc_base = register_allocator.New(ass);
-		ass.mov(old_stack_proc_base, x86::ptr(stack_top, sizeof(Value) * -(1 + locals_count) - (sizeof(Value) / 2), sizeof(uint32_t)));
+		ass.mov(old_stack_proc_base, x86::ptr(stack_top, sizeof(Value) * -(1 + locals_count) - offsetof(Value, value), sizeof(uint32_t)));
 		ass.mov(x86::ptr(jit_context, offsetof(JitContext, stack_proc_base), sizeof(uint32_t)), old_stack_proc_base);
 	}
 
@@ -1866,8 +1866,8 @@ static void EmitEpilogue(x86::Assembler& ass)
 	}
 	{
 		auto value = register_allocator.New(ass);
-		ass.mov(value, x86::ptr(stack_top, -(sizeof(Value) / 2), sizeof(uint32_t)));
-		ass.mov(x86::ptr(stack_top, sizeof(Value) * -(1 + locals_count) - (sizeof(Value) / 2), sizeof(uint32_t)), value);
+		ass.mov(value, x86::ptr(stack_top, -offsetof(Value, value), sizeof(uint32_t)));
+		ass.mov(x86::ptr(stack_top, sizeof(Value) * -(1 + locals_count) - offsetof(Value, value), sizeof(uint32_t)), value);
 	}
 
 	register_allocator.Flush(ass);
