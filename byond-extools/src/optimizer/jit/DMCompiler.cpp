@@ -103,7 +103,7 @@ BlockNode* DMCompiler::addBlock(Label& label, uint32_t continuation_index)
 		__debugbreak();
 
 	_newNodeT<BlockNode>(&_currentBlock, label);
-	_currentProc->_blocks.append(&_allocator, _currentBlock);
+	//_currentProc->_blocks.append(&_allocator, _currentBlock);
 	setInlineComment("Block Start");
 	bind(_currentBlock->_label);
 	addNode(_currentBlock);
@@ -355,13 +355,13 @@ void DMCompiler::commitLocals()
 	}
 }
 
-void DMCompiler::jump_zero(BlockNode* block)
+void DMCompiler::jump_zero(Label label)
 {
 	if (_currentBlock == nullptr)
 		__debugbreak();
-	if (_currentProc->_blocks.indexOf(block) == Globals::kNotFound)
-		__debugbreak();
-	Label label = newLabel();
+	/*if (_currentProc->_blocks.indexOf(block) == Globals::kNotFound)
+		__debugbreak();*/
+	//Label label = newLabel();
 	Variable var = popStack();
 
 	// unnecessary
@@ -372,25 +372,25 @@ void DMCompiler::jump_zero(BlockNode* block)
 		if (var.Value.as<Imm>().value() == 0)
 		{
 			
-			jmp(block->_label);
+			jmp(label);
 			return;
 		}
 	}
 	else
 	{
 		test(var.Value.as<x86::Gp>(), var.Value.as<x86::Gp>());
-		jz(block->_label);
+		jz(label);
 	}
 }
 
-void DMCompiler::jump(BlockNode* block)
+void DMCompiler::jump(Label label)
 {
 	if (_currentBlock == nullptr)
 		__debugbreak();
-	if (_currentProc->_blocks.indexOf(block) == Globals::kNotFound)
-		__debugbreak();
+	/*if (_currentProc->_blocks.indexOf(block) == Globals::kNotFound)
+		__debugbreak();*/
 	commitStack(); // might not be necessary
-	jmp(block->_label);
+	jmp(label);
 }
 
 x86::Gp DMCompiler::getStackFrame()
@@ -412,6 +412,16 @@ void DMCompiler::setCurrentIterator(Operand iter)
 	if (_currentProc == nullptr)
 		__debugbreak();
 	mov(_currentProc->_current_iterator, iter.as<x86::Gp>());
+}
+
+void delete_iterator(DMListIterator* iter)
+{
+	if (!iter)
+	{
+		return;
+	}
+	delete[] iter->elements;
+	delete iter;
 }
 
 void DMCompiler::doReturn()
@@ -459,6 +469,12 @@ void DMCompiler::doReturn()
 
 	add(stack_top, sizeof(Value));
 	mov(x86::ptr(proc._jit_context, offsetof(JitContext, stack_top), sizeof(uint32_t)), stack_top);
+
+	// Destroy the current iterator if there is one.
+	x86::Gp iter = newUInt32();
+	mov(iter, x86::ptr(proc._stack_frame, offsetof(ProcStackFrame, current_iterator)));
+	auto del_iter = call((uint32_t)delete_iterator, FuncSignatureT<void, DMListIterator*>());
+	del_iter->setArg(0, iter);
 	
 	// return Procresult::Success
 	x86::Gp retcode = newUInt32();

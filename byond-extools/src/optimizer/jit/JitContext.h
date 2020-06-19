@@ -35,7 +35,6 @@ struct ProcStackFrame
 	DMListIterator* current_iterator;
 	uint32_t padding2;
 
-	// TODO: This is where these will live
 	Value src;
 	Value usr;
 	Value dot;

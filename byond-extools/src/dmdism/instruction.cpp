@@ -38,7 +38,7 @@ void Instruction::Disassemble(Context* context, Disassembler* dism)
 	}
 }
 
-std::string Instruction::bytes_str()
+const std::string Instruction::bytes_str() const
 {
 	std::string result;
 	for (std::uint32_t b : bytes_)

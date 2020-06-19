@@ -137,9 +137,9 @@ public:
 	// Commits the local variables to memory - you have to call this before anything that might yield!
 	void commitLocals();
 
-	void jump_zero(BlockNode* block);
+	void jump_zero(Label label);
 
-	void jump(BlockNode* block);
+	void jump(Label label);
 
 	x86::Gp getStackFrame();
 
@@ -227,7 +227,7 @@ public:
 			_args[i] = default_local;
 		}
 
-		_blocks.reset();
+		//_blocks.reset();
 		_continuationPoints.reset();
 	}
 
@@ -250,7 +250,7 @@ public:
 	ProcEndNode* _end;
 
 	// its all our blocks (TODO: maybe not needed)
-	ZoneVector<BlockNode*> _blocks;
+	//ZoneVector<ProcBlock> _blocks;
 };
 
 class ProcEndNode

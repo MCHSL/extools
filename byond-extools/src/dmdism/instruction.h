@@ -29,7 +29,7 @@ public:
 
 	std::vector<std::uint32_t>& bytes() { return bytes_; }
 	void add_byte(std::uint32_t byte);
-	std::string bytes_str();
+	const std::string bytes_str() const;
 
 	Opcode& opcode() { return opcode_; }
 	const Opcode& opcode() const { return opcode_; }

@@ -75,18 +75,21 @@ static std::map<unsigned int, ProcBlock> split_into_blocks(Disassembly& dis, DMC
 		if (i == Bytecode::JZ || i == Bytecode::JMP || i == Bytecode::JMP2 || i == Bytecode::JNZ || i == Bytecode::JNZ2)
 		{
 			const unsigned int target = i.jump_locations().at(0);
-			if (target > i.offset())
+			if (blocks.find(target) == blocks.end())
 			{
-				jump_targets.insert(i.jump_locations().at(0));
-			}
-			else //we need to split a block in twain
-			{
-				ProcBlock& victim = (--blocks.lower_bound(target))->second; //get the block that contains the target offset
-				auto split_point = std::find_if(victim.contents.begin(), victim.contents.end(), [target](Instruction& instr) { return instr.offset() == target; }); //find the target instruction
-				ProcBlock new_block = ProcBlock(target);
-				new_block.contents = std::vector<Instruction>(split_point, victim.contents.end());
-				victim.contents.erase(split_point, victim.contents.end()); //split
-				blocks[target] = new_block;
+				if (target > i.offset())
+				{
+					jump_targets.insert(i.jump_locations().at(0));
+				}
+				else //we need to split a block in twain
+				{
+					ProcBlock& victim = (--blocks.lower_bound(target))->second; //get the block that contains the target offset
+					auto split_point = std::find_if(victim.contents.begin(), victim.contents.end(), [target](Instruction& instr) { return instr.offset() == target; }); //find the target instruction
+					ProcBlock new_block = ProcBlock(target);
+					new_block.contents = std::vector<Instruction>(split_point, victim.contents.end());
+					victim.contents.erase(split_point, victim.contents.end()); //split
+					blocks[target] = new_block;
+				}
 			}
 			current_block_offset = i.offset()+i.size();
 			blocks[current_block_offset] = ProcBlock(current_block_offset);
@@ -97,10 +100,10 @@ static std::map<unsigned int, ProcBlock> split_into_blocks(Disassembly& dis, DMC
 	for (auto& [offset, block] : blocks)
 	{
 		block.label = dmc.newLabel();
-		blocks_out << offset << ":\n";
+		blocks_out << std::hex << offset << ":\n";
 		for (const Instruction& i : block.contents)
 		{
-			blocks_out << i.opcode().tostring() << "\n";
+			blocks_out << std::hex << i.offset() << std::dec << "\t\t\t" << i.bytes_str() << "\t\t\t" << i.opcode().mnemonic() << "\n";
 		}
 		blocks_out << "\n";
 	}
@@ -308,7 +311,7 @@ static void Emit_Iterpop(DMCompiler& dmc)
 	dmc.setCurrentIterator(new_iter);
 }
 
-// 
+// How much to shift when using x86::ptr - [base + (offset << shift)]
 unsigned int shift(unsigned int n)
 {
 	return log2(n);
@@ -337,7 +340,7 @@ static void Emit_Iternext(DMCompiler& dmc, Instruction& setvar, Instruction& jmp
 
 static void Emit_Jump(DMCompiler& dmc, uint32_t target, std::map<unsigned int, ProcBlock>& blocks)
 {
-	dmc.jump(blocks.at(target).node);
+	dmc.jump(blocks.at(target).label);
 }
 
 static void Emit_GetListElement(DMCompiler& dmc)
