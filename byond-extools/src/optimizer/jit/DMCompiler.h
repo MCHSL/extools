@@ -131,6 +131,9 @@ public:
 	void pushStack(Variable& variable);
 	void clearStack();
 
+	Variable pushStack2();
+	Variable pushStack2(Operand type, Operand value);
+
 	// Commits the temporary stack variables - this is called automatically when a block ends
 	void commitStack();
 
@@ -226,6 +229,8 @@ public:
 		{
 			_args[i] = default_local;
 		}
+
+		dmc.xor_(_current_iterator, _current_iterator); // ensure iterator is a nullptr
 
 		//_blocks.reset();
 		_continuationPoints.reset();

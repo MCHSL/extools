@@ -152,9 +152,34 @@ static void Emit_Return(DMCompiler& dmc)
 	dmc.doReturn();
 }
 
+static unsigned int add_strings(unsigned int str1, unsigned int str2)
+{
+	return Core::GetStringId(Core::GetStringFromId(str1) + Core::GetStringFromId(str2));
+}
+
 static void Emit_MathOp(DMCompiler& dmc, Bytecode op_type)
 {
 	auto [lhs, rhs] = dmc.popStack<2>();
+	Variable result = dmc.pushStack2(Imm(DataType::NUMBER), Imm(0));
+
+	auto done_adding_strings = dmc.newLabel();
+	if (op_type == Bytecode::ADD)
+	{
+		auto reg = dmc.newUInt32();
+		dmc.mov(reg, lhs.Type.as<x86::Gp>());
+		dmc.cmp(reg, Imm(DataType::STRING));
+		auto notstring = dmc.newLabel();
+		dmc.jne(notstring);
+
+		auto call = dmc.call((uint32_t)add_strings, FuncSignatureT<unsigned int, unsigned int, unsigned int>());
+		call->setArg(0, lhs.Value.as<x86::Gp>());
+		call->setArg(1, rhs.Value.as<x86::Gp>());
+		call->setRet(0, result.Value.as<x86::Gp>());
+		dmc.mov(result.Type.as<x86::Gp>(), Imm(DataType::STRING));
+		dmc.jmp(done_adding_strings);
+		dmc.bind(notstring);
+	}
+
 
 	auto xmm0 = dmc.newXmm();
 	auto xmm1 = dmc.newXmm();
@@ -195,10 +220,8 @@ static void Emit_MathOp(DMCompiler& dmc, Bytecode op_type)
 			break;
 	}
 
-	auto ret = dmc.newUInt32();
-	dmc.movd(ret, xmm0);
-
-	dmc.pushStack(Variable{Imm(DataType::NUMBER), ret});
+	dmc.movd(result.Value.as<x86::Gp>(), xmm0);
+	dmc.bind(done_adding_strings);
 }
 
 static void Emit_CallGlobal(DMCompiler& dmc, uint32_t arg_count, uint32_t proc_id)
@@ -375,10 +398,9 @@ static void Emit_Output(DMCompiler& dmc)
 
 }
 
-// TEMPORARY!!! THIS NEEDS TO RETURN DOT, NOT NULL!!!
 static void Emit_End(DMCompiler& dmc)
 {
-	dmc.pushStack(Variable{ Imm(0), Imm(0) });
+	dmc.pushStack(dmc.getDot());
 	dmc.doReturn();
 }
 
@@ -409,9 +431,13 @@ static bool Emit_Block(DMCompiler& dmc, ProcBlock& block, std::map<unsigned int,
 			switch (instr.bytes()[1])
 			{
 			case AccessModifier::LOCAL:
+				jit_out << "Assembling set local" << std::endl;
+				dmc.setInlineComment("set local");
 				dmc.setLocal(instr.bytes()[2], dmc.popStack());
 				break;
 			case AccessModifier::DOT:
+				jit_out << "Assembling set dot" << std::endl;
+				dmc.setInlineComment("set dot");
 				dmc.setDot(dmc.popStack());
 				break;
 			default:
@@ -497,6 +523,8 @@ static bool Emit_Block(DMCompiler& dmc, ProcBlock& block, std::map<unsigned int,
 			Emit_Return(dmc);
 			break;
 		case Bytecode::END:
+			jit_out << "Assembling end" << std::endl;
+			dmc.setInlineComment("end");
 			Emit_End(dmc);
 			break;
 		case Bytecode::DBG_FILE:

@@ -1456,19 +1456,8 @@ std::map<unsigned int, Block> split_into_blocks(Disassembly& dis, x86::Assembler
 	return blocks;
 }
 
-std::ofstream jit_out("jit_out_old.txt");
+std::ofstream jit_out1("jit_out_old.txt");
 
-class SimpleErrorHandler : public asmjit::ErrorHandler
-{
-public:
-	void handleError(asmjit::Error err, const char* message, asmjit::BaseEmitter* origin) override
-	{
-		this->err = err;
-		jit_out << message << "\n";
-	}
-
-	Error err;
-};
 
 // obviously not final, just some global state to test jit pause/resume
 // reentrancy will kill it, don't complain
@@ -1747,36 +1736,36 @@ static bool EmitBlock(x86::Assembler& ass, Block& block)
 		switch (instr.bytes()[0])
 		{
 		case Bytecode::PUSHI:
-			jit_out << "Assembling push integer" << std::endl;
+			jit_out1 << "Assembling push integer" << std::endl;
 			Emit_PushInteger(ass, instr.bytes()[1]);
 			break;
 		case Bytecode::ADD:
 		case Bytecode::SUB:
 		case Bytecode::MUL:
 		case Bytecode::DIV:
-			jit_out << "Assembling math op" << std::endl;
+			jit_out1 << "Assembling math op" << std::endl;
 			Emit_MathOp(ass, (Bytecode)instr.bytes()[0]);
 			break;
 		case Bytecode::SETVAR:
 			if (instr.bytes()[1] == AccessModifier::LOCAL)
 			{
-				jit_out << "Assembling set local" << std::endl;
+				jit_out1 << "Assembling set local" << std::endl;
 				Emit_SetLocal(ass, instr.bytes()[2]);
 			}
 			break;
 		case Bytecode::GETVAR:
 			if (instr.bytes()[1] == AccessModifier::LOCAL)
 			{
-				jit_out << "Assembling get local" << std::endl;
+				jit_out1 << "Assembling get local" << std::endl;
 				Emit_GetLocal(ass, instr.bytes()[2]);
 			}
 			break;
 		case Bytecode::POP:
-			jit_out << "Assembling pop" << std::endl;
+			jit_out1 << "Assembling pop" << std::endl;
 			Emit_Pop(ass);
 			break;
 		case Bytecode::PUSHVAL:
-			jit_out << "Assembling push value" << std::endl;
+			jit_out1 << "Assembling push value" << std::endl;
 			if (instr.bytes()[1] == DataType::NUMBER) //numbers take up two DWORDs instead of one
 			{
 				Emit_PushValue(ass, (DataType)instr.bytes()[1], instr.bytes()[2], instr.bytes()[3]);
@@ -1787,7 +1776,7 @@ static bool EmitBlock(x86::Assembler& ass, Block& block)
 			}
 			break;
 		case Bytecode::CALLGLOB:
-			jit_out << "Assembling call global" << std::endl;
+			jit_out1 << "Assembling call global" << std::endl;
 			Emit_CallGlobal(ass, instr.bytes()[1], instr.bytes()[2]);
 			break;
 		case Bytecode::RET:
@@ -1797,7 +1786,7 @@ static bool EmitBlock(x86::Assembler& ass, Block& block)
 		case Bytecode::DBG_LINENO:
 			break;
 		default:
-			jit_out << "Unknown instruction: " << instr.opcode().tostring() << std::endl;
+			jit_out1 << "Unknown instruction: " << instr.opcode().tostring() << std::endl;
 			break;
 		}
 	}
@@ -1880,11 +1869,11 @@ void jit_compile(std::vector<Core::Proc*> procs)
 {
 	FILE* fuck = fopen("asm.txt", "w");
 	FileLogger logger(fuck);
-	SimpleErrorHandler eh;
+	//SimpleErrorHandler eh;
 	CodeHolder code;
 	code.init(rt.codeInfo());
 	code.setLogger(&logger);
-	code.setErrorHandler(&eh);
+	//code.setErrorHandler(&eh);
 	x86::Assembler ass(&code);
 	std::ofstream asd("raw.txt");
 
@@ -1903,7 +1892,7 @@ void jit_compile(std::vector<Core::Proc*> procs)
 	int eerr = ass.finalize();
 	if (eerr)
 	{
-		jit_out << "Failed to assemble" << std::endl;
+		jit_out1 << "Failed to assemble" << std::endl;
 		return;
 	}
 
@@ -1911,7 +1900,7 @@ void jit_compile(std::vector<Core::Proc*> procs)
 	eerr = rt.add(&ccode_base, &code);
 	if (eerr)
 	{
-		jit_out << "Failed to add to runtime: " << eerr << std::endl;
+		jit_out1 << "Failed to add to runtime: " << eerr << std::endl;
 		return;
 	}
 
@@ -1971,11 +1960,11 @@ void jit_compile(std::vector<Core::Proc*> procs)
 		EmitEpilogue(ass);
 	}
 
-	jit_out << "Finalizing\n";
+	jit_out1 << "Finalizing\n";
 	int err = ass.finalize();
 	if (err)
 	{
-		jit_out << "Failed to assemble" << std::endl;
+		jit_out1 << "Failed to assemble" << std::endl;
 		return;
 	}
 
@@ -1983,7 +1972,7 @@ void jit_compile(std::vector<Core::Proc*> procs)
 	err = rt.add(&code_base, &code);
 	if (err)
 	{
-		jit_out << "Failed to add to runtime: " << err << std::endl;
+		jit_out1 << "Failed to add to runtime: " << err << std::endl;
 		return;
 	}
 
@@ -1999,11 +1988,11 @@ void jit_compile(std::vector<Core::Proc*> procs)
 	{
 		Label& entry = proc_labels[proc->id];
 		char* func_base = reinterpret_cast<char*>(code_base + code.labelOffset(entry));
-		jit_out << func_base << std::endl;
+		jit_out1 << func_base << std::endl;
 		//proc->jit_hook(func_base, JitEntryPoint);
 	}
 
-	jit_out << "Compilation successful" << std::endl;	
+	jit_out1 << "Compilation successful" << std::endl;	
 }
 
 extern "C" EXPORT const char* jit_initialize(int n_args, const char** args)

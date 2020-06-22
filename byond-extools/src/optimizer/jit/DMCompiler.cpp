@@ -65,6 +65,7 @@ ProcNode* DMCompiler::addProc(uint32_t locals_count, uint32_t args_count)
 		_currentProc->_args[i] = { Local::CacheState::Modified, Variable{type, value} };
 	}
 
+	// Set src type and value
 	x86::Gp copy_thingy = newUInt32();
 	x86::Gp copy_thingy2 = newUInt32();
 	setArg(4, copy_thingy);
@@ -72,13 +73,15 @@ ProcNode* DMCompiler::addProc(uint32_t locals_count, uint32_t args_count)
 	setArg(5, copy_thingy2);
 	mov(x86::ptr(_currentProc->_stack_frame, offsetof(ProcStackFrame, src) + offsetof(Value, value)), copy_thingy2);
 
+	// Set the current iterator to nullptr
+	mov(x86::ptr(_currentProc->_stack_frame, offsetof(ProcStackFrame, current_iterator), sizeof(uint32_t)), Imm(0));
+
 	// Default locals to null
 	Variable null{Imm(DataType::NULL_D), Imm(0)};
 	for (uint32_t i = 0; i < locals_count; i++)
 	{
 		setLocal(i, null);
 	}
-	
 	// ..continues into first block
 	return _currentProc;
 }
@@ -232,8 +235,8 @@ void DMCompiler::setDot(Variable& variable)
 {
 	auto dot = newUInt32();
 	lea(dot, x86::ptr(_currentProc->_stack_frame, offsetof(ProcStackFrame, dot)));
-	mov(x86::ptr(dot, offsetof(Value, type)), variable.Type.as<x86::Gp>());
-	mov(x86::ptr(dot, offsetof(Value, value)), variable.Value.as<x86::Gp>());
+	mov(x86::ptr(dot, offsetof(Value, type), sizeof(uint32_t)), variable.Type.as<x86::Gp>());
+	mov(x86::ptr(dot, offsetof(Value, value), sizeof(uint32_t)), variable.Value.as<x86::Gp>());
 }
 
 void DMCompiler::pushStack(Variable& variable)
@@ -259,6 +262,26 @@ void DMCompiler::clearStack()
 	}
 
 	_currentBlock->_stack_top_offset -= i;
+}
+
+Variable DMCompiler::pushStack2()
+{
+	Variable var;
+	var.Type = newInt32();
+	var.Value = newInt32();
+	pushStack(var);
+	return var;
+}
+
+Variable DMCompiler::pushStack2(Operand type, Operand value)
+{
+	Variable var;
+	var.Type = newInt32();
+	var.Value = newInt32();
+	pushStack(var);
+	mov(var.Type.as<x86::Gp>(), type.as<x86::Gp>());
+	mov(var.Value.as<x86::Gp>(), value.as<x86::Gp>());
+	return var;
 }
 
 void DMCompiler::commitStack()
@@ -471,10 +494,8 @@ void DMCompiler::doReturn()
 	mov(x86::ptr(proc._jit_context, offsetof(JitContext, stack_top), sizeof(uint32_t)), stack_top);
 
 	// Destroy the current iterator if there is one.
-	x86::Gp iter = newUInt32();
-	mov(iter, x86::ptr(proc._stack_frame, offsetof(ProcStackFrame, current_iterator)));
 	auto del_iter = call((uint32_t)delete_iterator, FuncSignatureT<void, DMListIterator*>());
-	del_iter->setArg(0, iter);
+	del_iter->setArg(0, getCurrentIterator());
 	
 	// return Procresult::Success
 	x86::Gp retcode = newUInt32();
