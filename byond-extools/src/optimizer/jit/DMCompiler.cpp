@@ -77,7 +77,8 @@ ProcNode* DMCompiler::addProc(uint32_t locals_count, uint32_t args_count)
 	mov(x86::ptr(_currentProc->_stack_frame, offsetof(ProcStackFrame, current_iterator), sizeof(uint32_t)), Imm(0));
 
 	// Default locals to null
-	Variable null{Imm(DataType::NULL_D), Imm(0)};
+	// Casting Imms to Gp is kinda gross but it works
+	Variable null{Imm(DataType::NULL_D).as<x86::Gp>(), Imm(0).as<x86::Gp>()};
 	for (uint32_t i = 0; i < locals_count; i++)
 	{
 		setLocal(i, null);
@@ -137,8 +138,8 @@ Variable DMCompiler::getLocal(uint32_t index)
 	switch (local.State)
 	{
 	case Local::CacheState::Ok:
-	case Local::CacheState::Modified:
 		return local.Variable;
+	case Local::CacheState::Modified:
 	case Local::CacheState::Stale:
 		break;
 	default:
@@ -203,6 +204,7 @@ void DMCompiler::setLocal(uint32_t index, Variable& variable)
 	if (index >= proc._locals_count)
 		__debugbreak();
 	proc._locals[index] = {Local::CacheState::Modified, variable};
+	commitLocals();
 }
 
 Variable DMCompiler::getFrameEmbeddedValue(uint32_t offset)
@@ -239,7 +241,7 @@ void DMCompiler::setDot(Variable& variable)
 	mov(x86::ptr(dot, offsetof(Value, value), sizeof(uint32_t)), variable.Value.as<x86::Gp>());
 }
 
-void DMCompiler::pushStack(Variable& variable)
+void DMCompiler::pushStackRaw(Variable& variable)
 {
 	if (_currentBlock == nullptr)
 		__debugbreak();
@@ -264,21 +266,21 @@ void DMCompiler::clearStack()
 	_currentBlock->_stack_top_offset -= i;
 }
 
-Variable DMCompiler::pushStack2()
+Variable DMCompiler::pushStack()
 {
 	Variable var;
 	var.Type = newInt32();
 	var.Value = newInt32();
-	pushStack(var);
+	pushStackRaw(var);
 	return var;
 }
 
-Variable DMCompiler::pushStack2(Operand type, Operand value)
+Variable DMCompiler::pushStack(Operand type, Operand value)
 {
 	Variable var;
 	var.Type = newInt32();
 	var.Value = newInt32();
-	pushStack(var);
+	pushStackRaw(var);
 	mov(var.Type.as<x86::Gp>(), type.as<x86::Gp>());
 	mov(var.Value.as<x86::Gp>(), value.as<x86::Gp>());
 	return var;
@@ -351,20 +353,20 @@ void DMCompiler::commitLocals()
 		case Local::CacheState::Modified:
 			if (local.Variable.Type.isImm())
 			{
-				mov(x86::ptr(stack_frame, sizeof(ProcStackFrame) + i * sizeof(Value) + offsetof(Value, type), sizeof(uint32_t)), local.Variable.Type.as<Imm>());
+				mov(x86::ptr(stack_frame, sizeof(ProcStackFrame) + sizeof(Value) * proc._args_count + i * sizeof(Value) + offsetof(Value, type), sizeof(uint32_t)), local.Variable.Type.as<Imm>());
 			}
 			else
 			{
-				mov(x86::ptr(stack_frame, sizeof(ProcStackFrame) + i * sizeof(Value) + offsetof(Value, type), sizeof(uint32_t)), local.Variable.Type.as<x86::Gp>());
+				mov(x86::ptr(stack_frame, sizeof(ProcStackFrame) + sizeof(Value) * proc._args_count +  i * sizeof(Value) + offsetof(Value, type), sizeof(uint32_t)), local.Variable.Type.as<x86::Gp>());
 			}
 
 			if (local.Variable.Value.isImm())
 			{
-				mov(x86::ptr(stack_frame, sizeof(ProcStackFrame) + i * sizeof(Value) + offsetof(Value, value), sizeof(uint32_t)), local.Variable.Value.as<Imm>());
+				mov(x86::ptr(stack_frame, sizeof(ProcStackFrame) + sizeof(Value) * proc._args_count + i * sizeof(Value) + offsetof(Value, value), sizeof(uint32_t)), local.Variable.Value.as<Imm>());
 			}
 			else
 			{
-				mov(x86::ptr(stack_frame, sizeof(ProcStackFrame) + i * sizeof(Value) + offsetof(Value, value), sizeof(uint32_t)), local.Variable.Value.as<x86::Gp>());
+				mov(x86::ptr(stack_frame, sizeof(ProcStackFrame) + sizeof(Value) * proc._args_count + i * sizeof(Value) + offsetof(Value, value), sizeof(uint32_t)), local.Variable.Value.as<x86::Gp>());
 			}
 
 			// i can't decide if this is valid
@@ -389,6 +391,7 @@ void DMCompiler::jump_zero(Label label)
 
 	// unnecessary
 	commitStack();
+	commitLocals();
 
 	if (var.Value.isImm())
 	{
@@ -413,6 +416,7 @@ void DMCompiler::jump(Label label)
 	/*if (_currentProc->_blocks.indexOf(block) == Globals::kNotFound)
 		__debugbreak();*/
 	commitStack(); // might not be necessary
+	commitLocals();
 	jmp(label);
 }
 

@@ -27,7 +27,7 @@ enum Bytecode
 	ISAREA = 0x16,
 	ISTURF = 0x17,
 	EMPTYLIST = 0x19, //TODO
-	NEWLIST = 0x1A,
+	CREATELIST = 0x1A,
 	VIEW = 0x1B, //TODO
 	OVIEW = 0x1C, //TODO
 	VIEW_TARGET = 0x1D, //TODO
@@ -267,7 +267,7 @@ const std::unordered_map<Bytecode, std::string> mnemonics = {
 	{JMP, "JMP"},
 	{JZ, "JZ"},
 	{RET, "RET"},
-	{NEWLIST, "NEWLIST"},
+	{CREATELIST, "NEWLIST"},
 	{SLEEP, "SLEEP"},
 	{SPAWN, "SPAWN"},
 	{CALL, "CALL"},

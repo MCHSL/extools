@@ -27,8 +27,11 @@ enum class NodeTypes : uint32_t
 // Reference to a DM variable through operands
 struct Variable
 {
-	Operand Type;
-	Operand Value;
+	// It says x86::Gp, but these can hold any type of asmjit operand.
+	// asmjit keeps track of the type of the operand via an internal type ID,
+	// so the type of variables here is irrelevant. We use x86::Gp to avoid casting to register everywhere.
+	x86::Gp Type;
+	x86::Gp Value;
 };
 
 // Reference to a local DM variable through operands
@@ -128,11 +131,19 @@ public:
 	}
 
 
-	void pushStack(Variable& variable);
+	void pushStackRaw(Variable& variable);
 	void clearStack();
 
-	Variable pushStack2();
-	Variable pushStack2(Operand type, Operand value);
+	// Calling these creates a new Variable on the stack and returns an instance of it.
+	// You can then `mov` into variable.Type and Value to set the stack variable's fields appropriately.
+	// When emitting conditional execution (cmp and jumps) remember that pushStack is a compile time thing
+	// and executes whether or not the condition passes. This means that if a function is supposed to only push
+	// one item onto the stack, you can only have one pushStack in it. Preferably put it near the top and write the result
+	// to the Variable it returns.
+	// This is important e.g. when you have an addition opcode, which takes different execution paths based
+	// on the runtime type of arguments supplied.
+	Variable pushStack();
+	Variable pushStack(Operand type, Operand value);
 
 	// Commits the temporary stack variables - this is called automatically when a block ends
 	void commitStack();
@@ -217,7 +228,7 @@ public:
 		_locals = dmc._allocator.allocT<Local>(locals_count * sizeof(Local));
 
 		// Init the locals
-		Local default_local {Local::CacheState::Modified, {Imm(DataType::NULL_D), Imm(0)}};
+		Local default_local {Local::CacheState::Modified, {Imm(DataType::NULL_D).as<x86::Gp>(), Imm(0).as<x86::Gp>()}};
 		for (uint32_t i = 0; i < locals_count; i++)
 		{
 			_locals[i] = default_local;

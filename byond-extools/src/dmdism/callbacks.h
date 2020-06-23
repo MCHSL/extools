@@ -34,7 +34,7 @@ __forceinline std::unique_ptr<Instruction> get_instr(std::uint32_t op) {
 		ADD_CALLBACK(JMP)
 		ADD_CALLBACK(JZ)
 		ADD_CALLBACK(RET)
-		ADD_CALLBACK(NEWLIST)
+		ADD_CALLBACK(CREATELIST)
 		ADD_CALLBACK(SLEEP)
 		ADD_CALLBACK(SPAWN)
 		ADD_CALLBACK(CALL)

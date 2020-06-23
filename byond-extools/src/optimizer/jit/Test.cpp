@@ -29,7 +29,7 @@ public:
 		jit_out << message << "\n";
 	}
 
-	asmjit::Error err;
+	asmjit::Error err = kErrorOk;
 };
 
 struct ProcBlock
@@ -39,7 +39,7 @@ struct ProcBlock
 	std::vector<Instruction> contents;
 	unsigned int offset;
 	asmjit::Label label;
-	BlockNode* node;
+	//BlockNode* node;
 };
 
 static std::map<unsigned int, ProcBlock> split_into_blocks(Disassembly& dis, DMCompiler& dmc, size_t& locals_max_count, size_t& args_max_count)
@@ -124,7 +124,7 @@ static float DecodeFloat(uint32_t i)
 
 static void Emit_PushInteger(DMCompiler& dmc, float not_an_integer)
 {
-	dmc.pushStack(Variable{Imm(DataType::NUMBER), Imm(EncodeFloat(not_an_integer))});
+	dmc.pushStack(Imm(DataType::NUMBER), Imm(EncodeFloat(not_an_integer)));
 }
 
 static void Emit_SetLocal(DMCompiler& dmc, int index)
@@ -134,7 +134,7 @@ static void Emit_SetLocal(DMCompiler& dmc, int index)
 
 static void Emit_GetLocal(DMCompiler& dmc, int index)
 {
-	dmc.pushStack(dmc.getLocal(index));
+	dmc.pushStackRaw(dmc.getLocal(index));
 }
 
 static void Emit_Pop(DMCompiler& dmc)
@@ -144,7 +144,7 @@ static void Emit_Pop(DMCompiler& dmc)
 
 static void Emit_PushValue(DMCompiler& dmc, DataType type, unsigned int value, unsigned int value2 = 0)
 {
-	dmc.pushStack(Variable{Imm(type), Imm(value)});
+	dmc.pushStack(Imm(type), Imm(value));
 }
 
 static void Emit_Return(DMCompiler& dmc)
@@ -160,26 +160,25 @@ static unsigned int add_strings(unsigned int str1, unsigned int str2)
 static void Emit_MathOp(DMCompiler& dmc, Bytecode op_type)
 {
 	auto [lhs, rhs] = dmc.popStack<2>();
-	Variable result = dmc.pushStack2(Imm(DataType::NUMBER), Imm(0));
+	Variable result = dmc.pushStack(Imm(DataType::NUMBER), Imm(0));
 
 	auto done_adding_strings = dmc.newLabel();
 	if (op_type == Bytecode::ADD)
 	{
 		auto reg = dmc.newUInt32();
-		dmc.mov(reg, lhs.Type.as<x86::Gp>());
+		dmc.mov(reg, lhs.Type);
 		dmc.cmp(reg, Imm(DataType::STRING));
 		auto notstring = dmc.newLabel();
 		dmc.jne(notstring);
 
 		auto call = dmc.call((uint32_t)add_strings, FuncSignatureT<unsigned int, unsigned int, unsigned int>());
-		call->setArg(0, lhs.Value.as<x86::Gp>());
-		call->setArg(1, rhs.Value.as<x86::Gp>());
-		call->setRet(0, result.Value.as<x86::Gp>());
-		dmc.mov(result.Type.as<x86::Gp>(), Imm(DataType::STRING));
+		call->setArg(0, lhs.Value);
+		call->setArg(1, rhs.Value);
+		call->setRet(0, result.Value);
+		dmc.mov(result.Type, Imm(DataType::STRING));
 		dmc.jmp(done_adding_strings);
 		dmc.bind(notstring);
 	}
-
 
 	auto xmm0 = dmc.newXmm();
 	auto xmm1 = dmc.newXmm();
@@ -220,14 +219,12 @@ static void Emit_MathOp(DMCompiler& dmc, Bytecode op_type)
 			break;
 	}
 
-	dmc.movd(result.Value.as<x86::Gp>(), xmm0);
+	dmc.movd(result.Value, xmm0);
 	dmc.bind(done_adding_strings);
 }
 
 static void Emit_CallGlobal(DMCompiler& dmc, uint32_t arg_count, uint32_t proc_id)
 {
-	//std::vector<Variable> args;
-
 	x86::Mem args = dmc.newStack(sizeof(Value) * arg_count, 4);
 	args.setSize(sizeof(uint32_t));
 	uint32_t arg_i = arg_count;
@@ -235,7 +232,7 @@ static void Emit_CallGlobal(DMCompiler& dmc, uint32_t arg_count, uint32_t proc_i
 	{
 		Variable var = dmc.popStack();
 
-		args.setOffset(arg_i * sizeof(Value) + offsetof(Value, type));
+		args.setOffset((uint64_t)arg_i * sizeof(Value) + offsetof(Value, type));
 		if (var.Type.isImm())
 		{
 			auto data = dmc.newFloatConst(ConstPool::kScopeLocal, DecodeFloat(var.Type.as<Imm>().value()));
@@ -246,7 +243,7 @@ static void Emit_CallGlobal(DMCompiler& dmc, uint32_t arg_count, uint32_t proc_i
 			dmc.mov(args, var.Type.as<x86::Gp>());
 		}
 
-		args.setOffset(arg_i * sizeof(Value) + offsetof(Value, value));
+		args.setOffset((uint64_t)arg_i * sizeof(Value) + offsetof(Value, value));
 		if (var.Value.isImm())
 		{
 			auto data = dmc.newFloatConst(ConstPool::kScopeLocal, DecodeFloat(var.Value.as<Imm>().value()));
@@ -257,7 +254,7 @@ static void Emit_CallGlobal(DMCompiler& dmc, uint32_t arg_count, uint32_t proc_i
 			dmc.mov(args, var.Value.as<x86::Gp>());
 		}		
 	}
-	args.setOffset(0);
+	args.resetOffset();
 
 	// dmc.commitLocals();
 	// dmc.commitStack();
@@ -265,9 +262,7 @@ static void Emit_CallGlobal(DMCompiler& dmc, uint32_t arg_count, uint32_t proc_i
 	x86::Gp args_ptr = dmc.newUIntPtr();
 	dmc.lea(args_ptr, args);
 
-	x86::Gp ret_type = dmc.newUIntPtr();
-	x86::Gp ret_value = dmc.newUIntPtr();
-
+	Variable ret = dmc.pushStack();
 	auto call = dmc.call((uint64_t)CallGlobalProc, FuncSignatureT<asmjit::Type::I64, int, int, int, int, int, int, int, int*, int, int, int>());
 	call->setArg(0, Imm(0));
 	call->setArg(1, Imm(0));
@@ -280,10 +275,8 @@ static void Emit_CallGlobal(DMCompiler& dmc, uint32_t arg_count, uint32_t proc_i
 	call->setArg(8, Imm(arg_count));
 	call->setArg(9, Imm(0));
 	call->setArg(10, Imm(0));
-	call->setRet(0, ret_type);
-	call->setRet(1, ret_value);
-
-	dmc.pushStack(Variable{ret_type, ret_value});
+	call->setRet(0, ret.Type);
+	call->setRet(1, ret.Value);
 }
 
 static DMListIterator* create_iterator(ProcStackFrame* psf, int list_id)
@@ -320,7 +313,7 @@ static void Emit_Iterload(DMCompiler& dmc)
 	auto new_iter = dmc.newUIntPtr();
 	auto create_iter = dmc.call((uint64_t)create_iterator, FuncSignatureT<int*, int*, int>());
 	create_iter->setArg(0, dmc.getStackFrame());
-	create_iter->setArg(1, list.Value.as<x86::Gp>());
+	create_iter->setArg(1, list.Value);
 	create_iter->setRet(0, new_iter);
 	dmc.setCurrentIterator(new_iter);
 }
@@ -369,16 +362,14 @@ static void Emit_Jump(DMCompiler& dmc, uint32_t target, std::map<unsigned int, P
 static void Emit_GetListElement(DMCompiler& dmc)
 {
 	auto [container, key] = dmc.popStack<2>();
+	auto ret = dmc.pushStack();
 	auto getelem = dmc.call((uint32_t)GetAssocElement, FuncSignatureT<asmjit::Type::I64, int, int, int, int>());
 	getelem->setArg(0, container.Type.as<x86::Gp>());
 	getelem->setArg(1, container.Value.as<x86::Gp>());
 	getelem->setArg(2, key.Type.as<x86::Gp>());
 	getelem->setArg(3, key.Value.as<x86::Gp>());
-	auto type = dmc.newUInt32();
-	auto value = dmc.newUInt32();
-	getelem->setRet(0, type);
-	getelem->setRet(1, value);
-	dmc.pushStack(Variable{ type, value });
+	getelem->setRet(0, ret.Type);
+	getelem->setRet(1, ret.Value);
 }
 
 static void Emit_SetListElement(DMCompiler& dmc)
@@ -393,6 +384,40 @@ static void Emit_SetListElement(DMCompiler& dmc)
 	getelem->setArg(5, value.Value.as<x86::Gp>());
 }
 
+trvh create_list(Value* elements, unsigned int num_elements)
+{
+	List l;
+	for (int i = 0; i < num_elements; i++)
+	{
+		l.append(elements[i]);
+	}
+	//IncRefCount(0x0F, l.id);
+	return l;
+}
+
+static void Emit_CreateList(DMCompiler& dmc, unsigned int num_elements)
+{
+	auto args = dmc.newStack(sizeof(Value) * num_elements, 4);
+	for (int i = 0; i < num_elements; i++)
+	{
+		auto arg = dmc.popStack();
+		args.setOffset(((uint64_t)num_elements - i - 1) * sizeof(Value) + offsetof(Value, type));
+		dmc.mov(args, arg.Type);
+		args.setOffset(((uint64_t)num_elements - i - 1) * sizeof(Value) + offsetof(Value, value));
+		dmc.mov(args, arg.Value);
+	}
+	args.resetOffset();
+	auto args_ptr = dmc.newUInt32();
+	dmc.lea(args_ptr, args);
+	auto result = dmc.pushStack(Imm(DataType::LIST), Imm(0xFFFF)); // Seems like pushStack needs to happen after newStack?
+	auto cl = dmc.call((uint32_t)create_list, FuncSignatureT<asmjit::Type::I64, Value*, unsigned int>());
+	cl->setArg(0, args_ptr);
+	cl->setArg(1, Imm(num_elements));
+	cl->setRet(0, result.Type);
+	cl->setRet(1, result.Value);
+
+}
+
 static void Emit_Output(DMCompiler& dmc)
 {
 
@@ -400,13 +425,14 @@ static void Emit_Output(DMCompiler& dmc)
 
 static void Emit_End(DMCompiler& dmc)
 {
-	dmc.pushStack(dmc.getDot());
+	dmc.pushStackRaw(dmc.getDot());
 	dmc.doReturn();
 }
 
 static bool Emit_Block(DMCompiler& dmc, ProcBlock& block, std::map<unsigned int, ProcBlock>& blocks)
 {
-	block.node = dmc.addBlock(block.label);
+	/*block.node = */
+	dmc.addBlock(block.label);
 
 	for (size_t i=0; i < block.contents.size(); i++)
 	{
@@ -441,7 +467,7 @@ static bool Emit_Block(DMCompiler& dmc, ProcBlock& block, std::map<unsigned int,
 				dmc.setDot(dmc.popStack());
 				break;
 			default:
-				Core::Alert("Failed to assemble setvar");
+				Core::Alert("Failed to assemble setvar ");
 				break;
 			}
 			break;
@@ -449,19 +475,20 @@ static bool Emit_Block(DMCompiler& dmc, ProcBlock& block, std::map<unsigned int,
 			switch (instr.bytes()[1])
 			{
 			case AccessModifier::LOCAL:
-				dmc.pushStack(dmc.getLocal(instr.bytes()[2]));
+				dmc.pushStackRaw(dmc.getLocal(instr.bytes()[2]));
 				break;
 			case AccessModifier::ARG:
-				dmc.pushStack(dmc.getArg(instr.bytes()[2]));
+				dmc.pushStackRaw(dmc.getArg(instr.bytes()[2]));
 				break;
 			case AccessModifier::SRC:
-				dmc.pushStack(dmc.getSrc());
+				dmc.pushStackRaw(dmc.getSrc());
 				break;
 			case AccessModifier::DOT:
-				dmc.pushStack(dmc.getDot());
+				dmc.pushStackRaw(dmc.getDot());
 				break;
 			default:
 				Core::Alert("Failed to assemble getvar");
+				Core::Alert(instr.bytes()[1]);
 				break;
 			}
 			break;
@@ -486,6 +513,10 @@ static bool Emit_Block(DMCompiler& dmc, ProcBlock& block, std::map<unsigned int,
 			jit_out << "Assembling call global" << std::endl;
 			dmc.setInlineComment("call global proc");
 			Emit_CallGlobal(dmc, instr.bytes()[1], instr.bytes()[2]);
+			break;
+		case Bytecode::CREATELIST:
+			jit_out << "Assembling create list" << std::endl;
+			Emit_CreateList(dmc, instr.bytes()[1]);
 			break;
 		case Bytecode::LISTGET:
 			jit_out << "Assembling list get" << std::endl;
@@ -621,7 +652,7 @@ EXPORT const char* ::jit_test(int n_args, const char** args)
 		return Core::FAIL;
 	}
 
-	compile({&Core::get_proc("/obj/proc/jit_test_compiled_proc")});
-	Core::get_proc("/obj/proc/jit_test_compiled_proc").hook(invoke_hook);
+	compile({&Core::get_proc("/proc/jit_test_compiled_proc")});
+	Core::get_proc("/proc/jit_test_compiled_proc").hook(invoke_hook);
 	return Core::SUCCESS;
 }
