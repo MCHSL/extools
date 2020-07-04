@@ -2,10 +2,7 @@ name: Make and publish linux .so
 
 on:
   push:
-    branches: '*'
-    tags: v*
   pull_request:
-    branches: '*'
 
 defaults:
   run:
