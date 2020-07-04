@@ -19,7 +19,7 @@ jobs:
       run: |
         sudo apt install linux-libc-dev
         sudo apt install gcc-multilib g++-multilib
-        ln -s /usr/include/asm-generic /usr/include/asm
+        sudo ln -s /usr/include/asm-generic /usr/include/asm
         
 
     - name: make build directory
