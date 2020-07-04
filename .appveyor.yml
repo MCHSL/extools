@@ -1,7 +1,9 @@
 pull_requests:
   do_not_increment_build_number: true
 version: '{build}'
-
+branches:
+  only:
+  - master
 shallow_clone: true
 image: 
   - Visual Studio 2017
@@ -11,7 +13,7 @@ build_script:
   - cd build
   - cmake ../byond-extools
   - cmd: cmake --build . --config RelWithDebInfo
-  - sh: sudo apt-get install -y gcc-multilib g++-multilib 
+  - sh: sudo apt-get install -y gcc-multilib
   - sh: make
   
 for:
