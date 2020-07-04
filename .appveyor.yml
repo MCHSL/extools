@@ -11,9 +11,8 @@ image:
 build_script:
   - mkdir build
   - cd build
-  - cmd: cmake ../byond-extools
+  - cmake ../byond-extools
   - cmd: cmake --build . --config RelWithDebInfo
-  - sh: cmake ..
   
 for:
 - matrix:
