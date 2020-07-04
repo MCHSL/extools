@@ -1,4 +1,4 @@
-name: Make and publish linux .so
+name: Generate Linux Binary
 
 on:
   push:
