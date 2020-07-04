@@ -17,8 +17,6 @@ jobs:
       
     - name: Setup
       run: |
-        sudo apt install linux-libc-dev
-        sudo apt install gcc-multilib g++-multilib
         sudo ln -s /usr/include/asm-generic /usr/include/asm
         
 
