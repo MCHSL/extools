@@ -12,6 +12,9 @@
 #include <set>
 #include <array>
 
+#include <Windows.h>
+#undef max
+
 using namespace asmjit;
 using namespace dmjit;
 
@@ -19,6 +22,12 @@ static std::ofstream jit_out("jit_out.txt");
 static std::ofstream byteout_out("bytecode.txt");
 static std::ofstream blocks_out("blocks.txt");
 static asmjit::JitRuntime rt;
+
+// How much to shift when using x86::ptr - [base + (offset << shift)]
+unsigned int shift(unsigned int n)
+{
+	return log2(n);
+}
 
 class SimpleErrorHandler : public asmjit::ErrorHandler
 {
@@ -71,6 +80,13 @@ static std::map<unsigned int, ProcBlock> split_into_blocks(Disassembly& dis, DMC
 			blocks[current_block_offset] = ProcBlock(current_block_offset);
 			jump_targets.erase(i.offset());
 		}
+
+		if (i == Bytecode::SLEEP)
+		{
+			current_block_offset = i.offset() + i.size();
+			blocks[current_block_offset] = ProcBlock(current_block_offset);
+		}
+
 		blocks[current_block_offset].contents.push_back(i);
 		if (i == Bytecode::JZ || i == Bytecode::JMP || i == Bytecode::JMP2 || i == Bytecode::JNZ || i == Bytecode::JNZ2)
 		{
@@ -107,7 +123,7 @@ static std::map<unsigned int, ProcBlock> split_into_blocks(Disassembly& dis, DMC
 		}
 		blocks_out << "\n";
 	}
-	blocks_out << '\n';
+	blocks_out << std::endl;
 
 	return blocks;
 }
@@ -259,7 +275,7 @@ static void Emit_CallGlobal(DMCompiler& dmc, uint32_t arg_count, uint32_t proc_i
 	// dmc.commitLocals();
 	// dmc.commitStack();
 
-	x86::Gp args_ptr = dmc.newUIntPtr();
+	x86::Gp args_ptr = dmc.newUIntPtr("call_global_args_ptr");
 	dmc.lea(args_ptr, args);
 
 	Variable ret = dmc.pushStack();
@@ -310,7 +326,7 @@ static DMListIterator* pop_iterator(ProcStackFrame* psf)
 static void Emit_Iterload(DMCompiler& dmc)
 {
 	auto list = dmc.popStack();
-	auto new_iter = dmc.newUIntPtr();
+	auto new_iter = dmc.newUIntPtr("new iterator");
 	auto create_iter = dmc.call((uint64_t)create_iterator, FuncSignatureT<int*, int*, int>());
 	create_iter->setArg(0, dmc.getStackFrame());
 	create_iter->setArg(1, list.Value);
@@ -320,17 +336,11 @@ static void Emit_Iterload(DMCompiler& dmc)
 
 static void Emit_Iterpop(DMCompiler& dmc)
 {
-	auto new_iter = dmc.newUIntPtr();
+	auto new_iter = dmc.newUIntPtr("new iterator");
 	auto create_iter = dmc.call((uint64_t)pop_iterator, FuncSignatureT<int*, int*>());
 	create_iter->setArg(0, dmc.getStackFrame());
 	create_iter->setRet(0, new_iter);
 	dmc.setCurrentIterator(new_iter);
-}
-
-// How much to shift when using x86::ptr - [base + (offset << shift)]
-unsigned int shift(unsigned int n)
-{
-	return log2(n);
 }
 
 // DM bytecode pushes the next value to the stack, immediately sets a local variable to it then checks to zero flag.
@@ -427,6 +437,13 @@ static void Emit_End(DMCompiler& dmc)
 {
 	dmc.pushStackRaw(dmc.getDot());
 	dmc.doReturn();
+}
+
+static void Emit_Sleep(DMCompiler& dmc)
+{
+	dmc.prepareNextContinuationIndex();
+	dmc.doYield();
+	dmc.addContinuationPoint();
 }
 
 static bool Emit_Block(DMCompiler& dmc, ProcBlock& block, std::map<unsigned int, ProcBlock>& blocks)
@@ -550,6 +567,10 @@ static bool Emit_Block(DMCompiler& dmc, ProcBlock& block, std::map<unsigned int,
 			jit_out << "Assembling jump" << std::endl;
 			Emit_Jump(dmc, instr.bytes()[1], blocks);
 			break;
+		case Bytecode::SLEEP:
+			jit_out << "Assembling sleep" << std::endl;
+			Emit_Sleep(dmc);
+			break;
 		case Bytecode::RET:
 			Emit_Return(dmc);
 			break;
@@ -571,24 +592,70 @@ static bool Emit_Block(DMCompiler& dmc, ProcBlock& block, std::map<unsigned int,
 	return true;
 }
 
-static trvh JitEntryPoint(void* code_base, unsigned int args_len, Value* args, Value src, Value usr)
+static trvh JitEntryPoint(void* code_base, unsigned int args_len, Value* args, Value src, Value usr, JitContext* ctx);
+
+void OnResumed(ProcConstants* pc)
 {
-	JitContext ctx;
+	JitEntryPoint(pc->jit_code_base, 0, nullptr, pc->src, pc->usr, (JitContext*)pc->jit_context);
+}
+
+void ResumeHook(ProcConstants* pc)
+{
+	if (pc->proc_id == -1)
+	{
+		OnResumed(pc);
+	}
+	else
+	{
+		RunDM(pc);
+	}
+}
+
+static void hook_resumption()
+{
+	int* rundm_offset = (int*)Pocket::Sigscan::FindPattern("byondcore.dll", "E8 ?? ?? ?? ?? A1 ?? ?? ?? ?? 83 C4 04 89 46 18 89 ?? ?? ?? ?? ?? E8 ?? ?? ?? ?? 8B F0 85 F6 75 AB 8B ?? ?? ?? ?? ?? 5F 5E", 1);
+	DWORD old_prot;
+	VirtualProtect(rundm_offset, 4, PAGE_READWRITE, &old_prot);
+	*rundm_offset = (int)&ResumeHook - (int)rundm_offset - 4;
+	VirtualProtect(rundm_offset, 4, old_prot, &old_prot);
+}
+
+static void schedule_jit_resumption(void* code_base, JitContext* jc, int deciseconds, Value usr, Value src)
+{
+	ProcConstants* fake_ass_sus = new ProcConstants();
+	//fake_ass_sus->unknown1 = 0x00BF0015; //some set of flags that all suspended procs have
+	fake_ass_sus->time_to_resume = deciseconds / Value::World().get("tick_lag").valuef;
+	fake_ass_sus->proc_id = -1;
+	fake_ass_sus->jit_context = (void*)jc;
+	fake_ass_sus->jit_code_base = code_base;
+	fake_ass_sus->usr = usr;
+	fake_ass_sus->src = src;
+	AddSleeperToList(fake_ass_sus);
+}
+
+static trvh JitEntryPoint(void* code_base, unsigned int args_len, Value* args, Value src, Value usr, JitContext* ctx)
+{
+	if (!ctx)
+	{
+		ctx = new JitContext();
+	}
 	Proc code = static_cast<Proc>(code_base);
 
-	ProcResult res = code(&ctx, 0, args_len, args, src, usr);
+	ProcResult res = code(ctx, args_len, args, src, usr);
 
 	switch (res)
 	{
 	case ProcResult::Success:
-		if (ctx.Count() != 1)
+		if (ctx->Count() != 1)
 		{
 			__debugbreak();
 			return Value::Null();
 		}
+		return ctx->stack[0];
 
-		return ctx.stack[0];
 	case ProcResult::Yielded:
+		Value sleep_time = *ctx->stack_top--;
+		schedule_jit_resumption(code_base, ctx, sleep_time.valuef, usr, src);
 		return Value::Null();
 	}
 
@@ -603,6 +670,7 @@ static void compile(std::vector<Core::Proc*> procs)
 {
 	FILE* fuck = fopen("asm.txt", "w");
 	asmjit::FileLogger logger(fuck);
+	logger.addFlags(FormatOptions::kFlagRegCasts | FormatOptions::kFlagExplainImms | FormatOptions::kFlagDebugPasses | FormatOptions::kFlagDebugRA);
 	SimpleErrorHandler eh;
 	asmjit::CodeHolder code;
 	code.init(rt.codeInfo());
@@ -622,7 +690,7 @@ static void compile(std::vector<Core::Proc*> procs)
 		byteout_out << "END " << proc->name << '\n';
 
 		size_t locals_count = 1; // Defaulting to 1 because asmjit does not like empty vectors apparently (causes an assertion error)
-		size_t args_count = 1;
+		size_t args_count = 2;
 		auto blocks = split_into_blocks(dis, dmc, locals_count, args_count);
 
 		dmc.addProc(locals_count, args_count);
@@ -637,12 +705,12 @@ static void compile(std::vector<Core::Proc*> procs)
 
 	rt.add(&honk, &code);
 	jit_out << honk << std::endl;
-	
+	fflush(fuck);
 }
 
 trvh invoke_hook(unsigned int n_args, Value* args, Value src)
 {
-	return JitEntryPoint(honk, n_args, args, src, Value::Null());
+	return JitEntryPoint(honk, n_args, args, src, Value::Null(), nullptr);
 }
 
 EXPORT const char* ::jit_test(int n_args, const char** args)
@@ -652,6 +720,7 @@ EXPORT const char* ::jit_test(int n_args, const char** args)
 		return Core::FAIL;
 	}
 
+	hook_resumption();
 	compile({&Core::get_proc("/proc/jit_test_compiled_proc")});
 	Core::get_proc("/proc/jit_test_compiled_proc").hook(invoke_hook);
 	return Core::SUCCESS;

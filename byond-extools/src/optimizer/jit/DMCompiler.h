@@ -109,8 +109,8 @@ public:
 
 		for (popped_count; popped_count < I && _currentBlock->_stack_top_offset - popped_count >= 0; popped_count++)
 		{
-			auto type = newUInt32();
-			auto value = newUInt32();
+			auto type = newUInt32("pop_type");
+			auto value = newUInt32("pop_value");
 			mov(type, x86::ptr(stack_top, (block._stack_top_offset - popped_count) * sizeof(Value) - sizeof(Value), sizeof(uint32_t)));
 			mov(value, x86::ptr(stack_top, (block._stack_top_offset - popped_count) * sizeof(Value) - offsetof(Value, value), sizeof(uint32_t)));
 			res[I - popped_count - 1] = { type, value };
@@ -162,6 +162,11 @@ public:
 
 	// Returns the value at the top of the stack
 	void doReturn();
+
+	void doYield();
+
+	unsigned int addContinuationPoint();
+	unsigned int prepareNextContinuationIndex();
 
 private:
 	ProcNode* _currentProc;
@@ -217,11 +222,13 @@ public:
 	{
 		DMCompiler& dmc = *static_cast<DMCompiler*>(cb);
 
-		_jit_context = dmc.newUIntPtr();
-		_stack_frame = dmc.newUIntPtr();
-		_current_iterator = dmc.newUIntPtr();
+		_jit_context = dmc.newUIntPtr("_jit_context");
+		_stack_frame = dmc.newUIntPtr("_stack_frame");
+		_current_iterator = dmc.newUIntPtr("_current_iterator");
 		_entryPoint = dmc.newLabel();
 		_prolog = dmc.newLabel();
+		_continuationPointTable = dmc.newLabel();
+		_cont_points_annotation = dmc.newJumpAnnotation();
 		dmc._newNodeT<ProcEndNode>(&_end);
 
 		// Allocate space for all of our locals
@@ -253,6 +260,7 @@ public:
 
 	Label _entryPoint;
 	Label _prolog;
+	Label _continuationPointTable;
 
 	ZoneVector<Label> _continuationPoints;
 
@@ -267,6 +275,8 @@ public:
 
 	// its all our blocks (TODO: maybe not needed)
 	//ZoneVector<ProcBlock> _blocks;
+
+	JumpAnnotation* _cont_points_annotation;
 };
 
 class ProcEndNode

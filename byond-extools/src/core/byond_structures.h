@@ -297,14 +297,23 @@ struct ProcConstants
 		ExecutionContext* context;
 		ProcConstants* next; // When we're part of the global `constants_freelist` linked list, this is the next element
 	};
-	int argslist_id;
+	union
+	{
+		int argslist_id;
+		void* jit_code_base;
+	};
+
 	int unknown4; //some callback thing
 	union
 	{
 		int unknown5;
 		int extended_profile_id;
 	};
-	int arg_count;
+	union
+	{
+		int arg_count;
+		void* jit_context;
+	};
 	Value* args;
 	char unknown6[0x58];
 	int time_to_resume;

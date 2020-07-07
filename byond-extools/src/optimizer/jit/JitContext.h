@@ -14,7 +14,7 @@ enum struct ProcResult : uint32_t
 	Yielded,
 };
 
-typedef ProcResult (*Proc)(JitContext* ctx, uint32_t continuation_index, unsigned int n_args, Value* args, trvh src, trvh usr);
+typedef ProcResult (*Proc)(JitContext* ctx, unsigned int n_args, Value* args, trvh src, trvh usr);
 
 struct DMListIterator
 {
@@ -30,7 +30,10 @@ struct ProcStackFrame
 	// The ProcFrame of the function that called us. We need to restore this when we return.
 	// If this is null it means we were directly called from DM and need to ret to our entrypoint
 	ProcStackFrame* previous;
-	uint32_t padding;
+
+	// When called by JitEntryPoint, this determines where we will continue execution from.
+	uint32_t continuation_index;
+
 	// The stack of iterators implemented as a linked list. Points to the iterator currently being iterated.
 	DMListIterator* current_iterator;
 	uint32_t padding2;
@@ -72,7 +75,7 @@ struct JitContext
 		stack_allocated = src.stack_allocated;
 		stack = new Value[stack_allocated];
 		stack_top = &stack[src.stack_top - src.stack];
-		stack_frame = reinterpret_cast<ProcStackFrame*>(&stack[reinterpret_cast<Value*>(src.stack_frame)- src.stack]);
+		stack_frame = reinterpret_cast<ProcStackFrame*>(&stack[reinterpret_cast<Value*>(src.stack_frame) - src.stack]);
 		std::copy(src.stack, src.stack_top, stack);
 	}
 
