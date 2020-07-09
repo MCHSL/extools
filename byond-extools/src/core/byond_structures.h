@@ -300,7 +300,6 @@ struct ProcConstants
 	union
 	{
 		int argslist_id;
-		void* jit_code_base;
 	};
 
 	int unknown4; //some callback thing
@@ -312,10 +311,14 @@ struct ProcConstants
 	union
 	{
 		int arg_count;
+	};
+	union
+	{
+		Value* args;
 		void* jit_context;
 	};
-	Value* args;
-	char unknown6[0x58];
+	char unknown6[0x54];
+	void* jit_code_base;
 	int time_to_resume;
 };
 

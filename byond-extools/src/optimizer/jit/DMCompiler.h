@@ -155,7 +155,7 @@ public:
 
 	void jump(Label label);
 
-	x86::Gp getStackFrame();
+	x86::Gp getStackFramePtr();
 
 	x86::Gp getCurrentIterator();
 	void setCurrentIterator(Operand iter);
@@ -186,7 +186,7 @@ public:
 	{
 		DMCompiler& dmc = *static_cast<DMCompiler*>(cb);
 
-		_stack_top = dmc.newUIntPtr();
+		_stack_top = dmc.newUIntPtr("block_stack_top");
 		cb->_newNodeT<BlockEndNode>(&_end);
 		//_stack.init(&cb->_allocator);		
 	}
@@ -223,7 +223,6 @@ public:
 		DMCompiler& dmc = *static_cast<DMCompiler*>(cb);
 
 		_jit_context = dmc.newUIntPtr("_jit_context");
-		_stack_frame = dmc.newUIntPtr("_stack_frame");
 		_current_iterator = dmc.newUIntPtr("_current_iterator");
 		_entryPoint = dmc.newLabel();
 		_prolog = dmc.newLabel();
@@ -255,7 +254,7 @@ public:
 	}
 
 	x86::Gp _jit_context;
-	x86::Gp _stack_frame;
+	//x86::Gp _stack_frame;
 	x86::Gp _current_iterator;
 
 	Label _entryPoint;

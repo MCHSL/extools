@@ -119,6 +119,7 @@ struct Inst : public BaseInst {
     kIdClflushopt,                       //!< Instruction 'clflushopt' {CLFLUSHOPT}.
     kIdClgi,                             //!< Instruction 'clgi' {SVM}.
     kIdCli,                              //!< Instruction 'cli'.
+    kIdClrssbsy,                         //!< Instruction 'clrssbsy' {CET_SS}.
     kIdClts,                             //!< Instruction 'clts'.
     kIdClwb,                             //!< Instruction 'clwb' {CLWB}.
     kIdClzero,                           //!< Instruction 'clzero' {CLZERO}.
@@ -202,6 +203,8 @@ struct Inst : public BaseInst {
     kIdDppd,                             //!< Instruction 'dppd' {SSE4_1}.
     kIdDpps,                             //!< Instruction 'dpps' {SSE4_1}.
     kIdEmms,                             //!< Instruction 'emms' {MMX}.
+    kIdEndbr32,                          //!< Instruction 'endbr32' {CET_IBT}.
+    kIdEndbr64,                          //!< Instruction 'endbr64' {CET_IBT}.
     kIdEnqcmd,                           //!< Instruction 'enqcmd' {ENQCMD}.
     kIdEnqcmds,                          //!< Instruction 'enqcmds' {ENQCMD}.
     kIdEnter,                            //!< Instruction 'enter'.
@@ -318,6 +321,8 @@ struct Inst : public BaseInst {
     kIdImul,                             //!< Instruction 'imul'.
     kIdIn,                               //!< Instruction 'in'.
     kIdInc,                              //!< Instruction 'inc'.
+    kIdIncsspd,                          //!< Instruction 'incsspd' {CET_SS}.
+    kIdIncsspq,                          //!< Instruction 'incsspq' {CET_SS} (X64).
     kIdIns,                              //!< Instruction 'ins'.
     kIdInsertps,                         //!< Instruction 'insertps' {SSE4_1}.
     kIdInsertq,                          //!< Instruction 'insertq' {SSE4A}.
@@ -422,6 +427,7 @@ struct Inst : public BaseInst {
     kIdLddqu,                            //!< Instruction 'lddqu' {SSE3}.
     kIdLdmxcsr,                          //!< Instruction 'ldmxcsr' {SSE}.
     kIdLds,                              //!< Instruction 'lds' (X86).
+    kIdLdtilecfg,                        //!< Instruction 'ldtilecfg' {AMX_TILE} (X64).
     kIdLea,                              //!< Instruction 'lea'.
     kIdLeave,                            //!< Instruction 'leave'.
     kIdLes,                              //!< Instruction 'les' (X86).
@@ -449,6 +455,7 @@ struct Inst : public BaseInst {
     kIdMaxps,                            //!< Instruction 'maxps' {SSE}.
     kIdMaxsd,                            //!< Instruction 'maxsd' {SSE2}.
     kIdMaxss,                            //!< Instruction 'maxss' {SSE}.
+    kIdMcommit,                          //!< Instruction 'mcommit' {MCOMMIT}.
     kIdMfence,                           //!< Instruction 'mfence' {SSE2}.
     kIdMinpd,                            //!< Instruction 'minpd' {SSE2}.
     kIdMinps,                            //!< Instruction 'minps' {SSE}.
@@ -549,7 +556,7 @@ struct Inst : public BaseInst {
     kIdPcmpgtw,                          //!< Instruction 'pcmpgtw' {MMX|SSE2}.
     kIdPcmpistri,                        //!< Instruction 'pcmpistri' {SSE4_2}.
     kIdPcmpistrm,                        //!< Instruction 'pcmpistrm' {SSE4_2}.
-    kIdPcommit,                          //!< Instruction 'pcommit' {PCOMMIT}.
+    kIdPconfig,                          //!< Instruction 'pconfig' {PCONFIG}.
     kIdPdep,                             //!< Instruction 'pdep' {BMI2}.
     kIdPext,                             //!< Instruction 'pext' {BMI2}.
     kIdPextrb,                           //!< Instruction 'pextrb' {SSE4_1}.
@@ -653,6 +660,7 @@ struct Inst : public BaseInst {
     kIdPslldq,                           //!< Instruction 'pslldq' {SSE2}.
     kIdPsllq,                            //!< Instruction 'psllq' {MMX|SSE2}.
     kIdPsllw,                            //!< Instruction 'psllw' {MMX|SSE2}.
+    kIdPsmash,                           //!< Instruction 'psmash' {SNP} (X64).
     kIdPsrad,                            //!< Instruction 'psrad' {MMX|SSE2}.
     kIdPsraw,                            //!< Instruction 'psraw' {MMX|SSE2}.
     kIdPsrld,                            //!< Instruction 'psrld' {MMX|SSE2}.
@@ -669,6 +677,7 @@ struct Inst : public BaseInst {
     kIdPsubw,                            //!< Instruction 'psubw' {MMX|SSE2}.
     kIdPswapd,                           //!< Instruction 'pswapd' {3DNOW2}.
     kIdPtest,                            //!< Instruction 'ptest' {SSE4_1}.
+    kIdPtwrite,                          //!< Instruction 'ptwrite' {PTWRITE}.
     kIdPunpckhbw,                        //!< Instruction 'punpckhbw' {MMX|SSE2}.
     kIdPunpckhdq,                        //!< Instruction 'punpckhdq' {MMX|SSE2}.
     kIdPunpckhqdq,                       //!< Instruction 'punpckhqdq' {SSE2}.
@@ -683,6 +692,7 @@ struct Inst : public BaseInst {
     kIdPushf,                            //!< Instruction 'pushf'.
     kIdPushfd,                           //!< Instruction 'pushfd' (X86).
     kIdPushfq,                           //!< Instruction 'pushfq' (X64).
+    kIdPvalidate,                        //!< Instruction 'pvalidate' {SNP}.
     kIdPxor,                             //!< Instruction 'pxor' {MMX|SSE2}.
     kIdRcl,                              //!< Instruction 'rcl'.
     kIdRcpps,                            //!< Instruction 'rcpps' {SSE}.
@@ -692,12 +702,18 @@ struct Inst : public BaseInst {
     kIdRdgsbase,                         //!< Instruction 'rdgsbase' {FSGSBASE} (X64).
     kIdRdmsr,                            //!< Instruction 'rdmsr' {MSR}.
     kIdRdpid,                            //!< Instruction 'rdpid' {RDPID}.
+    kIdRdpkru,                           //!< Instruction 'rdpkru' {OSPKE}.
     kIdRdpmc,                            //!< Instruction 'rdpmc'.
+    kIdRdpru,                            //!< Instruction 'rdpru' {RDPRU}.
     kIdRdrand,                           //!< Instruction 'rdrand' {RDRAND}.
     kIdRdseed,                           //!< Instruction 'rdseed' {RDSEED}.
+    kIdRdsspd,                           //!< Instruction 'rdsspd' {CET_SS}.
+    kIdRdsspq,                           //!< Instruction 'rdsspq' {CET_SS} (X64).
     kIdRdtsc,                            //!< Instruction 'rdtsc' {RDTSC}.
     kIdRdtscp,                           //!< Instruction 'rdtscp' {RDTSCP}.
     kIdRet,                              //!< Instruction 'ret'.
+    kIdRmpadjust,                        //!< Instruction 'rmpadjust' {SNP} (X64).
+    kIdRmpupdate,                        //!< Instruction 'rmpupdate' {SNP} (X64).
     kIdRol,                              //!< Instruction 'rol'.
     kIdRor,                              //!< Instruction 'ror'.
     kIdRorx,                             //!< Instruction 'rorx' {BMI2}.
@@ -708,12 +724,15 @@ struct Inst : public BaseInst {
     kIdRsm,                              //!< Instruction 'rsm' (X86).
     kIdRsqrtps,                          //!< Instruction 'rsqrtps' {SSE}.
     kIdRsqrtss,                          //!< Instruction 'rsqrtss' {SSE}.
+    kIdRstorssp,                         //!< Instruction 'rstorssp' {CET_SS}.
     kIdSahf,                             //!< Instruction 'sahf' {LAHFSAHF}.
     kIdSal,                              //!< Instruction 'sal'.
     kIdSar,                              //!< Instruction 'sar'.
     kIdSarx,                             //!< Instruction 'sarx' {BMI2}.
+    kIdSaveprevssp,                      //!< Instruction 'saveprevssp' {CET_SS}.
     kIdSbb,                              //!< Instruction 'sbb'.
     kIdScas,                             //!< Instruction 'scas'.
+    kIdSerialize,                        //!< Instruction 'serialize' {SERIALIZE}.
     kIdSeta,                             //!< Instruction 'seta'.
     kIdSetae,                            //!< Instruction 'setae'.
     kIdSetb,                             //!< Instruction 'setb'.
@@ -743,6 +762,7 @@ struct Inst : public BaseInst {
     kIdSetpe,                            //!< Instruction 'setpe'.
     kIdSetpo,                            //!< Instruction 'setpo'.
     kIdSets,                             //!< Instruction 'sets'.
+    kIdSetssbsy,                         //!< Instruction 'setssbsy' {CET_SS}.
     kIdSetz,                             //!< Instruction 'setz'.
     kIdSfence,                           //!< Instruction 'sfence' {MMX2}.
     kIdSgdt,                             //!< Instruction 'sgdt'.
@@ -778,6 +798,7 @@ struct Inst : public BaseInst {
     kIdStmxcsr,                          //!< Instruction 'stmxcsr' {SSE}.
     kIdStos,                             //!< Instruction 'stos'.
     kIdStr,                              //!< Instruction 'str'.
+    kIdSttilecfg,                        //!< Instruction 'sttilecfg' {AMX_TILE} (X64).
     kIdSub,                              //!< Instruction 'sub'.
     kIdSubpd,                            //!< Instruction 'subpd' {SSE2}.
     kIdSubps,                            //!< Instruction 'subps' {SSE}.
@@ -791,12 +812,27 @@ struct Inst : public BaseInst {
     kIdSysret,                           //!< Instruction 'sysret' (X64).
     kIdSysret64,                         //!< Instruction 'sysret64' (X64).
     kIdT1mskc,                           //!< Instruction 't1mskc' {TBM}.
+    kIdTdpbf16ps,                        //!< Instruction 'tdpbf16ps' {AMX_BF16} (X64).
+    kIdTdpbssd,                          //!< Instruction 'tdpbssd' {AMX_INT8} (X64).
+    kIdTdpbsud,                          //!< Instruction 'tdpbsud' {AMX_INT8} (X64).
+    kIdTdpbusd,                          //!< Instruction 'tdpbusd' {AMX_INT8} (X64).
+    kIdTdpbuud,                          //!< Instruction 'tdpbuud' {AMX_INT8} (X64).
     kIdTest,                             //!< Instruction 'test'.
+    kIdTileloadd,                        //!< Instruction 'tileloadd' {AMX_TILE} (X64).
+    kIdTileloaddt1,                      //!< Instruction 'tileloaddt1' {AMX_TILE} (X64).
+    kIdTilerelease,                      //!< Instruction 'tilerelease' {AMX_TILE} (X64).
+    kIdTilestored,                       //!< Instruction 'tilestored' {AMX_TILE} (X64).
+    kIdTilezero,                         //!< Instruction 'tilezero' {AMX_TILE} (X64).
+    kIdTpause,                           //!< Instruction 'tpause' {WAITPKG}.
     kIdTzcnt,                            //!< Instruction 'tzcnt' {BMI}.
     kIdTzmsk,                            //!< Instruction 'tzmsk' {TBM}.
     kIdUcomisd,                          //!< Instruction 'ucomisd' {SSE2}.
     kIdUcomiss,                          //!< Instruction 'ucomiss' {SSE}.
+    kIdUd0,                              //!< Instruction 'ud0'.
+    kIdUd1,                              //!< Instruction 'ud1'.
     kIdUd2,                              //!< Instruction 'ud2'.
+    kIdUmonitor,                         //!< Instruction 'umonitor' {WAITPKG}.
+    kIdUmwait,                           //!< Instruction 'umwait' {WAITPKG}.
     kIdUnpckhpd,                         //!< Instruction 'unpckhpd' {SSE2}.
     kIdUnpckhps,                         //!< Instruction 'unpckhps' {SSE}.
     kIdUnpcklpd,                         //!< Instruction 'unpcklpd' {SSE2}.
@@ -1119,6 +1155,8 @@ struct Inst : public BaseInst {
     kIdVmxon,                            //!< Instruction 'vmxon' {VMX}.
     kIdVorpd,                            //!< Instruction 'vorpd' {AVX|AVX512_DQ+VL}.
     kIdVorps,                            //!< Instruction 'vorps' {AVX|AVX512_DQ+VL}.
+    kIdVp2intersectd,                    //!< Instruction 'vp2intersectd' {AVX512_VP2INTERSECT}.
+    kIdVp2intersectq,                    //!< Instruction 'vp2intersectq' {AVX512_VP2INTERSECT}.
     kIdVp4dpwssd,                        //!< Instruction 'vp4dpwssd' {AVX512_4VNNIW}.
     kIdVp4dpwssds,                       //!< Instruction 'vp4dpwssds' {AVX512_4VNNIW}.
     kIdVpabsb,                           //!< Instruction 'vpabsb' {AVX|AVX2|AVX512_BW+VL}.
@@ -1528,6 +1566,10 @@ struct Inst : public BaseInst {
     kIdWrfsbase,                         //!< Instruction 'wrfsbase' {FSGSBASE} (X64).
     kIdWrgsbase,                         //!< Instruction 'wrgsbase' {FSGSBASE} (X64).
     kIdWrmsr,                            //!< Instruction 'wrmsr' {MSR}.
+    kIdWrssd,                            //!< Instruction 'wrssd' {CET_SS}.
+    kIdWrssq,                            //!< Instruction 'wrssq' {CET_SS} (X64).
+    kIdWrussd,                           //!< Instruction 'wrussd' {CET_SS}.
+    kIdWrussq,                           //!< Instruction 'wrussq' {CET_SS} (X64).
     kIdXabort,                           //!< Instruction 'xabort' {RTM}.
     kIdXadd,                             //!< Instruction 'xadd' {I486}.
     kIdXbegin,                           //!< Instruction 'xbegin' {RTM}.
@@ -1538,6 +1580,7 @@ struct Inst : public BaseInst {
     kIdXor,                              //!< Instruction 'xor'.
     kIdXorpd,                            //!< Instruction 'xorpd' {SSE2}.
     kIdXorps,                            //!< Instruction 'xorps' {SSE}.
+    kIdXresldtrk,                        //!< Instruction 'xresldtrk' {TSXLDTRK}.
     kIdXrstor,                           //!< Instruction 'xrstor' {XSAVE}.
     kIdXrstor64,                         //!< Instruction 'xrstor64' {XSAVE} (X64).
     kIdXrstors,                          //!< Instruction 'xrstors' {XSAVES}.
@@ -1551,6 +1594,7 @@ struct Inst : public BaseInst {
     kIdXsaves,                           //!< Instruction 'xsaves' {XSAVES}.
     kIdXsaves64,                         //!< Instruction 'xsaves64' {XSAVES} (X64).
     kIdXsetbv,                           //!< Instruction 'xsetbv' {XSAVE}.
+    kIdXsusldtrk,                        //!< Instruction 'xsusldtrk' {TSXLDTRK}.
     kIdXtest,                            //!< Instruction 'xtest' {TSX}.
     _kIdCount
     // ${InstId:End}

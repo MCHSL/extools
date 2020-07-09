@@ -561,7 +561,7 @@ public:
   //! Emits an instruction - all 6 operands must be defined.
   virtual Error _emit(uint32_t instId, const Operand_& o0, const Operand_& o1, const Operand_& o2, const Operand_* oExt) = 0;
   //! Emits instruction having operands stored in array.
-  virtual Error _emitOpArray(uint32_t instId, const Operand_* operands, size_t opCount);
+  ASMJIT_API virtual Error _emitOpArray(uint32_t instId, const Operand_* operands, size_t opCount);
   //! \endcond
 
   //! \}
@@ -628,13 +628,17 @@ public:
   //!   3. Emits ConstPool content.
   virtual Error embedConstPool(const Label& label, const ConstPool& pool) = 0;
 
-  //! Embeds an absolute label address as data (4 or 8 bytes).
-  virtual Error embedLabel(const Label& label) = 0;
+  //! Embeds an absolute `label` address as data.
+  //!
+  //! The `dataSize` is an optional argument that can be used to specify the
+  //! size of the address data. If it's zero (default) the address size is
+  //! deduced from the target architecture (either 4 or 8 bytes).
+  virtual Error embedLabel(const Label& label, size_t dataSize = 0) = 0;
 
   //! Embeds a delta (distance) between the `label` and `base` calculating it
   //! as `label - base`. This function was designed to make it easier to embed
   //! lookup tables where each index is a relative distance of two labels.
-  virtual Error embedLabelDelta(const Label& label, const Label& base, size_t dataSize) = 0;
+  virtual Error embedLabelDelta(const Label& label, const Label& base, size_t dataSize = 0) = 0;
 
   //! \}
 

@@ -14,7 +14,7 @@ enum struct ProcResult : uint32_t
 	Yielded,
 };
 
-typedef ProcResult (*Proc)(JitContext* ctx, unsigned int n_args, Value* args, trvh src, trvh usr);
+typedef ProcResult (*Proc)(JitContext* ctx, unsigned int n_args, Value* args, trvh src, trvh usr, ExecutionContext* parent);
 
 struct DMListIterator
 {
@@ -27,6 +27,8 @@ struct DMListIterator
 // This is pushed on the stack at the beginning of every proc call
 struct ProcStackFrame
 {
+	uint32_t fake_proc_constants;
+	ExecutionContext* caller_execution_context;
 	// The ProcFrame of the function that called us. We need to restore this when we return.
 	// If this is null it means we were directly called from DM and need to ret to our entrypoint
 	ProcStackFrame* previous;

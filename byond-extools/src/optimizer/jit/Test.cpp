@@ -81,12 +81,6 @@ static std::map<unsigned int, ProcBlock> split_into_blocks(Disassembly& dis, DMC
 			jump_targets.erase(i.offset());
 		}
 
-		if (i == Bytecode::SLEEP)
-		{
-			current_block_offset = i.offset() + i.size();
-			blocks[current_block_offset] = ProcBlock(current_block_offset);
-		}
-
 		blocks[current_block_offset].contents.push_back(i);
 		if (i == Bytecode::JZ || i == Bytecode::JMP || i == Bytecode::JMP2 || i == Bytecode::JNZ || i == Bytecode::JNZ2)
 		{
@@ -108,6 +102,11 @@ static std::map<unsigned int, ProcBlock> split_into_blocks(Disassembly& dis, DMC
 				}
 			}
 			current_block_offset = i.offset()+i.size();
+			blocks[current_block_offset] = ProcBlock(current_block_offset);
+		}
+		else if (i == Bytecode::SLEEP || i == Bytecode::CALLGLOB || i == Bytecode::CALL || i == Bytecode::CALLNR)
+		{
+			current_block_offset = i.offset() + i.size();
 			blocks[current_block_offset] = ProcBlock(current_block_offset);
 		}
 	}
@@ -328,7 +327,7 @@ static void Emit_Iterload(DMCompiler& dmc)
 	auto list = dmc.popStack();
 	auto new_iter = dmc.newUIntPtr("new iterator");
 	auto create_iter = dmc.call((uint64_t)create_iterator, FuncSignatureT<int*, int*, int>());
-	create_iter->setArg(0, dmc.getStackFrame());
+	create_iter->setArg(0, dmc.getStackFramePtr());
 	create_iter->setArg(1, list.Value);
 	create_iter->setRet(0, new_iter);
 	dmc.setCurrentIterator(new_iter);
@@ -338,7 +337,7 @@ static void Emit_Iterpop(DMCompiler& dmc)
 {
 	auto new_iter = dmc.newUIntPtr("new iterator");
 	auto create_iter = dmc.call((uint64_t)pop_iterator, FuncSignatureT<int*, int*>());
-	create_iter->setArg(0, dmc.getStackFrame());
+	create_iter->setArg(0, dmc.getStackFramePtr());
 	create_iter->setRet(0, new_iter);
 	dmc.setCurrentIterator(new_iter);
 }
@@ -594,7 +593,7 @@ static bool Emit_Block(DMCompiler& dmc, ProcBlock& block, std::map<unsigned int,
 
 static trvh JitEntryPoint(void* code_base, unsigned int args_len, Value* args, Value src, Value usr, JitContext* ctx);
 
-void OnResumed(ProcConstants* pc)
+/*void OnResumed(ProcConstants* pc)
 {
 	JitEntryPoint(pc->jit_code_base, 0, nullptr, pc->src, pc->usr, (JitContext*)pc->jit_context);
 }
@@ -610,20 +609,65 @@ void ResumeHook(ProcConstants* pc)
 		RunDM(pc);
 	}
 }
+*/
+static CreateContextPtr oCreateContext;
+static void* exit_proc = nullptr;
+
+struct JitArguments
+{
+	JitContext* jc;
+	void* code_base;
+};
+
+static SuspendPtr oSuspend;
+static ProcConstants* hSuspend(ExecutionContext* ctx, int unknown)
+{
+	int proc_id = ctx->constants->proc_id;
+	if (proc_id == Core::get_proc("/proc/jit_wrapper").id)
+	{
+		JitContext* jc = (JitContext*)ctx->constants->jit_context;
+		void* code_base = ctx->constants->jit_code_base;
+		Core::Alert((int)code_base);
+	}
+	return oSuspend(ctx, unknown);
+}
+
+static void hCreateContext(ProcConstants* pc, ExecutionContext* new_context)
+{
+	oCreateContext(pc, new_context);
+	if (pc->proc_id == Core::get_proc("/proc/jit_wrapper").id)
+	{
+		new_context->paused = 1;
+		static Value fakeargs[2] = { Value::Null(), Value::Null() };
+		if (pc->args)
+		{
+			JitArguments* ja = (JitArguments*)pc->args;
+			pc->jit_context = ja->jc;
+			pc->jit_code_base = ja->code_base;
+		}
+		JitEntryPoint(pc->jit_code_base, 2, fakeargs, Value::Null(), Value::Null(), (JitContext*)pc->jit_context);
+		pc->arg_count = 0;
+		pc->args = nullptr;
+	}
+}
 
 static void hook_resumption()
 {
 	int* rundm_offset = (int*)Pocket::Sigscan::FindPattern("byondcore.dll", "E8 ?? ?? ?? ?? A1 ?? ?? ?? ?? 83 C4 04 89 46 18 89 ?? ?? ?? ?? ?? E8 ?? ?? ?? ?? 8B F0 85 F6 75 AB 8B ?? ?? ?? ?? ?? 5F 5E", 1);
 	DWORD old_prot;
 	VirtualProtect(rundm_offset, 4, PAGE_READWRITE, &old_prot);
-	*rundm_offset = (int)&ResumeHook - (int)rundm_offset - 4;
+	//*rundm_offset = (int)&ResumeHook - (int)rundm_offset - 4;
 	VirtualProtect(rundm_offset, 4, old_prot, &old_prot);
+
+	oCreateContext = Core::install_hook(CreateContext, hCreateContext);
+	oSuspend = Core::install_hook(Suspend, hSuspend);
+	exit_proc = Pocket::Sigscan::FindPattern("byondcore.dll", "A1 ?? ?? ?? ?? 83 3D ?? ?? ?? ?? ?? C7 45 ?? ?? ?? ?? ?? 74 1F 8B 00 FF 30 E8 ?? ?? ?? ?? FF 30 E8 ?? ?? ?? ?? FF 30 68 ?? ?? ?? ?? E8 ?? ?? ?? ?? 83 C4 10 8B");
 }
 
 static void schedule_jit_resumption(void* code_base, JitContext* jc, int deciseconds, Value usr, Value src)
 {
 	ProcConstants* fake_ass_sus = new ProcConstants();
-	//fake_ass_sus->unknown1 = 0x00BF0015; //some set of flags that all suspended procs have
+	fake_ass_sus->unknown1 = 0x00BF0015; //some set of flags that all suspended procs have
 	fake_ass_sus->time_to_resume = deciseconds / Value::World().get("tick_lag").valuef;
 	fake_ass_sus->proc_id = -1;
 	fake_ass_sus->jit_context = (void*)jc;
@@ -641,7 +685,7 @@ static trvh JitEntryPoint(void* code_base, unsigned int args_len, Value* args, V
 	}
 	Proc code = static_cast<Proc>(code_base);
 
-	ProcResult res = code(ctx, args_len, args, src, usr);
+	ProcResult res = code(ctx, args_len, args, src, usr, Core::get_context());
 
 	switch (res)
 	{
@@ -655,7 +699,7 @@ static trvh JitEntryPoint(void* code_base, unsigned int args_len, Value* args, V
 
 	case ProcResult::Yielded:
 		Value sleep_time = *ctx->stack_top--;
-		schedule_jit_resumption(code_base, ctx, sleep_time.valuef, usr, src);
+		//schedule_jit_resumption(code_base, ctx, sleep_time.valuef, usr, src);
 		return Value::Null();
 	}
 
@@ -670,7 +714,7 @@ static void compile(std::vector<Core::Proc*> procs)
 {
 	FILE* fuck = fopen("asm.txt", "w");
 	asmjit::FileLogger logger(fuck);
-	logger.addFlags(FormatOptions::kFlagRegCasts | FormatOptions::kFlagExplainImms | FormatOptions::kFlagDebugPasses | FormatOptions::kFlagDebugRA);
+	logger.addFlags(FormatOptions::kFlagRegCasts | FormatOptions::kFlagExplainImms | FormatOptions::kFlagDebugPasses | FormatOptions::kFlagDebugRA | FormatOptions::kFlagAnnotations);
 	SimpleErrorHandler eh;
 	asmjit::CodeHolder code;
 	code.init(rt.codeInfo());
@@ -710,7 +754,11 @@ static void compile(std::vector<Core::Proc*> procs)
 
 trvh invoke_hook(unsigned int n_args, Value* args, Value src)
 {
-	return JitEntryPoint(honk, n_args, args, src, Value::Null(), nullptr);
+	JitArguments ja;
+	ja.jc = new JitContext();
+	ja.code_base = honk;
+	return CallGlobalProc(0, 0, 2, Core::get_proc("/proc/jit_wrapper").id, 0, DataType::NULL_D, 0, (Value*)&ja, 1, 0, 0);
+	//return JitEntryPoint(honk, n_args, args, src, Value::Null(), nullptr);
 }
 
 EXPORT const char* ::jit_test(int n_args, const char** args)

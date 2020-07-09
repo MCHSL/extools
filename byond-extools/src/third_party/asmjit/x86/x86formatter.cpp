@@ -78,6 +78,7 @@ struct RegFormatInfo_T {
                     X == Reg::kTypeDReg  ? 62  :
                     X == Reg::kTypeSt    ? 47  :
                     X == Reg::kTypeBnd   ? 55  :
+                    X == Reg::kTypeTmm   ? 65  :
                     X == Reg::kTypeRip   ? 39  : 0,
 
     kFormatIndex  = X == Reg::kTypeGpbLo ? 1   :
@@ -95,6 +96,7 @@ struct RegFormatInfo_T {
                     X == Reg::kTypeDReg  ? 80  :
                     X == Reg::kTypeSt    ? 55  :
                     X == Reg::kTypeBnd   ? 69  :
+                    X == Reg::kTypeTmm   ? 89  :
                     X == Reg::kTypeRip   ? 43  : 0,
 
     kSpecialIndex = X == Reg::kTypeGpbLo ? 96  :
@@ -146,7 +148,9 @@ static const RegFormatInfo x86RegFormatInfo = {
   "k\0"            // #53
   "bnd\0"          // #55
   "cr\0"           // #59
-  "dr\0",          // #62
+  "dr\0"           // #62
+  "tmm\0"          // #65
+  ,
 
   // Register name entries and strings.
   { ASMJIT_LOOKUP_TABLE_32(ASMJIT_REG_NAME_ENTRY, 0) },
@@ -170,7 +174,8 @@ static const RegFormatInfo x86RegFormatInfo = {
   "dr%u\0"         // #80
 
   "rip\0"          // #85
-  "\0\0\0\0\0\0\0" // #89
+  "tmm%u\0"        // #89
+  "\0"             // #95
 
   "al\0\0" "cl\0\0" "dl\0\0" "bl\0\0" "spl\0"  "bpl\0"  "sil\0"  "dil\0" // #96
   "ah\0\0" "ch\0\0" "dh\0\0" "bh\0\0" "n/a\0"  "n/a\0"  "n/a\0"  "n/a\0" // #128
@@ -211,6 +216,9 @@ Error FormatterInternal::formatFeature(String& sb, uint32_t featureId) noexcept 
     "ADX\0"
     "AESNI\0"
     "ALTMOVCR8\0"
+    "AMX_BF16\0"
+    "AMX_INT8\0"
+    "AMX_TILE\0"
     "AVX\0"
     "AVX2\0"
     "AVX512_4FMAPS\0"
@@ -232,6 +240,8 @@ Error FormatterInternal::formatFeature(String& sb, uint32_t featureId) noexcept 
     "AVX512_VPOPCNTDQ\0"
     "BMI\0"
     "BMI2\0"
+    "CET_IBT\0"
+    "CET_SS\0"
     "CLDEMOTE\0"
     "CLFLUSH\0"
     "CLFLUSHOPT\0"
@@ -257,6 +267,7 @@ Error FormatterInternal::formatFeature(String& sb, uint32_t featureId) noexcept 
     "LAHFSAHF\0"
     "LWP\0"
     "LZCNT\0"
+    "MCOMMIT\0"
     "MMX\0"
     "MMX2\0"
     "MONITOR\0"
@@ -268,23 +279,27 @@ Error FormatterInternal::formatFeature(String& sb, uint32_t featureId) noexcept 
     "MSR\0"
     "MSSE\0"
     "OSXSAVE\0"
+    "OSPKE\0"
     "PCLMULQDQ\0"
-    "PCOMMIT\0"
     "PCONFIG\0"
     "POPCNT\0"
     "PREFETCHW\0"
     "PREFETCHWT1\0"
+    "PTWRITE\0"
     "RDPID\0"
+    "RDPRU\0"
     "RDRAND\0"
     "RDSEED\0"
     "RDTSC\0"
     "RDTSCP\0"
     "RTM\0"
+    "SERIALIZE\0"
     "SHA\0"
     "SKINIT\0"
     "SMAP\0"
     "SMEP\0"
     "SMX\0"
+    "SNP\0"
     "SSE\0"
     "SSE2\0"
     "SSE3\0"
@@ -295,6 +310,7 @@ Error FormatterInternal::formatFeature(String& sb, uint32_t featureId) noexcept 
     "SVM\0"
     "TBM\0"
     "TSX\0"
+    "TSXLDTRK\0"
     "VAES\0"
     "VMX\0"
     "VPCLMULQDQ\0"
@@ -308,13 +324,14 @@ Error FormatterInternal::formatFeature(String& sb, uint32_t featureId) noexcept 
     "<Unknown>\0";
 
   static const uint16_t sFeatureIndex[] = {
-    0, 5, 8, 11, 17, 24, 28, 34, 44, 48, 53, 67, 81, 93, 107, 117, 128, 138,
-    149, 158, 170, 181, 193, 206, 216, 228, 248, 265, 269, 274, 283, 291, 302,
-    307, 314, 319, 330, 340, 346, 353, 358, 363, 367, 372, 376, 385, 390, 398,
-    404, 409, 413, 418, 427, 431, 437, 441, 446, 454, 463, 469, 479, 487, 491,
-    495, 500, 508, 518, 526, 534, 541, 551, 563, 569, 576, 583, 589, 596, 600,
-    604, 611, 616, 621, 625, 629, 634, 639, 646, 653, 659, 665, 669, 673, 677,
-    682, 686, 697, 705, 714, 718, 724, 731, 740, 747
+    0, 5, 8, 11, 17, 24, 28, 34, 44, 53, 62, 71, 75, 80, 94, 108, 120, 134, 144,
+    155, 165, 176, 185, 197, 208, 220, 233, 243, 255, 275, 292, 296, 301, 309,
+    316, 325, 333, 344, 349, 356, 361, 372, 382, 388, 395, 400, 405, 409, 414,
+    418, 427, 432, 440, 446, 451, 455, 460, 469, 473, 479, 487, 491, 496, 504,
+    513, 519, 529, 537, 541, 545, 550, 558, 564, 574, 582, 589, 599, 611, 619,
+    625, 631, 638, 645, 651, 658, 662, 672, 676, 683, 688, 693, 697, 701, 705,
+    710, 715, 722, 729, 735, 741, 745, 749, 753, 762, 767, 771, 782, 790, 799,
+    803, 809, 816, 825, 832
   };
   // @EnumStringEnd@
 

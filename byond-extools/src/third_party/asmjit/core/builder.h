@@ -337,8 +337,8 @@ public:
   ASMJIT_API Error embedDataArray(uint32_t typeId, const void* data, size_t count, size_t repeat = 1) override;
   ASMJIT_API Error embedConstPool(const Label& label, const ConstPool& pool) override;
 
-  ASMJIT_API Error embedLabel(const Label& label) override;
-  ASMJIT_API Error embedLabelDelta(const Label& label, const Label& base, size_t dataSize) override;
+  ASMJIT_API Error embedLabel(const Label& label, size_t dataSize = 0) override;
+  ASMJIT_API Error embedLabelDelta(const Label& label, const Label& base, size_t dataSize = 0) override;
 
   //! \}
 
@@ -357,7 +357,7 @@ public:
   //! Although not explicitly required the emitter will most probably be of
   //! Assembler type. The reason is that there is no known use of serializing
   //! nodes held by Builder/Compiler into another Builder-like emitter.
-  ASMJIT_API Error serialize(BaseEmitter* dst);
+  ASMJIT_API Error serializeTo(BaseEmitter* dst);
 
   //! \}
 
@@ -370,6 +370,11 @@ public:
   //! \}
 
 #ifndef ASMJIT_NO_DEPRECATED
+  ASMJIT_DEPRECATED("Use serializeTo() instead, serialize() is now also an instruction.")
+  inline Error serialize(BaseEmitter* dst) {
+    return serializeTo(dst);
+  }
+
 #ifndef ASMJIT_NO_LOGGING
   ASMJIT_DEPRECATED("Use Formatter::formatNodeList(sb, formatFlags, builder)")
   inline Error dump(String& sb, uint32_t formatFlags = 0) const noexcept {
@@ -1145,14 +1150,16 @@ public:
   ASMJIT_NONCOPYABLE(EmbedLabelNode)
 
   uint32_t _labelId;
+  uint32_t _dataSize;
 
   //! \name Construction & Destruction
   //! \{
 
   //! Creates a new `EmbedLabelNode` instance.
-  inline EmbedLabelNode(BaseBuilder* cb, uint32_t labelId = 0) noexcept
+  inline EmbedLabelNode(BaseBuilder* cb, uint32_t labelId = 0, uint32_t dataSize = 0) noexcept
     : BaseNode(cb, kNodeEmbedLabel, kFlagIsData),
-      _labelId(labelId) {}
+      _labelId(labelId),
+      _dataSize(dataSize) {}
 
   //! \}
 
@@ -1168,6 +1175,11 @@ public:
   inline void setLabel(const Label& label) noexcept { setLabelId(label.id()); }
   //! Sets the label id (use with caution, improper use can break a lot of things).
   inline void setLabelId(uint32_t labelId) noexcept { _labelId = labelId; }
+
+  //! Returns the data size.
+  inline uint32_t dataSize() const noexcept { return _dataSize; }
+  //! Sets the data size.
+  inline void setDataSize(uint32_t dataSize) noexcept { _dataSize = dataSize; }
 
   //! \}
 
