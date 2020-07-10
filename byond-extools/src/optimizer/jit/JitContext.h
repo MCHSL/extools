@@ -64,6 +64,7 @@ struct JitContext
 		, stack_frame(nullptr)
 	{
 		stack_top = stack;
+		suspended = false;
 	}
 
 	~JitContext() noexcept
@@ -78,6 +79,7 @@ struct JitContext
 		stack = new Value[stack_allocated];
 		stack_top = &stack[src.stack_top - src.stack];
 		stack_frame = reinterpret_cast<ProcStackFrame*>(&stack[reinterpret_cast<Value*>(src.stack_frame) - src.stack]);
+		suspended = src.suspended;
 		std::copy(src.stack, src.stack_top, stack);
 	}
 
@@ -88,6 +90,7 @@ struct JitContext
 		stack_top = &stack[src.stack_top - src.stack];
 		stack_frame = reinterpret_cast<ProcStackFrame*>(&stack[reinterpret_cast<Value*>(src.stack_frame) - src.stack]);
 		stack_allocated = src.stack_allocated;
+		suspended = src.suspended;
 		std::copy(src.stack, src.stack_top, stack);
 	}
 
@@ -96,6 +99,7 @@ struct JitContext
 		, stack_allocated(std::exchange(src.stack_allocated, 0))
 		, stack_top(std::exchange(src.stack_top, nullptr))
 		, stack_frame(std::exchange(src.stack_frame, nullptr))
+		, suspended(std::exchange(src.suspended, false))
 	{}
 
 	JitContext& operator=(JitContext&& src) noexcept
@@ -104,6 +108,7 @@ struct JitContext
 		std::swap(stack_allocated, src.stack_allocated);
 		std::swap(stack_top, src.stack_top);
 		std::swap(stack_frame, src.stack_frame);
+		std::swap(suspended, src.suspended);
 		return *this;
 	}
 
@@ -143,6 +148,9 @@ struct JitContext
 
 	Value* stack;
 	size_t stack_allocated;
+
+	// Whether this context is currently suspended. This tells procs running inside it to yield.
+	bool suspended;
 
 	// Maybe?
 	// ProcConstants* what_called_us;

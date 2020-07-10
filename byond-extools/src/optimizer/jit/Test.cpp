@@ -440,9 +440,7 @@ static void Emit_End(DMCompiler& dmc)
 
 static void Emit_Sleep(DMCompiler& dmc)
 {
-	dmc.prepareNextContinuationIndex();
 	dmc.doYield();
-	dmc.addContinuationPoint();
 }
 
 static bool Emit_Block(DMCompiler& dmc, ProcBlock& block, std::map<unsigned int, ProcBlock>& blocks)
@@ -615,8 +613,10 @@ static void* exit_proc = nullptr;
 
 struct JitArguments
 {
-	JitContext* jc;
+	uint32_t padding1;
 	void* code_base;
+	uint32_t padding2;
+	JitContext* jc;
 };
 
 static SuspendPtr oSuspend;
@@ -625,9 +625,9 @@ static ProcConstants* hSuspend(ExecutionContext* ctx, int unknown)
 	int proc_id = ctx->constants->proc_id;
 	if (proc_id == Core::get_proc("/proc/jit_wrapper").id)
 	{
-		JitContext* jc = (JitContext*)ctx->constants->jit_context;
-		void* code_base = ctx->constants->jit_code_base;
-		Core::Alert((int)code_base);
+		JitContext* jc = (JitContext*)ctx->constants->args[1].value;
+		jc->suspended = true;
+		Core::Alert("Marking as suspended");
 	}
 	return oSuspend(ctx, unknown);
 }
@@ -639,15 +639,8 @@ static void hCreateContext(ProcConstants* pc, ExecutionContext* new_context)
 	{
 		new_context->paused = 1;
 		static Value fakeargs[2] = { Value::Null(), Value::Null() };
-		if (pc->args)
-		{
-			JitArguments* ja = (JitArguments*)pc->args;
-			pc->jit_context = ja->jc;
-			pc->jit_code_base = ja->code_base;
-		}
-		JitEntryPoint(pc->jit_code_base, 2, fakeargs, Value::Null(), Value::Null(), (JitContext*)pc->jit_context);
-		pc->arg_count = 0;
-		pc->args = nullptr;
+		((JitContext*)pc->args[1].value)->suspended = false;
+		JitEntryPoint((void*)pc->args[0].value, 2, fakeargs, Value::Null(), Value::Null(), (JitContext*)pc->args[1].value);
 	}
 }
 
@@ -698,7 +691,7 @@ static trvh JitEntryPoint(void* code_base, unsigned int args_len, Value* args, V
 		return ctx->stack[0];
 
 	case ProcResult::Yielded:
-		Value sleep_time = *ctx->stack_top--;
+		//Value sleep_time = *ctx->stack_top--;
 		//schedule_jit_resumption(code_base, ctx, sleep_time.valuef, usr, src);
 		return Value::Null();
 	}
@@ -754,10 +747,10 @@ static void compile(std::vector<Core::Proc*> procs)
 
 trvh invoke_hook(unsigned int n_args, Value* args, Value src)
 {
-	JitArguments ja;
-	ja.jc = new JitContext();
-	ja.code_base = honk;
-	return CallGlobalProc(0, 0, 2, Core::get_proc("/proc/jit_wrapper").id, 0, DataType::NULL_D, 0, (Value*)&ja, 1, 0, 0);
+	JitArguments* ja = new JitArguments();
+	ja->jc = new JitContext();
+	ja->code_base = honk;
+	return CallGlobalProc(0, 0, 2, Core::get_proc("/proc/jit_wrapper").id, 0, DataType::NULL_D, 0, (Value*)ja, 2, 0, 0);
 	//return JitEntryPoint(honk, n_args, args, src, Value::Null(), nullptr);
 }
 

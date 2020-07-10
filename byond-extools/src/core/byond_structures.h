@@ -52,6 +52,8 @@ struct Value
 	};
 	Value() { type = DataType::NULL_D; value = 0; }
 	Value(DataType type, int value) : type(type), value(value) {};
+	Value(DataType type, unsigned int value) : type(type), value(value) {};
+	explicit Value(DataType type, float valuef) : type(type), valuef(valuef) {};
 	Value(trvh trvh)
 	{
 		type = trvh.type;

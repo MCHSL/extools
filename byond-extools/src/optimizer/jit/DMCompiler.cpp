@@ -43,7 +43,7 @@ ProcNode* DMCompiler::addProc(uint32_t locals_count, uint32_t args_count)
 	lea(cont_offset, x86::ptr(_currentProc->_continuationPointTable));
 	mov(cont_target, x86::ptr(cont_offset, continuation_index, 2));
 	add(cont_target, cont_offset);
-	jmp(cont_target/*, _currentProc->_cont_points_annotation*/);
+	jmp(cont_target, _currentProc->_cont_points_annotation);
 
 	setInlineComment("Proc Prolog");
 	bind(_currentProc->_prolog);
@@ -52,9 +52,13 @@ ProcNode* DMCompiler::addProc(uint32_t locals_count, uint32_t args_count)
 
 	// New stack frame
 	// TODO: allocate more space on stack if necessary
+
+	x86::Gp previous = getStackFramePtr();
 	x86::Gp stack_top = newUIntPtr("stack_top");
 	mov(stack_top, x86::dword_ptr(_currentProc->_jit_context, offsetof(JitContext, stack_top)));
-	mov(x86::ptr(_currentProc->_jit_context, offsetof(JitContext, stack_frame)), stack_top);
+	mov(x86::dword_ptr(_currentProc->_jit_context, offsetof(JitContext, stack_frame)), stack_top);
+	x86::Gp new_frame = getStackFramePtr();
+	mov(x86::dword_ptr(new_frame, offsetof(ProcStackFrame, previous)), previous);
 
 	static_assert(sizeof(ProcStackFrame) == sizeof(Value) * 6);
 	//mov(x86::ptr(stack_top, offsetof(Value, type), sizeof(uint32_t)), old_stack_frame);
@@ -71,8 +75,8 @@ ProcNode* DMCompiler::addProc(uint32_t locals_count, uint32_t args_count)
 		setInlineComment((std::string("mov arg ") + std::to_string(i)).c_str());
 		x86::Gp type = newUInt32("type");
 		x86::Gp value = newUInt32("value");
-		mov(type, x86::ptr(args_ptr, i * sizeof(Value) + offsetof(Value, type)));
-		mov(value, x86::ptr(args_ptr, i * sizeof(Value) + offsetof(Value, value)));
+		mov(type, x86::dword_ptr(args_ptr, i * sizeof(Value) + offsetof(Value, type)));
+		mov(value, x86::dword_ptr(args_ptr, i * sizeof(Value) + offsetof(Value, value)));
 		_currentProc->_args[i] = { Local::CacheState::Modified, Variable{type, value} };
 	}
 
@@ -151,6 +155,11 @@ BlockNode* DMCompiler::addBlock(Label& label, uint32_t continuation_index)
 	bind(_currentBlock->_label);
 	addNode(_currentBlock);
 	mov(_currentBlock->_stack_top, x86::dword_ptr(_currentProc->_jit_context, offsetof(JitContext, stack_top)));
+	cmp(x86::byte_ptr(_currentProc->_jit_context, offsetof(JitContext, suspended)), imm(1));
+	Label not_suspended = newLabel();
+	jne(not_suspended);
+	doYield();
+	bind(not_suspended);
 	return _currentBlock;
 }
 
@@ -462,7 +471,7 @@ x86::Gp DMCompiler::getStackFramePtr()
 {
 	if(_currentProc == nullptr)
 		__debugbreak();
-	x86::Gp stack_frame = newUIntPtr("stack_frame");
+	x86::Gp stack_frame = newUIntPtr("stack_frame_ptr");
 	mov(stack_frame, x86::dword_ptr(_currentProc->_jit_context, offsetof(JitContext, stack_frame)));
 	return stack_frame;
 }
@@ -534,10 +543,12 @@ void DMCompiler::doReturn()
 
 void DMCompiler::doYield()
 {
+	prepareNextContinuationIndex();
 	commitStack();
 	commitLocals();
 	x86::Gp retcode = newUInt32("return code");
 	mov(retcode, Imm(static_cast<uint32_t>(ProcResult::Yielded)));
 	ret(retcode);
+	addContinuationPoint();
 }
 }

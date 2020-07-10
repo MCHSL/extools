@@ -125,6 +125,7 @@ trvh test_invoke(unsigned int argcount, Value* args, Value src)
 
 void init_testing()
 {
+	//Core::Alert(Value(DataType::NUMBER, 5.0f).valuef);
 	// jit_compile(Core::get_proc("/proc/jit"));
 	//Value a(5.0f);
 	//Value b = a + 5.0f;
