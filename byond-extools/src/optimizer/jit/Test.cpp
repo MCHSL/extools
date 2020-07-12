@@ -6,6 +6,8 @@
 #include "../../dmdism/instruction.h"
 #include "../../dmdism/disassembly.h"
 
+#include "../../third_party/robin_hood.h"
+
 #include <algorithm>
 #include <fstream>
 #include <map>
@@ -22,6 +24,8 @@ static std::ofstream jit_out("jit_out.txt");
 static std::ofstream byteout_out("bytecode.txt");
 static std::ofstream blocks_out("blocks.txt");
 static asmjit::JitRuntime rt;
+
+static robin_hood::unordered_map<std::string, void*> jitted_procs;
 
 // How much to shift when using x86::ptr - [base + (offset << shift)]
 unsigned int shift(unsigned int n)
@@ -611,14 +615,6 @@ void ResumeHook(ProcConstants* pc)
 static CreateContextPtr oCreateContext;
 static void* exit_proc = nullptr;
 
-struct JitArguments
-{
-	uint32_t padding1;
-	void* code_base;
-	uint32_t padding2;
-	JitContext* jc;
-};
-
 static SuspendPtr oSuspend;
 static ProcConstants* hSuspend(ExecutionContext* ctx, int unknown)
 {
@@ -656,7 +652,7 @@ static void hook_resumption()
 	exit_proc = Pocket::Sigscan::FindPattern("byondcore.dll", "A1 ?? ?? ?? ?? 83 3D ?? ?? ?? ?? ?? C7 45 ?? ?? ?? ?? ?? 74 1F 8B 00 FF 30 E8 ?? ?? ?? ?? FF 30 E8 ?? ?? ?? ?? FF 30 68 ?? ?? ?? ?? E8 ?? ?? ?? ?? 83 C4 10 8B");
 }
 
-static trvh JitEntryPoint(void* code_base, unsigned int args_len, Value* args, Value src, Value usr, JitContext* ctx)
+trvh JitEntryPoint(void* code_base, unsigned int args_len, Value* args, Value src, Value usr, JitContext* ctx)
 {
 	if (!ctx)
 	{
@@ -704,8 +700,6 @@ static trvh JitEntryPoint(void* code_base, unsigned int args_len, Value* args, V
 	return Value::Null();
 }
 
-void* honk;
-
 static void compile(std::vector<Core::Proc*> procs)
 {
 	FILE* fuck = fopen("asm.txt", "w");
@@ -718,6 +712,9 @@ static void compile(std::vector<Core::Proc*> procs)
 	code.setErrorHandler(&eh);
 
 	DMCompiler dmc(code);
+
+	std::vector<Label> entrypoints;
+	entrypoints.reserve(procs.size());
 
 	for (auto& proc : procs)
 	{
@@ -733,7 +730,8 @@ static void compile(std::vector<Core::Proc*> procs)
 		size_t args_count = 2;
 		auto blocks = split_into_blocks(dis, dmc, locals_count, args_count);
 
-		dmc.addProc(locals_count, args_count);
+		ProcNode* node = dmc.addProc(locals_count, args_count);
+		entrypoints.push_back(node->_entryPoint);
 		for (auto& [k, v] : blocks)
 		{
 			Emit_Block(dmc, v, blocks);
@@ -742,19 +740,31 @@ static void compile(std::vector<Core::Proc*> procs)
 	}
 
 	dmc.finalize();
+	void* code_base = nullptr;
+	rt.add(&code_base, &code);
 
-	rt.add(&honk, &code);
-	jit_out << honk << std::endl;
+	for (int i = 0; i < procs.size(); i++)
+	{
+		std::string procname = procs.at(i)->name;
+		void* entrypoint = (void*)((uint32_t)code_base + code.labelOffset(entrypoints.at(i)));
+		jitted_procs[procname] = entrypoint;
+		jit_out << procname << ": " << entrypoint << std::endl;
+	}
 	fflush(fuck);
 }
 
-trvh invoke_hook(unsigned int n_args, Value* args, Value src)
+void* compile_one(Core::Proc& proc)
+{
+	compile({ &proc });
+	return jitted_procs[proc.name]; //todo
+}
+
+trvh invoke_jitted_proc(void* code_base, unsigned int n_args, Value* args, Value src)
 {
 	JitArguments* ja = new JitArguments();
 	ja->jc = new JitContext();
-	ja->code_base = honk;
-	return CallGlobalProc(0, 0, 2, Core::get_proc("/proc/jit_wrapper").id, 0, DataType::NULL_D, 0, (Value*)ja, 2, 0, 0);
-	//return JitEntryPoint(honk, n_args, args, src, Value::Null(), nullptr);
+	ja->code_base = code_base;
+	return JitEntryPoint(code_base, n_args, args, src, Value::Null(), nullptr);
 }
 
 EXPORT const char* ::jit_test(int n_args, const char** args)
@@ -765,8 +775,8 @@ EXPORT const char* ::jit_test(int n_args, const char** args)
 	}
 
 	hook_resumption();
-	compile({&Core::get_proc("/proc/jit_test_compiled_proc")});
-	Core::get_proc("/proc/jit_test_compiled_proc").hook(invoke_hook);
+	//compile({&Core::get_proc("/proc/jit_test_compiled_proc"), &Core::get_proc("/proc/recursleep")});
+	Core::get_proc("/proc/jit_test_compiled_proc").jit();
 	Core::get_proc("/proc/jit_wrapper").set_bytecode({ 0, 0, 0 });
 	return Core::SUCCESS;
 }

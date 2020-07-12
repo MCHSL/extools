@@ -58,7 +58,7 @@ namespace Core
 
 		ProfileInfo* profile() const;
 		void extended_profile();
-		void jit_hook(void* code_base, JitHook hook_func);
+		void jit();
 		void hook(ProcHook hook_func);
 		Value call(std::vector<Value> arguments, Value usr = Value::Null());
 
@@ -84,7 +84,7 @@ namespace Core
 	Disassembly disassemble_raw(std::vector<int> bytecode);
 }
 
-extern std::unordered_map<unsigned int, JitLoc> jit_hooks;
+extern std::unordered_map<unsigned int, void*> jit_hooks;
 extern std::unordered_map<unsigned int, ProcHook> proc_hooks;
 extern std::unordered_map<unsigned int, bool> extended_profiling_procs;
 

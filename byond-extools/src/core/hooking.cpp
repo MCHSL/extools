@@ -6,6 +6,7 @@
 #include <stack>
 #include "../extended_profiling/extended_profiling.h"
 #include <mutex>
+#include "../optimizer/jit/Test.h"
 
 CrashProcPtr oCrashProc;
 CallGlobalProcPtr oCallGlobalProc;
@@ -47,9 +48,11 @@ trvh REGPARM3 hCallGlobalProc(char usr_type, int usr_value, int proc_type, unsig
 	auto jit_hooks_it = jit_hooks.find((unsigned short)proc_id);
 	if (jit_hooks_it != jit_hooks.end())
 	{
-		void* base = jit_hooks_it->second.base;
-		JitHook func = jit_hooks_it->second.func;
-		trvh result = func(base, argListLen, argList, src_type ? Value(src_type, src_value) : static_cast<Value>(Value::Null()));
+		void* base = jit_hooks_it->second;
+		JitArguments* ja = new JitArguments();
+		ja->code_base = base;
+		ja->jc = new dmjit::JitContext();
+		auto result = CallGlobalProc(0, 0, 2, Core::get_proc("/proc/jit_wrapper").id, 0, DataType::NULL_D, 0, (Value*)ja, 2, 0, 0);
 		for (int i = 0; i < argListLen; i++)
 		{
 			DecRefCount(argList[i].type, argList[i].value);

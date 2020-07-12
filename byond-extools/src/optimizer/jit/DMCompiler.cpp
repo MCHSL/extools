@@ -21,9 +21,15 @@ ProcNode* DMCompiler::addProc(uint32_t locals_count, uint32_t args_count)
 {
 	if (_currentProc != nullptr)
 		__debugbreak();
+
+	auto label = newLabel();
+	bind(label);
 	addFunc(FuncSignatureT<uint32_t, JitContext*, uint32_t, Value*, uint32_t, uint32_t, uint32_t, uint32_t>(CallConv::kIdCDecl));
+
 	_newNodeT<ProcNode>(&_currentProc, locals_count, args_count);
 	addNode(_currentProc);
+
+	_currentProc->_entryPoint = label;
 
 	setInlineComment("Proc Entrypoint");
 	setArg(0, _currentProc->_jit_context);

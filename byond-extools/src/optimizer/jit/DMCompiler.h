@@ -233,7 +233,6 @@ public:
 
 		_jit_context = dmc.newUIntPtr("_jit_context");
 		//_current_iterator = dmc.newUIntPtr("_current_iterator");
-		_entryPoint = dmc.newLabel();
 		_prolog = dmc.newLabel();
 		_continuationPointTable = dmc.newLabel();
 		_cont_points_annotation = dmc.newJumpAnnotation();
