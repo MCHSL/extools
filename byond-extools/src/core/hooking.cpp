@@ -48,11 +48,16 @@ trvh REGPARM3 hCallGlobalProc(char usr_type, int usr_value, int proc_type, unsig
 	auto jit_hooks_it = jit_hooks.find((unsigned short)proc_id);
 	if (jit_hooks_it != jit_hooks.end())
 	{
-		void* base = jit_hooks_it->second;
-		JitArguments* ja = new JitArguments();
-		ja->code_base = base;
-		ja->jc = new dmjit::JitContext();
-		auto result = CallGlobalProc(0, 0, 2, Core::get_proc("/proc/jit_wrapper").id, 0, DataType::NULL_D, 0, (Value*)ja, 2, 0, 0);
+		// The first two Values passed as args to the jit wrapper contain the function code and the jit context.
+		// This is necessary to have the ability to suspend and resume.
+		// The code and context need to be extracted before passing the arguments to JitEntryPoint.
+		Value* args_with_jit_stuff = new Value[argListLen + 2];
+		args_with_jit_stuff[0].value = (int)jit_hooks_it->second;
+		args_with_jit_stuff[1].value = (int)new dmjit::JitContext();
+		std::copy(argList, argList + argListLen, args_with_jit_stuff + 2);
+		auto result = CallGlobalProc(0, 0, 2, Core::get_proc("/proc/jit_wrapper").id, 0, DataType::NULL_D, 0, args_with_jit_stuff, argListLen + 2, 0, 0);
+		// We can delete this because BYOND creates a copy of the ProcConstants struct when it will need one later, and copies over the arguments.
+		delete[] args_with_jit_stuff;
 		for (int i = 0; i < argListLen; i++)
 		{
 			DecRefCount(argList[i].type, argList[i].value);

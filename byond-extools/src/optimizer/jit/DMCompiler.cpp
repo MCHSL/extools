@@ -70,6 +70,10 @@ ProcNode* DMCompiler::addProc(uint32_t locals_count, uint32_t args_count)
 	//mov(x86::ptr(stack_top, offsetof(Value, type), sizeof(uint32_t)), old_stack_frame);
 	//mov(x86::ptr(stack_top, offsetof(Value, value), sizeof(uint32_t)), old_stack_frame);
 	add(x86::dword_ptr(_currentProc->_jit_context, offsetof(JitContext, stack_top)), sizeof(ProcStackFrame));
+	add(x86::dword_ptr(_currentProc->_jit_context, offsetof(JitContext, stack_top)), args_count * sizeof(Value));
+	add(x86::dword_ptr(_currentProc->_jit_context, offsetof(JitContext, stack_top)), locals_count * sizeof(Value));
+	mov(stack_top, x86::dword_ptr(_currentProc->_jit_context, offsetof(JitContext, stack_top)));
+	mov(x86::dword_ptr(stack_top), imm(0x12345678));
 
 	x86::Gp args_ptr = newUInt32("args_ptr");
 	x86::Gp arg_count = newUInt32("arg_count");
@@ -349,42 +353,22 @@ void DMCompiler::commitStack()
 
 	x86::Gp stack_top = newUIntPtr("stack_top");
 	mov(stack_top, x86::dword_ptr(_currentProc->_jit_context, offsetof(JitContext, stack_top)));
-	add(stack_top, block._stack_top_offset);
+	sub(stack_top, block._stack_top_offset * sizeof(Value));
 
 	size_t i = 0;
 	while(!block._stack.empty())
 	{
 		Variable var = block._stack.pop();
 
-		if (var.Type.isImm())
-		{
-			mov(x86::ptr(stack_top, -(i * sizeof(Value)) + offsetof(Value, type) + block._stack_top_offset * sizeof(Value), sizeof(uint32_t)), var.Type.as<Imm>());
-		}
-		else
-		{
-			mov(x86::ptr(stack_top,  -(i * sizeof(Value)) + offsetof(Value, type) + block._stack_top_offset * sizeof(Value), sizeof(uint32_t)), var.Type.as<x86::Gp>());
-		}
-
-		if (var.Value.isImm())
-		{
-			mov(x86::ptr(stack_top,  -(i * sizeof(Value)) + offsetof(Value, value) + block._stack_top_offset * sizeof(Value), sizeof(uint32_t)), var.Value.as<Imm>());
-		}
-		else
-		{
-			mov(x86::ptr(stack_top,  -(i * sizeof(Value)) + offsetof(Value, value) + block._stack_top_offset * sizeof(Value), sizeof(uint32_t)), var.Value.as<x86::Gp>());
-		}
+		mov(x86::ptr(stack_top,  -(i * sizeof(Value)) + offsetof(Value, type) + block._stack_top_offset * sizeof(Value), sizeof(uint32_t)), var.Type.as<x86::Gp>());
+		mov(x86::ptr(stack_top,  -(i * sizeof(Value)) + offsetof(Value, value) + block._stack_top_offset * sizeof(Value), sizeof(uint32_t)), var.Value.as<x86::Gp>());
 
 		i++;
 	}
 
-	if (block._stack_top_offset > 0)
-	{
-		add(x86::dword_ptr(_currentProc->_jit_context, offsetof(JitContext, stack_top)), block._stack_top_offset * sizeof(Value));
-	}
-	else if (block._stack_top_offset < 0)
-	{
-		sub(x86::dword_ptr(_currentProc->_jit_context, offsetof(JitContext, stack_top)), -(block._stack_top_offset * sizeof(Value)));
-	}
+	add(x86::dword_ptr(_currentProc->_jit_context, offsetof(JitContext, stack_top)), block._stack_top_offset * sizeof(Value));
+
+	block._stack_top_offset = 0;
 }
 
 void DMCompiler::commitLocals()
@@ -519,6 +503,10 @@ void DMCompiler::doReturn()
 	if (_currentBlock == nullptr)
 		__debugbreak();
 
+
+	commitStack();
+	commitLocals();
+
 	ProcNode& proc = *_currentProc;
 	BlockNode& block = *_currentBlock;
 
@@ -562,6 +550,7 @@ void DMCompiler::_return(ProcResult code)
 
 void DMCompiler::doYield()
 {
+	//pushStackRaw(getDot());
 	prepareNextContinuationIndex();
 	commitStack();
 	commitLocals();
@@ -571,6 +560,7 @@ void DMCompiler::doYield()
 
 void DMCompiler::doSleep()
 {
+	//pushStackRaw(getDot());
 	prepareNextContinuationIndex();
 	commitStack();
 	commitLocals();

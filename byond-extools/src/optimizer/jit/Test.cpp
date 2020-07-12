@@ -321,8 +321,8 @@ static DMListIterator* pop_iterator(ProcStackFrame* psf)
 {
 	DMListIterator* current = psf->current_iterator;
 	psf->current_iterator = current->previous;
-	delete[] current->elements;
-	delete current;
+	//delete[] current->elements;
+	//delete current;
 	return psf->current_iterator;
 }
 
@@ -593,8 +593,6 @@ static bool Emit_Block(DMCompiler& dmc, ProcBlock& block, std::map<unsigned int,
 	return true;
 }
 
-static trvh JitEntryPoint(void* code_base, unsigned int args_len, Value* args, Value src, Value usr, JitContext* ctx);
-
 /*void OnResumed(ProcConstants* pc)
 {
 	JitEntryPoint(pc->jit_code_base, 0, nullptr, pc->src, pc->usr, (JitContext*)pc->jit_context);
@@ -618,7 +616,7 @@ static void* exit_proc = nullptr;
 static SuspendPtr oSuspend;
 static ProcConstants* hSuspend(ExecutionContext* ctx, int unknown)
 {
-	int proc_id = ctx->constants->proc_id;
+	const int proc_id = ctx->constants->proc_id;
 	if (proc_id == Core::get_proc("/proc/jit_wrapper").id)
 	{
 		JitContext* jc = (JitContext*)ctx->constants->args[1].value;
@@ -630,12 +628,16 @@ static ProcConstants* hSuspend(ExecutionContext* ctx, int unknown)
 static void hCreateContext(ProcConstants* pc, ExecutionContext* new_context)
 {
 	oCreateContext(pc, new_context);
+	//new_context = Core::get_context();
 	if (pc->proc_id == Core::get_proc("/proc/jit_wrapper").id)
 	{
+		// This flag might actually be something like "suspendable", doubt it though
 		new_context->paused = 1;
-		static Value fakeargs[2] = { Value::Null(), Value::Null() };
 		((JitContext*)pc->args[1].value)->suspended = false;
-		JitEntryPoint((void*)pc->args[0].value, 2, fakeargs, Value::Null(), Value::Null(), (JitContext*)pc->args[1].value);
+		// The first 2 arguments are base and context, we pass the pointer to the third arg onwards.
+		Value retval = JitEntryPoint((void*)pc->args[0].value, std::max(0, pc->arg_count - 2), pc->args + 2, pc->src, pc->usr, (JitContext*)pc->args[1].value);
+		new_context->stack_size++;
+		new_context->stack[0] = retval;
 	}
 }
 
@@ -665,25 +667,36 @@ trvh JitEntryPoint(void* code_base, unsigned int args_len, Value* args, Value sr
 	switch (res)
 	{
 	case ProcResult::Success:
+	{
 		if (ctx->Count() != 1)
 		{
 			__debugbreak();
-			return Value::Null();
+			break;
 		}
-		return ctx->stack[0];
+		Value return_value = ctx->stack[0];
+		if (!ctx->stack_frame)
+		{
+			// We've returned from the only proc in this context's stack, so it is no longer needed.
+			delete ctx;
+		}
+		return return_value;
 		break;
+	}
 	case ProcResult::Yielded:
+	{
+		//Value dot = *ctx->stack_top--;
 		// No need to do anything here, the JitContext is already marked as suspended
 		if (!ctx->suspended)
 		{
 			// Let's check though, just to make sure
 			__debugbreak();
-			return Value::Null();
 		}
-
-		return Value::Null();
+		return Value(5.0f);
 		break;
+	}
 	case ProcResult::Sleeping:
+	{
+		//Value dot = *ctx->stack_top--;
 		Value sleep_time = *ctx->stack_top--;
 
 		// We are inside of a DM proc wrapper. It will be suspended by this call,
@@ -691,11 +704,10 @@ trvh JitEntryPoint(void* code_base, unsigned int args_len, Value* args, Value sr
 		ProcConstants* suspended = Suspend(Core::get_context(), 0);
 		suspended->time_to_resume = static_cast<int>(sleep_time.valuef / Value::World().get("tick_lag").valuef);
 		StartTiming(suspended);
-		return Value::Null();
+		return Value(7.0f);
 		break;
 	}
-
-	// Shouldn't be here
+	}
 	__debugbreak();
 	return Value::Null();
 }
@@ -759,14 +771,6 @@ void* compile_one(Core::Proc& proc)
 	return jitted_procs[proc.name]; //todo
 }
 
-trvh invoke_jitted_proc(void* code_base, unsigned int n_args, Value* args, Value src)
-{
-	JitArguments* ja = new JitArguments();
-	ja->jc = new JitContext();
-	ja->code_base = code_base;
-	return JitEntryPoint(code_base, n_args, args, src, Value::Null(), nullptr);
-}
-
 EXPORT const char* ::jit_test(int n_args, const char** args)
 {
 	if (!Core::initialize())
@@ -777,6 +781,6 @@ EXPORT const char* ::jit_test(int n_args, const char** args)
 	hook_resumption();
 	//compile({&Core::get_proc("/proc/jit_test_compiled_proc"), &Core::get_proc("/proc/recursleep")});
 	Core::get_proc("/proc/jit_test_compiled_proc").jit();
-	Core::get_proc("/proc/jit_wrapper").set_bytecode({ 0, 0, 0 });
+	Core::get_proc("/proc/jit_wrapper").set_bytecode({ Bytecode::RET, Bytecode::RET, Bytecode::RET });
 	return Core::SUCCESS;
 }
