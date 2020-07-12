@@ -471,7 +471,6 @@ void DMCompiler::doReturn()
 	if (_currentBlock == nullptr)
 		__debugbreak();
 
-
 	commitStack();
 	commitLocals();
 

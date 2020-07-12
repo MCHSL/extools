@@ -634,14 +634,33 @@ static void hCreateContext(ProcConstants* pc, ExecutionContext* new_context)
 		// This flag might actually be something like "suspendable", doubt it though
 		new_context->paused = 1;
 		JitContext* jctx = (JitContext*)pc->args[1].value;
+		if (!jctx->suspended)
+		{
+			// The first 2 arguments are base and context, we pass the pointer to the third arg onwards.
+			Value retval = JitEntryPoint((void*)pc->args[0].value, std::max(0, pc->arg_count - 2), pc->args + 2, pc->src, pc->usr, (JitContext*)pc->args[1].value);
+			new_context = pc->context;
+			new_context->stack_size++;
+			new_context->stack[new_context->stack_size - 1] = retval;
+		}
+	}
+}
+
+static ExecutionContext* just_before_execution_hook()
+{
+	ExecutionContext* dmctx = Core::get_context();
+	ProcConstants* pc = dmctx->constants;
+	if (pc->proc_id == Core::get_proc("/proc/jit_wrapper").id)
+	{
+		// This flag might actually be something like "suspendable", doubt it though
+		dmctx->paused = 1;
+		JitContext* jctx = (JitContext*)pc->args[1].value;
 		jctx->suspended = false;
 		// The first 2 arguments are base and context, we pass the pointer to the third arg onwards.
 		Value retval = JitEntryPoint((void*)pc->args[0].value, std::max(0, pc->arg_count - 2), pc->args + 2, pc->src, pc->usr, (JitContext*)pc->args[1].value);
-		new_context = pc->context;
-		Core::Alert(std::to_string(retval.valuef));
-		new_context->stack_size++;
-		new_context->stack[0] = retval;
+		dmctx->stack_size++;
+		dmctx->stack[dmctx->stack_size - 1] = retval;
 	}
+	return dmctx;
 }
 
 static void hook_resumption()
@@ -655,6 +674,12 @@ static void hook_resumption()
 	oCreateContext = Core::install_hook(CreateContext, hCreateContext);
 	oSuspend = Core::install_hook(Suspend, hSuspend);
 	exit_proc = Pocket::Sigscan::FindPattern("byondcore.dll", "A1 ?? ?? ?? ?? 83 3D ?? ?? ?? ?? ?? C7 45 ?? ?? ?? ?? ?? 74 1F 8B 00 FF 30 E8 ?? ?? ?? ?? FF 30 E8 ?? ?? ?? ?? FF 30 68 ?? ?? ?? ?? E8 ?? ?? ?? ?? 83 C4 10 8B");
+
+	char* remember_to_return_context = (char*)Pocket::Sigscan::FindPattern("byondcore.dll", "A1 ?? ?? ?? ?? 83 C4 04 8B ?? ?? ?? ?? ?? C6 40 6A 00 85 C9 74 0C 49 89 ?? ?? ?? ?? ?? E9 ?? ?? ?? ?? 80 3D ?? ?? ?? ?? ?? 74 3F");
+	VirtualProtect(remember_to_return_context, 5, PAGE_READWRITE, &old_prot);
+	remember_to_return_context[0] = 0xE8; //CALL
+	*((int*)(remember_to_return_context + 1)) = ((int)&just_before_execution_hook - (int)remember_to_return_context - 5);
+	VirtualProtect(remember_to_return_context, 5, old_prot, &old_prot);
 }
 
 trvh JitEntryPoint(void* code_base, unsigned int args_len, Value* args, Value src, Value usr, JitContext* ctx)
@@ -666,7 +691,6 @@ trvh JitEntryPoint(void* code_base, unsigned int args_len, Value* args, Value sr
 	Proc code = static_cast<Proc>(code_base);
 
 	ProcResult res = code(ctx, args_len, args, src, usr);
-	Core::Alert((int)res);
 
 	switch (res)
 	{
@@ -701,7 +725,6 @@ trvh JitEntryPoint(void* code_base, unsigned int args_len, Value* args, Value sr
 	case ProcResult::Sleeping:
 	{
 		Value dot = *--ctx->stack_top;
-		Core::Alert(std::to_string(dot.valuef));
 		Value sleep_time = *--ctx->stack_top;
 		// We are inside of a DM proc wrapper. It will be suspended by this call,
 		// and the suspension will propagate to parent jit calls.
