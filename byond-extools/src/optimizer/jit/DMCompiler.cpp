@@ -21,7 +21,7 @@ ProcNode* DMCompiler::addProc(uint32_t locals_count, uint32_t args_count)
 {
 	if (_currentProc != nullptr)
 		__debugbreak();
-	addFunc(FuncSignatureT<uint32_t, JitContext*, uint32_t, Value*, uint32_t, uint32_t, uint32_t, uint32_t, ExecutionContext*>(CallConv::kIdCDecl));
+	addFunc(FuncSignatureT<uint32_t, JitContext*, uint32_t, Value*, uint32_t, uint32_t, uint32_t, uint32_t>(CallConv::kIdCDecl));
 	_newNodeT<ProcNode>(&_currentProc, locals_count, args_count);
 	addNode(_currentProc);
 
@@ -60,7 +60,7 @@ ProcNode* DMCompiler::addProc(uint32_t locals_count, uint32_t args_count)
 	x86::Gp new_frame = getStackFramePtr();
 	mov(x86::dword_ptr(new_frame, offsetof(ProcStackFrame, previous)), previous);
 
-	static_assert(sizeof(ProcStackFrame) == sizeof(Value) * 6);
+	static_assert(sizeof(ProcStackFrame) == sizeof(Value) * 5);
 	//mov(x86::ptr(stack_top, offsetof(Value, type), sizeof(uint32_t)), old_stack_frame);
 	//mov(x86::ptr(stack_top, offsetof(Value, value), sizeof(uint32_t)), old_stack_frame);
 	add(x86::dword_ptr(_currentProc->_jit_context, offsetof(JitContext, stack_top)), sizeof(ProcStackFrame));
@@ -84,17 +84,17 @@ ProcNode* DMCompiler::addProc(uint32_t locals_count, uint32_t args_count)
 	x86::Gp copy_thingy = newUInt32("src type");
 	x86::Gp copy_thingy2 = newUInt32("src value");
 	setArg(3, copy_thingy);
-	mov(x86::ptr(getStackFramePtr(), offsetof(ProcStackFrame, src) + offsetof(Value, type)), copy_thingy);
+	mov(x86::ptr(new_frame, offsetof(ProcStackFrame, src) + offsetof(Value, type)), copy_thingy);
 	setArg(4, copy_thingy2);
-	mov(x86::ptr(getStackFramePtr(), offsetof(ProcStackFrame, src) + offsetof(Value, value)), copy_thingy2);
+	mov(x86::ptr(new_frame, offsetof(ProcStackFrame, src) + offsetof(Value, value)), copy_thingy2);
 
 	// Set the current iterator to nullptr
-	mov(x86::ptr(getStackFramePtr(), offsetof(ProcStackFrame, current_iterator), sizeof(uint32_t)), Imm(0));
+	mov(x86::ptr(new_frame, offsetof(ProcStackFrame, current_iterator), sizeof(uint32_t)), Imm(0));
 
 	// Set parent execution context
-	x86::Gp parent_ctx_ptr = newUIntPtr("parent context pointer");
+	/*x86::Gp parent_ctx_ptr = newUIntPtr("parent context pointer");
 	setArg(7, parent_ctx_ptr);
-	mov(x86::dword_ptr(getStackFramePtr(), offsetof(ProcStackFrame, caller_execution_context)), parent_ctx_ptr);
+	mov(x86::dword_ptr(getStackFramePtr(), offsetof(ProcStackFrame, caller_execution_context)), parent_ctx_ptr);*/
 
 	// Default locals to null
 	// Casting Imms to Gp is kinda gross but it works
@@ -118,7 +118,6 @@ void DMCompiler::endProc()
 	addNode(_currentProc->_end);
 	endFunc();
 	bind(_currentProc->_continuationPointTable);
-	//embedLabelDelta(_currentProc->_prolog, _currentProc->_continuationPointTable, 4);
 	for (Label l : _currentProc->_continuationPoints)
 	{
 		embedLabelDelta(l, _currentProc->_continuationPointTable, 4);
@@ -154,7 +153,7 @@ BlockNode* DMCompiler::addBlock(Label& label, uint32_t continuation_index)
 	setInlineComment("Block Start");
 	bind(_currentBlock->_label);
 	addNode(_currentBlock);
-	mov(_currentBlock->_stack_top, x86::dword_ptr(_currentProc->_jit_context, offsetof(JitContext, stack_top)));
+	//mov(_currentBlock->_stack_top, x86::dword_ptr(_currentProc->_jit_context, offsetof(JitContext, stack_top)));
 	cmp(x86::byte_ptr(_currentProc->_jit_context, offsetof(JitContext, suspended)), imm(1));
 	Label not_suspended = newLabel();
 	jne(not_suspended);
@@ -342,7 +341,9 @@ void DMCompiler::commitStack()
 
 	setInlineComment("commitStack");
 
-	x86::Gp stack_top = block._stack_top;
+	x86::Gp stack_top = newUIntPtr("stack_top");
+	mov(stack_top, x86::dword_ptr(_currentProc->_jit_context, offsetof(JitContext, stack_top)));
+	add(stack_top, block._stack_top_offset);
 
 	size_t i = 0;
 	while(!block._stack.empty())
@@ -438,8 +439,8 @@ void DMCompiler::jump_zero(Label label)
 	Variable var = popStack();
 
 	// unnecessary
-	commitStack();
-	commitLocals();
+	//commitStack();
+	//commitLocals();
 
 	if (var.Value.isImm())
 	{
@@ -480,14 +481,19 @@ x86::Gp DMCompiler::getCurrentIterator()
 {
 	if (_currentProc == nullptr)
 		__debugbreak();
-	return _currentProc->_current_iterator;
+	x86::Gp current_iterator = newUIntPtr("current_iterator");
+	x86::Gp frame = getStackFramePtr();
+	mov(current_iterator, x86::dword_ptr(frame, offsetof(ProcStackFrame, current_iterator)));
+	return current_iterator;
 }
 
 void DMCompiler::setCurrentIterator(Operand iter)
 {
 	if (_currentProc == nullptr)
 		__debugbreak();
-	mov(_currentProc->_current_iterator, iter.as<x86::Gp>());
+
+	x86::Gp frame = getStackFramePtr();
+	mov(x86::dword_ptr(frame, offsetof(ProcStackFrame, current_iterator)), iter.as<x86::Gp>());
 }
 
 void delete_iterator(DMListIterator* iter)
@@ -510,6 +516,12 @@ void DMCompiler::doReturn()
 	ProcNode& proc = *_currentProc;
 	BlockNode& block = *_currentBlock;
 
+	// Destroy the current iterator if there is one.
+	auto iterator = getCurrentIterator();
+
+	auto del_iter = call((uint32_t)delete_iterator, FuncSignatureT<void, DMListIterator*>());
+	del_iter->setArg(0, iterator);
+
 	// The only thing our proc should leave on the stack is the return value
 	auto retval = popStack();
 	
@@ -530,14 +542,15 @@ void DMCompiler::doReturn()
 
 	add(stack_top, sizeof(Value));
 	mov(x86::dword_ptr(proc._jit_context, offsetof(JitContext, stack_top)), stack_top);
-
-	// Destroy the current iterator if there is one.
-	auto del_iter = call((uint32_t)delete_iterator, FuncSignatureT<void, DMListIterator*>());
-	del_iter->setArg(0, getCurrentIterator());
 	
 	// return Procresult::Success
+	_return(ProcResult::Success);
+}
+
+void DMCompiler::_return(ProcResult code)
+{
 	x86::Gp retcode = newUInt32("retcode");
-	mov(retcode, Imm(static_cast<uint32_t>(ProcResult::Success)));
+	mov(retcode, Imm(static_cast<uint32_t>(code)));
 	ret(retcode);
 }
 
@@ -546,9 +559,17 @@ void DMCompiler::doYield()
 	prepareNextContinuationIndex();
 	commitStack();
 	commitLocals();
-	x86::Gp retcode = newUInt32("return code");
-	mov(retcode, Imm(static_cast<uint32_t>(ProcResult::Yielded)));
-	ret(retcode);
+	_return(ProcResult::Yielded);
 	addContinuationPoint();
 }
+
+void DMCompiler::doSleep()
+{
+	prepareNextContinuationIndex();
+	commitStack();
+	commitLocals();
+	_return(ProcResult::Sleeping);
+	addContinuationPoint();
+}
+
 }

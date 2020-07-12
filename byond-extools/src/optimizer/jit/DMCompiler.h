@@ -2,6 +2,7 @@
 
 #include "../../core/core.h"
 #include "../../third_party/asmjit/asmjit.h"
+#include "JitContext.h"
 
 #include <stdint.h>
 #include <vector>
@@ -105,7 +106,9 @@ public:
 
 		setInlineComment("popStack (overpopped)");
 
-		auto stack_top = block._stack_top;
+		x86::Gp stack_top = newUIntPtr("stack_top");
+		mov(stack_top, x86::dword_ptr(_currentProc->_jit_context, offsetof(JitContext, stack_top)));
+		add(stack_top, block._stack_top_offset);
 
 		for (popped_count; popped_count < I && _currentBlock->_stack_top_offset - popped_count >= 0; popped_count++)
 		{
@@ -163,7 +166,12 @@ public:
 	// Returns the value at the top of the stack
 	void doReturn();
 
+	// Pauses execution until called again
 	void doYield();
+
+	// Pauses execution and asks the entry point to suspend for
+	// the time specified in the Value on top of the stack.
+	void doSleep();
 
 	unsigned int addContinuationPoint();
 	unsigned int prepareNextContinuationIndex();
@@ -171,6 +179,8 @@ public:
 private:
 	ProcNode* _currentProc;
 	BlockNode* _currentBlock;
+
+	void _return(ProcResult code);
 };
 
 
@@ -186,13 +196,12 @@ public:
 	{
 		DMCompiler& dmc = *static_cast<DMCompiler*>(cb);
 
-		_stack_top = dmc.newUIntPtr("block_stack_top");
+		//_stack_top = dmc.newUIntPtr("block_stack_top");
 		cb->_newNodeT<BlockEndNode>(&_end);
 		//_stack.init(&cb->_allocator);		
 	}
 
 	Label _label;
-	x86::Gp _stack_top;
 	int32_t _stack_top_offset;
 	ZoneVector<Variable> _stack;
 
@@ -223,7 +232,7 @@ public:
 		DMCompiler& dmc = *static_cast<DMCompiler*>(cb);
 
 		_jit_context = dmc.newUIntPtr("_jit_context");
-		_current_iterator = dmc.newUIntPtr("_current_iterator");
+		//_current_iterator = dmc.newUIntPtr("_current_iterator");
 		_entryPoint = dmc.newLabel();
 		_prolog = dmc.newLabel();
 		_continuationPointTable = dmc.newLabel();
@@ -247,7 +256,7 @@ public:
 			_args[i] = default_local;
 		}
 
-		dmc.xor_(_current_iterator, _current_iterator); // ensure iterator is a nullptr
+		//dmc.xor_(_current_iterator, _current_iterator); // ensure iterator is a nullptr
 
 		//_blocks.reset();
 		_continuationPoints.reset();
@@ -255,7 +264,7 @@ public:
 
 	x86::Gp _jit_context;
 	//x86::Gp _stack_frame;
-	x86::Gp _current_iterator;
+	//x86::Gp _current_iterator;
 
 	Label _entryPoint;
 	Label _prolog;

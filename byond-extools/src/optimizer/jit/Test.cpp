@@ -440,7 +440,7 @@ static void Emit_End(DMCompiler& dmc)
 
 static void Emit_Sleep(DMCompiler& dmc)
 {
-	dmc.doYield();
+	dmc.doSleep();
 }
 
 static bool Emit_Block(DMCompiler& dmc, ProcBlock& block, std::map<unsigned int, ProcBlock>& blocks)
@@ -627,7 +627,6 @@ static ProcConstants* hSuspend(ExecutionContext* ctx, int unknown)
 	{
 		JitContext* jc = (JitContext*)ctx->constants->args[1].value;
 		jc->suspended = true;
-		Core::Alert("Marking as suspended");
 	}
 	return oSuspend(ctx, unknown);
 }
@@ -657,19 +656,6 @@ static void hook_resumption()
 	exit_proc = Pocket::Sigscan::FindPattern("byondcore.dll", "A1 ?? ?? ?? ?? 83 3D ?? ?? ?? ?? ?? C7 45 ?? ?? ?? ?? ?? 74 1F 8B 00 FF 30 E8 ?? ?? ?? ?? FF 30 E8 ?? ?? ?? ?? FF 30 68 ?? ?? ?? ?? E8 ?? ?? ?? ?? 83 C4 10 8B");
 }
 
-static void schedule_jit_resumption(void* code_base, JitContext* jc, int deciseconds, Value usr, Value src)
-{
-	ProcConstants* fake_ass_sus = new ProcConstants();
-	fake_ass_sus->unknown1 = 0x00BF0015; //some set of flags that all suspended procs have
-	fake_ass_sus->time_to_resume = deciseconds / Value::World().get("tick_lag").valuef;
-	fake_ass_sus->proc_id = -1;
-	fake_ass_sus->jit_context = (void*)jc;
-	fake_ass_sus->jit_code_base = code_base;
-	fake_ass_sus->usr = usr;
-	fake_ass_sus->src = src;
-	AddSleeperToList(fake_ass_sus);
-}
-
 static trvh JitEntryPoint(void* code_base, unsigned int args_len, Value* args, Value src, Value usr, JitContext* ctx)
 {
 	if (!ctx)
@@ -678,7 +664,7 @@ static trvh JitEntryPoint(void* code_base, unsigned int args_len, Value* args, V
 	}
 	Proc code = static_cast<Proc>(code_base);
 
-	ProcResult res = code(ctx, args_len, args, src, usr, Core::get_context());
+	ProcResult res = code(ctx, args_len, args, src, usr);
 
 	switch (res)
 	{
@@ -689,11 +675,28 @@ static trvh JitEntryPoint(void* code_base, unsigned int args_len, Value* args, V
 			return Value::Null();
 		}
 		return ctx->stack[0];
-
+		break;
 	case ProcResult::Yielded:
-		//Value sleep_time = *ctx->stack_top--;
-		//schedule_jit_resumption(code_base, ctx, sleep_time.valuef, usr, src);
+		// No need to do anything here, the JitContext is already marked as suspended
+		if (!ctx->suspended)
+		{
+			// Let's check though, just to make sure
+			__debugbreak();
+			return Value::Null();
+		}
+
 		return Value::Null();
+		break;
+	case ProcResult::Sleeping:
+		Value sleep_time = *ctx->stack_top--;
+
+		// We are inside of a DM proc wrapper. It will be suspended by this call,
+		// and the suspension will propagate to parent jit calls.
+		ProcConstants* suspended = Suspend(Core::get_context(), 0);
+		suspended->time_to_resume = static_cast<int>(sleep_time.valuef / Value::World().get("tick_lag").valuef);
+		StartTiming(suspended);
+		return Value::Null();
+		break;
 	}
 
 	// Shouldn't be here
@@ -764,5 +767,6 @@ EXPORT const char* ::jit_test(int n_args, const char** args)
 	hook_resumption();
 	compile({&Core::get_proc("/proc/jit_test_compiled_proc")});
 	Core::get_proc("/proc/jit_test_compiled_proc").hook(invoke_hook);
+	Core::get_proc("/proc/jit_wrapper").set_bytecode({ 0, 0, 0 });
 	return Core::SUCCESS;
 }

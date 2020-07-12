@@ -1,3 +1,4 @@
+#pragma once
 #include "../../core/core.h"
 
 namespace dmjit
@@ -7,14 +8,17 @@ class JitContext;
 
 enum struct ProcResult : uint32_t
 {
-	// The proc finished. The return value is at the top of the stack (and should be the only value there)
+	// The proc finished. The return value is at the top of the stack (and should be the only value there).
 	Success,
 
-	// The proc is sleeping or something - the passed in JitContext is now invalid
+	// The proc is suspended, but is not the one that initiated the sleep.
 	Yielded,
+
+	// The proc initiated a sleep. Dream on.
+	Sleeping,
 };
 
-typedef ProcResult (*Proc)(JitContext* ctx, unsigned int n_args, Value* args, trvh src, trvh usr, ExecutionContext* parent);
+typedef ProcResult (*Proc)(JitContext* ctx, unsigned int n_args, Value* args, trvh src, trvh usr);
 
 struct DMListIterator
 {
@@ -27,8 +31,6 @@ struct DMListIterator
 // This is pushed on the stack at the beginning of every proc call
 struct ProcStackFrame
 {
-	uint32_t fake_proc_constants;
-	ExecutionContext* caller_execution_context;
 	// The ProcFrame of the function that called us. We need to restore this when we return.
 	// If this is null it means we were directly called from DM and need to ret to our entrypoint
 	ProcStackFrame* previous;
@@ -38,7 +40,8 @@ struct ProcStackFrame
 
 	// The stack of iterators implemented as a linked list. Points to the iterator currently being iterated.
 	DMListIterator* current_iterator;
-	uint32_t padding2;
+
+	uint32_t padding;
 
 	Value src;
 	Value usr;
