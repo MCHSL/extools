@@ -77,17 +77,18 @@ ProcNode* DMCompiler::addProc(uint32_t locals_count, uint32_t args_count)
 
 	x86::Gp args_ptr = newUInt32("args_ptr");
 	x86::Gp arg_count = newUInt32("arg_count");
+	x86::Gp frame = getStackFramePtr();
 	setArg(1, arg_count);
 	setArg(2, args_ptr);
+	x86::Gp copier = newUInt32("arg type");
 	//todo: have the loop read the actual arg count and not the procnode one
 	for (uint32_t i = 0; i < args_count; i++) // Copy args to stack frame
 	{
 		setInlineComment((std::string("mov arg ") + std::to_string(i)).c_str());
-		x86::Gp type = newUInt32("type");
-		x86::Gp value = newUInt32("value");
-		mov(type, x86::dword_ptr(args_ptr, i * sizeof(Value) + offsetof(Value, type)));
-		mov(value, x86::dword_ptr(args_ptr, i * sizeof(Value) + offsetof(Value, value)));
-		_currentProc->_args[i] = { Local::CacheState::Modified, Variable{type, value} };
+		mov(copier, x86::dword_ptr(args_ptr, i * sizeof(Value) + offsetof(Value, type)));
+		mov(x86::dword_ptr(frame, sizeof(ProcStackFrame) + i * sizeof(Value) + offsetof(Value, type)), copier);
+		mov(copier, x86::dword_ptr(args_ptr, i * sizeof(Value) + offsetof(Value, value)));
+		mov(x86::dword_ptr(frame, sizeof(ProcStackFrame) + i * sizeof(Value) + offsetof(Value, value)), copier);
 	}
 
 	// Set src type and value
@@ -113,6 +114,8 @@ ProcNode* DMCompiler::addProc(uint32_t locals_count, uint32_t args_count)
 	{
 		setLocal(i, null);
 	}
+
+	commitLocals();
 
 	// ..continues into first block
 	return _currentProc;
@@ -226,31 +229,13 @@ Variable DMCompiler::getArg(uint32_t index)
 	if (index >= proc._args_count)
 		__debugbreak();
 
-	Local& arg = proc._args[index];
-
-	switch (arg.State)
-	{
-	case Local::CacheState::Ok:
-	case Local::CacheState::Modified:
-		return arg.Variable;
-	case Local::CacheState::Stale:
-		break;
-	default:
-		break;
-	}
-
 	auto stack_frame = getStackFramePtr();
-
-	// Locals live after our stack frame
-	auto type = newUInt32();
-	auto value = newUInt32();
+	auto type = newUInt32("arg type");
+	auto value = newUInt32("arg value");
 	mov(type, x86::ptr(stack_frame, sizeof(ProcStackFrame) + sizeof(Value) * index, sizeof(uint32_t)));
 	mov(value, x86::ptr(stack_frame, sizeof(ProcStackFrame) + sizeof(Value) * index + offsetof(Value, value), sizeof(uint32_t)));
 
-	// Update the cache
-	arg = { Local::CacheState::Ok, {type, value} };
-
-	return arg.Variable;
+	return { type, value };
 }
 
 void DMCompiler::setLocal(uint32_t index, Variable& variable)
@@ -390,23 +375,8 @@ void DMCompiler::commitLocals()
 		case Local::CacheState::Ok:
 			break;
 		case Local::CacheState::Modified:
-			if (local.Variable.Type.isImm())
-			{
-				mov(x86::ptr(stack_frame, sizeof(ProcStackFrame) + sizeof(Value) * proc._args_count + i * sizeof(Value) + offsetof(Value, type), sizeof(uint32_t)), local.Variable.Type.as<Imm>());
-			}
-			else
-			{
-				mov(x86::ptr(stack_frame, sizeof(ProcStackFrame) + sizeof(Value) * proc._args_count +  i * sizeof(Value) + offsetof(Value, type), sizeof(uint32_t)), local.Variable.Type.as<x86::Gp>());
-			}
-
-			if (local.Variable.Value.isImm())
-			{
-				mov(x86::ptr(stack_frame, sizeof(ProcStackFrame) + sizeof(Value) * proc._args_count + i * sizeof(Value) + offsetof(Value, value), sizeof(uint32_t)), local.Variable.Value.as<Imm>());
-			}
-			else
-			{
-				mov(x86::ptr(stack_frame, sizeof(ProcStackFrame) + sizeof(Value) * proc._args_count + i * sizeof(Value) + offsetof(Value, value), sizeof(uint32_t)), local.Variable.Value.as<x86::Gp>());
-			}
+			mov(x86::ptr(stack_frame, sizeof(ProcStackFrame) + sizeof(Value) * proc._args_count +  i * sizeof(Value) + offsetof(Value, type), sizeof(uint32_t)), local.Variable.Type.as<x86::Gp>());
+			mov(x86::ptr(stack_frame, sizeof(ProcStackFrame) + sizeof(Value) * proc._args_count + i * sizeof(Value) + offsetof(Value, value), sizeof(uint32_t)), local.Variable.Value.as<x86::Gp>());
 
 			// i can't decide if this is valid
 			//local.State = Local::CacheState::Ok;
