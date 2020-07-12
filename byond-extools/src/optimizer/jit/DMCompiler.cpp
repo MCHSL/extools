@@ -279,8 +279,8 @@ void DMCompiler::setDot(Variable& variable)
 {
 	auto dot = newUInt32("dot");
 	lea(dot, x86::ptr(getStackFramePtr(), offsetof(ProcStackFrame, dot)));
-	mov(x86::ptr(dot, offsetof(Value, type), sizeof(uint32_t)), variable.Type.as<x86::Gp>());
-	mov(x86::ptr(dot, offsetof(Value, value), sizeof(uint32_t)), variable.Value.as<x86::Gp>());
+	mov(x86::dword_ptr(dot, offsetof(Value, type)), variable.Type.as<x86::Gp>());
+	mov(x86::dword_ptr(dot, offsetof(Value, value)), variable.Value.as<x86::Gp>());
 }
 
 void DMCompiler::pushStackRaw(Variable& variable)
@@ -338,22 +338,20 @@ void DMCompiler::commitStack()
 
 	x86::Gp stack_top = newUIntPtr("stack_top");
 	mov(stack_top, x86::dword_ptr(_currentProc->_jit_context, offsetof(JitContext, stack_top)));
-	sub(stack_top, block._stack_top_offset * sizeof(Value));
+	add(stack_top, block._stack_top_offset * sizeof(Value));
 
 	size_t i = 0;
 	while(!block._stack.empty())
 	{
 		Variable var = block._stack.pop();
 
-		mov(x86::ptr(stack_top,  -(i * sizeof(Value)) + offsetof(Value, type) + block._stack_top_offset * sizeof(Value), sizeof(uint32_t)), var.Type.as<x86::Gp>());
-		mov(x86::ptr(stack_top,  -(i * sizeof(Value)) + offsetof(Value, value) + block._stack_top_offset * sizeof(Value), sizeof(uint32_t)), var.Value.as<x86::Gp>());
+		mov(x86::dword_ptr(stack_top,  -(i * sizeof(Value)) + offsetof(Value, type) - sizeof(Value)), var.Type.as<x86::Gp>());
+		mov(x86::dword_ptr(stack_top,  -(i * sizeof(Value)) + offsetof(Value, value) - sizeof(Value)), var.Value.as<x86::Gp>());
 
 		i++;
 	}
-
-	add(x86::dword_ptr(_currentProc->_jit_context, offsetof(JitContext, stack_top)), block._stack_top_offset * sizeof(Value));
-
 	block._stack_top_offset = 0;
+	mov(x86::dword_ptr(_currentProc->_jit_context, offsetof(JitContext, stack_top)), stack_top);
 }
 
 void DMCompiler::commitLocals()
@@ -520,7 +518,7 @@ void DMCompiler::_return(ProcResult code)
 
 void DMCompiler::doYield()
 {
-	//pushStackRaw(getDot());
+	pushStackRaw(getDot());
 	prepareNextContinuationIndex();
 	commitStack();
 	commitLocals();
@@ -530,7 +528,7 @@ void DMCompiler::doYield()
 
 void DMCompiler::doSleep()
 {
-	//pushStackRaw(getDot());
+	pushStackRaw(getDot());
 	prepareNextContinuationIndex();
 	commitStack();
 	commitLocals();

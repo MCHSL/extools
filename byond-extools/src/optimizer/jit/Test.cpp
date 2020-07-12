@@ -619,7 +619,6 @@ static ProcConstants* hSuspend(ExecutionContext* ctx, int unknown)
 	const int proc_id = ctx->constants->proc_id;
 	if (proc_id == Core::get_proc("/proc/jit_wrapper").id)
 	{
-		Core::Alert("suspending");
 		JitContext* jc = (JitContext*)ctx->constants->args[1].value;
 		jc->suspended = true;
 	}
@@ -638,7 +637,8 @@ static void hCreateContext(ProcConstants* pc, ExecutionContext* new_context)
 		jctx->suspended = false;
 		// The first 2 arguments are base and context, we pass the pointer to the third arg onwards.
 		Value retval = JitEntryPoint((void*)pc->args[0].value, std::max(0, pc->arg_count - 2), pc->args + 2, pc->src, pc->usr, (JitContext*)pc->args[1].value);
-		//Core::Alert(std::to_string(retval.valuef));
+		new_context = pc->context;
+		Core::Alert(std::to_string(retval.valuef));
 		new_context->stack_size++;
 		new_context->stack[0] = retval;
 	}
@@ -683,33 +683,32 @@ trvh JitEntryPoint(void* code_base, unsigned int args_len, Value* args, Value sr
 			// We've returned from the only proc in this context's stack, so it is no longer needed.
 			delete ctx;
 		}
-		Core::Alert(std::to_string(return_value.valuef));
 		return return_value;
 		break;
 	}
 	case ProcResult::Yielded:
 	{
-		//Value dot = *ctx->stack_top--;
+		Value dot = *--ctx->stack_top;
 		// No need to do anything here, the JitContext is already marked as suspended
 		if (!ctx->suspended)
 		{
 			// Let's check though, just to make sure
 			__debugbreak();
 		}
-		return Value(69.0f);
+		return dot;
 		break;
 	}
 	case ProcResult::Sleeping:
 	{
-		//Value dot = *ctx->stack_top--;
-		Value sleep_time = *ctx->stack_top--;
-		Core::Alert(std::to_string(sleep_time));
+		Value dot = *--ctx->stack_top;
+		Core::Alert(std::to_string(dot.valuef));
+		Value sleep_time = *--ctx->stack_top;
 		// We are inside of a DM proc wrapper. It will be suspended by this call,
 		// and the suspension will propagate to parent jit calls.
 		ProcConstants* suspended = Suspend(Core::get_context(), 0);
 		suspended->time_to_resume = static_cast<int>(sleep_time.valuef / Value::World().get("tick_lag").valuef);
 		StartTiming(suspended);
-		return Value(420.0f);
+		return dot;
 		break;
 	}
 	}

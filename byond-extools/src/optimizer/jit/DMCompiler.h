@@ -108,7 +108,7 @@ public:
 
 		x86::Gp stack_top = newUIntPtr("stack_top");
 		mov(stack_top, x86::dword_ptr(_currentProc->_jit_context, offsetof(JitContext, stack_top)));
-		add(stack_top, block._stack_top_offset);
+		//add(stack_top, block._stack_top_offset * sizeof(Value));
 
 		for (popped_count; popped_count < I && _currentBlock->_stack_top_offset - popped_count >= 0; popped_count++)
 		{
