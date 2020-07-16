@@ -99,17 +99,17 @@ struct Value
 		return { 0x2A, rand() % 1 };
 	} */
 
-	operator trvh()
+	operator trvh() const
 	{
 		return trvh{ type, value };
 	}
 
-	bool operator==(const Value& rhs)
+	bool operator==(const Value& rhs) const
 	{
 		return value == rhs.value && type == rhs.type;
 	}
 
-	bool operator!=(const Value& rhs)
+	bool operator!=(const Value& rhs) const
 	{
 		return !(*this == rhs);
 	}
@@ -321,7 +321,7 @@ struct ProcConstants
 	};
 	char unknown6[0x54];
 	void* jit_code_base;
-	int time_to_resume;
+	uint32_t time_to_resume;
 };
 
 struct ExecutionContext

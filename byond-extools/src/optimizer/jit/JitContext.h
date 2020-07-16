@@ -59,7 +59,7 @@ static_assert(sizeof(ProcStackFrame) % sizeof(Value) == 0);
 
 struct JitContext
 {
-	static const size_t DefaultSlotAllocation = 16;
+	static const size_t DefaultSlotAllocation = 24;
 
 	JitContext()
 		: stack(new Value[DefaultSlotAllocation])
@@ -119,6 +119,11 @@ struct JitContext
 	size_t Count()
 	{
 		return stack_top - stack;
+	}
+
+	size_t CountFrame()
+	{
+		return ((int)stack_top - (int)stack_frame) / sizeof(Value);
 	}
 
 	// Makes sure at least this many free slots are available

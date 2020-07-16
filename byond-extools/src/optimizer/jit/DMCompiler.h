@@ -61,24 +61,26 @@ public:
 	DMCompiler(CodeHolder& holder);
 
 public:
-	ProcNode* addProc(uint32_t locals_count, uint32_t args_count);
+	ProcNode* addProc(uint32_t locals_count, uint32_t args_count, bool zzz);
 	void endProc();
 
 	BlockNode* addBlock(Label& label, uint32_t continuation_index = -1);
 	void endBlock();
 
 	Variable getLocal(uint32_t index);
-	void setLocal(uint32_t index, Variable& variable);
+	void setLocal(uint32_t index, const Variable& variable);
 
 	Variable getArg(uint32_t index);
 
 	Variable getFrameEmbeddedValue(uint32_t offset);
 
+	x86::Gp getJitContext();
+
 	Variable getSrc();
 	Variable getUsr();
 
 	Variable getDot();
-	void setDot(Variable& variable);
+	void setDot(const Variable& variable);
 
 	template<std::size_t I>
 	std::array<Variable, I> popStack()
@@ -110,7 +112,7 @@ public:
 		mov(stack_top, x86::dword_ptr(_currentProc->_jit_context, offsetof(JitContext, stack_top)));
 		//add(stack_top, block._stack_top_offset * sizeof(Value));
 
-		for (popped_count; popped_count < I && _currentBlock->_stack_top_offset - popped_count >= 0; popped_count++)
+		for (popped_count; popped_count < I; popped_count++)
 		{
 			auto type = newUInt32("pop_type");
 			auto value = newUInt32("pop_value");
@@ -134,7 +136,7 @@ public:
 	}
 
 
-	void pushStackRaw(Variable& variable);
+	void pushStackRaw(const Variable& variable);
 	void clearStack();
 
 	// Calling these creates a new Variable on the stack and returns an instance of it.
@@ -223,11 +225,13 @@ class ProcNode
 	: public BaseNode
 {
 public:
-	ProcNode(BaseBuilder* cb, uint32_t locals_count, uint32_t args_count)
+	ProcNode(BaseBuilder* cb, uint32_t locals_count, uint32_t args_count, bool needs_sleep)
 		: BaseNode(cb, static_cast<uint32_t>(NodeTypes::kNodeProc), kFlagHasNoEffect)
 		, _locals_count(locals_count)
 		, _args_count(args_count)
 		, _end(nullptr)
+		, _locals(nullptr)
+		, needs_sleep(needs_sleep)
 	{
 		DMCompiler& dmc = *static_cast<DMCompiler*>(cb);
 
@@ -239,31 +243,35 @@ public:
 		dmc._newNodeT<ProcEndNode>(&_end);
 
 		// Allocate space for all of our locals
-		_locals = dmc._allocator.allocT<Local>(locals_count * sizeof(Local));
-
-		// Init the locals
-		Local default_local {Local::CacheState::Modified, {Imm(DataType::NULL_D).as<x86::Gp>(), Imm(0).as<x86::Gp>()}};
-		for (uint32_t i = 0; i < locals_count; i++)
+		if (locals_count > 0)
 		{
-			_locals[i] = default_local;
+			_locals = dmc._allocator.allocT<Local>(locals_count * sizeof(Local));
+
+			// Init the locals
+			Local default_local{ Local::CacheState::Modified, {Imm(DataType::NULL_D).as<x86::Gp>(), Imm(0).as<x86::Gp>()} };
+			for (uint32_t i = 0; i < locals_count; i++)
+			{
+				_locals[i] = default_local;
+			}
 		}
 
+
 		// Do the same for arguments
-		_args = dmc._allocator.allocT<Local>(args_count * sizeof(Local));
+		/*_args = dmc._allocator.allocT<Local>(args_count * sizeof(Local));
 		for (uint32_t i = 0; i < args_count; i++)
 		{
 			_args[i] = default_local;
-		}
+		}*/
 
-		//dmc.xor_(_current_iterator, _current_iterator); // ensure iterator is a nullptr
 
-		//_blocks.reset();
 		_continuationPoints.reset();
 	}
 
 	x86::Gp _jit_context;
 	//x86::Gp _stack_frame;
 	//x86::Gp _current_iterator;
+
+	bool needs_sleep;
 
 	Label _entryPoint;
 	Label _prolog;
@@ -274,7 +282,7 @@ public:
 	Local* _locals;
 	uint32_t _locals_count;
 
-	Local* _args;
+	//Local* _args;
 	uint32_t _args_count;
 
 	// The very very end of our proc. Nothing of this proc exists after this node.

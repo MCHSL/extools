@@ -3,6 +3,7 @@
 #include <chrono>
 #include <fstream>
 #include "../third_party/json.hpp"
+#include "../third_party/robin_hood.h"
 #include <stack>
 #include "../extended_profiling/extended_profiling.h"
 #include <mutex>
@@ -15,47 +16,36 @@ StartTimingPtr oStartTiming;
 
 TopicFilter current_topic_filter = nullptr;
 
-std::unordered_map<void*, std::unique_ptr<subhook::Hook>> hooks;
+robin_hood::unordered_map<void*, std::unique_ptr<subhook::Hook>> hooks;
 
 //ExecutionContext* last_suspended_ec;
 
 std::vector<QueuedCall> queued_calls;
 bool calling_queue = false;
 
+struct FreeContext
+{
+
+};
+
 trvh REGPARM3 hCallGlobalProc(char usr_type, int usr_value, int proc_type, unsigned int proc_id, int const_0, DataType src_type, int src_value, Value *argList, unsigned char argListLen, int const_0_2, int const_0_3)
 {
-	//if(proc_id < Core::codecov_executed_procs.size())
-	//	Core::codecov_executed_procs[proc_id] = true;
-	/*if (!queued_calls.empty() && !calling_queue)
-	{
-		calling_queue = true;
-		while(!queued_calls.empty())
-		{
-			auto qc = queued_calls.back();
-			queued_calls.pop_back();
-			if (qc.src)
-			{
-				qc.src.invoke(qc.proc.simple_name, qc.args, qc.usr);
-			}
-			else
-			{
-				qc.proc.call(qc.args, qc.usr);
-			}
-		}
-		calling_queue = false;
-	}*/
-
 	auto jit_hooks_it = jit_hooks.find((unsigned short)proc_id);
 	if (jit_hooks_it != jit_hooks.end())
 	{
 		// The first two Values passed as args to the jit wrapper contain the function code and the jit context.
 		// This is necessary to have the ability to suspend and resume.
 		// The code and context need to be extracted before passing the arguments to JitEntryPoint.
-		Value* args_with_jit_stuff = new Value[argListLen + 2];
+
+		/*static*/ Value* jit_args = new Value[argListLen + 2];
+		/*static*/ dmjit::JitContext* gjc = new dmjit::JitContext();
+
+		//gjc->stack_top = gjc->stack;
+		Value* args_with_jit_stuff = jit_args;
 		args_with_jit_stuff[0].value = (int)jit_hooks_it->second;
-		args_with_jit_stuff[1].value = (int)new dmjit::JitContext();
+		args_with_jit_stuff[1].value = (int)gjc;
 		std::copy(argList, argList + argListLen, args_with_jit_stuff + 2);
-		auto result = CallGlobalProc(0, 0, 2, Core::get_proc("/proc/jit_wrapper").id, 0, DataType::NULL_D, 0, args_with_jit_stuff, argListLen + 2, 0, 0);
+		auto result = oCallGlobalProc(0, 0, 2, Core::get_proc("/proc/jit_wrapper").id, 0, DataType::NULL_D, 0, args_with_jit_stuff, argListLen + 2, 0, 0);
 		// We can delete this because BYOND creates a copy of the ProcConstants struct when it will need one later, and copies over the arguments.
 		delete[] args_with_jit_stuff;
 		for (int i = 0; i < argListLen; i++)
@@ -66,9 +56,10 @@ trvh REGPARM3 hCallGlobalProc(char usr_type, int usr_value, int proc_type, unsig
 	}
 
 	Core::extended_profiling_insanely_hacky_check_if_its_a_new_call_or_resume = proc_id;
-	if (proc_hooks.find((unsigned short)proc_id) != proc_hooks.end())
+	auto proc_hooks_it = proc_hooks.find((unsigned short)proc_id);
+	if (proc_hooks_it != proc_hooks.end())
 	{
-		trvh result = proc_hooks[proc_id](argListLen, argList, src_type ? Value(src_type, src_value) : static_cast<Value>(Value::Null()));
+		trvh result = proc_hooks_it->second(argListLen, argList, src_type ? Value(src_type, src_value) : static_cast<Value>(Value::Null()));
 		for (int i = 0; i < argListLen; i++)
 		{
 			DecRefCount(argList[i].type, argList[i].value);

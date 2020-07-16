@@ -14,23 +14,26 @@
 #include <set>
 #include <array>
 
+#define NOMINMAX
 #include <Windows.h>
-#undef max
+
 
 using namespace asmjit;
 using namespace dmjit;
 
 static std::ofstream jit_out("jit_out.txt");
-static std::ofstream byteout_out("bytecode.txt");
+static std::ofstream bytecode_out("bytecode.txt");
 static std::ofstream blocks_out("blocks.txt");
 static asmjit::JitRuntime rt;
 
-static robin_hood::unordered_map<std::string, void*> jitted_procs;
+
+
+static robin_hood::unordered_map<unsigned int, void*> jitted_procs;
 
 // How much to shift when using x86::ptr - [base + (offset << shift)]
-unsigned int shift(unsigned int n)
+unsigned int shift(const unsigned int n)
 {
-	return log2(n);
+	return static_cast<unsigned int>(log2(n));
 }
 
 class SimpleErrorHandler : public asmjit::ErrorHandler
@@ -47,7 +50,7 @@ public:
 
 struct ProcBlock
 {
-	ProcBlock(unsigned int o) : offset(o) {}
+	explicit ProcBlock(const unsigned int o) : offset(o) {}
 	ProcBlock() : offset(0) {}
 	std::vector<Instruction> contents;
 	unsigned int offset;
@@ -55,12 +58,13 @@ struct ProcBlock
 	//BlockNode* node;
 };
 
-static std::map<unsigned int, ProcBlock> split_into_blocks(Disassembly& dis, DMCompiler& dmc, size_t& locals_max_count, size_t& args_max_count)
+static std::map<unsigned int, ProcBlock> split_into_blocks(Disassembly& dis, DMCompiler& dmc, size_t& locals_max_count, size_t& args_max_count, bool& need_sleep)
 {
 	std::map<unsigned int, ProcBlock> blocks;
 	unsigned int current_block_offset = 0;
 	blocks[current_block_offset] = ProcBlock(0);
 	std::set<unsigned int> jump_targets;
+	need_sleep = false;
 	for (Instruction& i : dis)
 	{
 		if(i == Bytecode::SETVAR || i == Bytecode::GETVAR)
@@ -98,7 +102,7 @@ static std::map<unsigned int, ProcBlock> split_into_blocks(Disassembly& dis, DMC
 				else //we need to split a block in twain
 				{
 					ProcBlock& victim = (--blocks.lower_bound(target))->second; //get the block that contains the target offset
-					auto split_point = std::find_if(victim.contents.begin(), victim.contents.end(), [target](Instruction& instr) { return instr.offset() == target; }); //find the target instruction
+					const auto split_point = std::find_if(victim.contents.begin(), victim.contents.end(), [target](Instruction& instr) { return instr.offset() == target; }); //find the target instruction
 					ProcBlock new_block = ProcBlock(target);
 					new_block.contents = std::vector<Instruction>(split_point, victim.contents.end());
 					victim.contents.erase(split_point, victim.contents.end()); //split
@@ -110,6 +114,7 @@ static std::map<unsigned int, ProcBlock> split_into_blocks(Disassembly& dis, DMC
 		}
 		else if (i == Bytecode::SLEEP || i == Bytecode::CALLGLOB || i == Bytecode::CALL || i == Bytecode::CALLNR)
 		{
+			need_sleep = true;
 			current_block_offset = i.offset() + i.size();
 			blocks[current_block_offset] = ProcBlock(current_block_offset);
 		}
@@ -146,16 +151,6 @@ static void Emit_PushInteger(DMCompiler& dmc, float not_an_integer)
 	dmc.pushStack(Imm(DataType::NUMBER), Imm(EncodeFloat(not_an_integer)));
 }
 
-static void Emit_SetLocal(DMCompiler& dmc, int index)
-{
-	dmc.setLocal(index, dmc.popStack());
-}
-
-static void Emit_GetLocal(DMCompiler& dmc, int index)
-{
-	dmc.pushStackRaw(dmc.getLocal(index));
-}
-
 static void Emit_Pop(DMCompiler& dmc)
 {
 	dmc.popStack();
@@ -176,21 +171,30 @@ static unsigned int add_strings(unsigned int str1, unsigned int str2)
 	return Core::GetStringId(Core::GetStringFromId(str1) + Core::GetStringFromId(str2));
 }
 
-static void Emit_MathOp(DMCompiler& dmc, Bytecode op_type)
+static void Emit_GenericBinaryOp(DMCompiler& dmc, Bytecode op_type);
+
+static void Emit_BinaryOp(DMCompiler& dmc, Bytecode op_type, DataType optimize_for = DataType::NULL_D)
+{
+	Emit_GenericBinaryOp(dmc, op_type);
+}
+
+static void Emit_GenericBinaryOp(DMCompiler& dmc, Bytecode op_type)
 {
 	auto [lhs, rhs] = dmc.popStack<2>();
-	Variable result = dmc.pushStack(Imm(DataType::NUMBER), Imm(0));
+	const Variable result = dmc.pushStack(Imm(DataType::NUMBER), Imm(0));
 
-	auto done_adding_strings = dmc.newLabel();
+	const auto done_adding_strings = dmc.newLabel();
 	if (op_type == Bytecode::ADD)
 	{
-		auto reg = dmc.newUInt32();
+		const auto reg = dmc.newUInt32("lhs_type");
 		dmc.mov(reg, lhs.Type);
+
 		dmc.cmp(reg, Imm(DataType::STRING));
-		auto notstring = dmc.newLabel();
+		const auto notstring = dmc.newLabel();
 		dmc.jne(notstring);
 
-		auto call = dmc.call((uint32_t)add_strings, FuncSignatureT<unsigned int, unsigned int, unsigned int>());
+		InvokeNode* call;
+		dmc.invoke(&call, reinterpret_cast<uint32_t>(add_strings), FuncSignatureT<unsigned int, unsigned int, unsigned int>());
 		call->setArg(0, lhs.Value);
 		call->setArg(1, rhs.Value);
 		call->setRet(0, result.Value);
@@ -199,12 +203,12 @@ static void Emit_MathOp(DMCompiler& dmc, Bytecode op_type)
 		dmc.bind(notstring);
 	}
 
-	auto xmm0 = dmc.newXmm();
-	auto xmm1 = dmc.newXmm();
+	const auto xmm0 = dmc.newXmm("lhs");
+	const auto xmm1 = dmc.newXmm("rhs");
 
 	if (lhs.Value.isImm())
 	{
-		auto data = dmc.newFloatConst(ConstPool::kScopeLocal, DecodeFloat(lhs.Value.as<Imm>().value()));
+		const auto data = dmc.newFloatConst(ConstPool::kScopeLocal, DecodeFloat(lhs.Value.as<Imm>().value()));
 		dmc.movd(xmm0, data);
 	}
 	else
@@ -214,7 +218,7 @@ static void Emit_MathOp(DMCompiler& dmc, Bytecode op_type)
 
 	if (rhs.Value.isImm())
 	{
-		auto data = dmc.newFloatConst(ConstPool::kScopeLocal, DecodeFloat(rhs.Value.as<Imm>().value()));
+		const auto data = dmc.newFloatConst(ConstPool::kScopeLocal, DecodeFloat(rhs.Value.as<Imm>().value()));
 		dmc.movd(xmm1, data);
 	}
 	else
@@ -236,6 +240,8 @@ static void Emit_MathOp(DMCompiler& dmc, Bytecode op_type)
 		case Bytecode::DIV:
 			dmc.divss(xmm0, xmm1);
 			break;
+		default:
+			Core::Alert("Unknown binary operation");
 	}
 
 	dmc.movd(result.Value, xmm0);
@@ -254,7 +260,7 @@ static void Emit_CallGlobal(DMCompiler& dmc, uint32_t arg_count, uint32_t proc_i
 		args.setOffset((uint64_t)arg_i * sizeof(Value) + offsetof(Value, type));
 		if (var.Type.isImm())
 		{
-			auto data = dmc.newFloatConst(ConstPool::kScopeLocal, DecodeFloat(var.Type.as<Imm>().value()));
+			//auto data = dmc.newFloatConst(ConstPool::kScopeLocal, DecodeFloat(var.Type.as<Imm>().value()));
 			dmc.mov(args, var.Type.as<Imm>());
 		}
 		else
@@ -265,7 +271,7 @@ static void Emit_CallGlobal(DMCompiler& dmc, uint32_t arg_count, uint32_t proc_i
 		args.setOffset((uint64_t)arg_i * sizeof(Value) + offsetof(Value, value));
 		if (var.Value.isImm())
 		{
-			auto data = dmc.newFloatConst(ConstPool::kScopeLocal, DecodeFloat(var.Value.as<Imm>().value()));
+			//auto data = dmc.newFloatConst(ConstPool::kScopeLocal, DecodeFloat(var.Value.as<Imm>().value()));
 			dmc.mov(args, var.Value.as<Imm>());
 		}
 		else
@@ -278,34 +284,58 @@ static void Emit_CallGlobal(DMCompiler& dmc, uint32_t arg_count, uint32_t proc_i
 	// dmc.commitLocals();
 	// dmc.commitStack();
 
-	x86::Gp args_ptr = dmc.newUIntPtr("call_global_args_ptr");
+	const auto args_ptr = dmc.newUIntPtr("call_global_args_ptr");
 	dmc.lea(args_ptr, args);
 
-	Variable ret = dmc.pushStack();
-	auto call = dmc.call((uint64_t)CallGlobalProc, FuncSignatureT<asmjit::Type::I64, int, int, int, int, int, int, int, int*, int, int, int>());
-	call->setArg(0, Imm(0));
-	call->setArg(1, Imm(0));
-	call->setArg(2, Imm(2));
-	call->setArg(3, Imm(proc_id));
-	call->setArg(4, Imm(0));
-	call->setArg(5, Imm(0));
-	call->setArg(6, Imm(0));
-	call->setArg(7, args_ptr);
-	call->setArg(8, Imm(arg_count));
-	call->setArg(9, Imm(0));
-	call->setArg(10, Imm(0));
-	call->setRet(0, ret.Type);
-	call->setRet(1, ret.Value);
+	const Variable ret = dmc.pushStack();
+
+	auto proc_it = jitted_procs.find(proc_id);
+	if (proc_it != jitted_procs.end())
+	{
+		void* code_base = proc_it->second;
+		InvokeNode* call;
+		dmc.invoke(&call, reinterpret_cast<uint64_t>(JitEntryPoint), FuncSignatureT<asmjit::Type::I64, void*, int, Value*, int, int, int, int, JitContext*>());
+		call->setArg(0, imm(code_base));
+		call->setArg(1, imm(arg_count));
+		call->setArg(2, args_ptr);
+		call->setArg(3, imm(0));
+		call->setArg(4, imm(0));
+		const Variable usr = dmc.getFrameEmbeddedValue(offsetof(ProcStackFrame, usr));
+		call->setArg(5, usr.Type);
+		call->setArg(6, usr.Value);
+		call->setArg(7, dmc.getJitContext());
+		call->setRet(0, ret.Type);
+		call->setRet(1, ret.Value);
+	}
+	else
+	{
+		InvokeNode* call;
+		dmc.invoke(&call, reinterpret_cast<uint64_t>(CallGlobalProc), FuncSignatureT<asmjit::Type::I64, int, int, int, int, int, int, int, int*, int, int, int>());
+		call->setArg(0, Imm(0));
+		call->setArg(1, Imm(0));
+		call->setArg(2, Imm(2));
+		call->setArg(3, Imm(proc_id));
+		call->setArg(4, Imm(0));
+		call->setArg(5, Imm(0));
+		call->setArg(6, Imm(0));
+		call->setArg(7, args_ptr);
+		call->setArg(8, Imm(arg_count));
+		call->setArg(9, Imm(0));
+		call->setArg(10, Imm(0));
+		call->setRet(0, ret.Type);
+		call->setRet(1, ret.Value);
+	}
+
 }
 
 static DMListIterator* create_iterator(ProcStackFrame* psf, int list_id)
 {
-	DMListIterator* iter = new DMListIterator;
+	auto* const iter = new DMListIterator();
 	RawList* list = GetListPointerById(list_id);
 	iter->elements = new Value[list->length];
 	std::copy(list->vector_part, list->vector_part + list->length, iter->elements);
 	iter->length = list->length;
-	iter->current_index = -1; // -1 because the index is imemdiately incremented by ITERNEXT
+	iter->current_index = -1; // -1 because the index is immediately incremented by ITERNEXT
 	iter->previous = nullptr;
 	if (psf->current_iterator)
 	{
@@ -321,17 +351,19 @@ static DMListIterator* pop_iterator(ProcStackFrame* psf)
 {
 	DMListIterator* current = psf->current_iterator;
 	psf->current_iterator = current->previous;
-	//delete[] current->elements;
-	//delete current;
+	delete[] current->elements;
+	delete current;
 	return psf->current_iterator;
 }
 
 static void Emit_Iterload(DMCompiler& dmc)
 {
-	auto list = dmc.popStack();
-	auto new_iter = dmc.newUIntPtr("new iterator");
-	auto create_iter = dmc.call((uint64_t)create_iterator, FuncSignatureT<int*, int*, int>());
-	create_iter->setArg(0, dmc.getStackFramePtr());
+	const auto list = dmc.popStack();
+	const auto new_iter = dmc.newUIntPtr("new iterator");
+	InvokeNode* create_iter;
+	dmc.invoke(&create_iter, reinterpret_cast<uint64_t>(create_iterator), FuncSignatureT<int*, int*, int>());
+	const auto stack_frame_ptr = dmc.getStackFramePtr();
+	create_iter->setArg(0, stack_frame_ptr);
 	create_iter->setArg(1, list.Value);
 	create_iter->setRet(0, new_iter);
 	dmc.setCurrentIterator(new_iter);
@@ -339,31 +371,32 @@ static void Emit_Iterload(DMCompiler& dmc)
 
 static void Emit_Iterpop(DMCompiler& dmc)
 {
-	auto new_iter = dmc.newUIntPtr("new iterator");
-	auto create_iter = dmc.call((uint64_t)pop_iterator, FuncSignatureT<int*, int*>());
-	create_iter->setArg(0, dmc.getStackFramePtr());
-	create_iter->setRet(0, new_iter);
-	dmc.setCurrentIterator(new_iter);
+	const auto prev_iter = dmc.newUIntPtr("previous iterator");
+	InvokeNode* pop_iter;
+	dmc.invoke(&pop_iter, reinterpret_cast<uint64_t>(pop_iterator), FuncSignatureT<int*, int*>());
+	pop_iter->setArg(0, dmc.getStackFramePtr());
+	pop_iter->setRet(0, prev_iter);
+	dmc.setCurrentIterator(prev_iter);
 }
 
 // DM bytecode pushes the next value to the stack, immediately sets a local variable to it then checks to zero flag.
 // Doing it the same way by compiling the next few instructions would screw up our zero flag, so we do all of it here.
 static void Emit_Iternext(DMCompiler& dmc, Instruction& setvar, Instruction& jmp, std::map<unsigned int, ProcBlock>& blocks)
 {
-	auto current_iter = dmc.getCurrentIterator();
-	auto reg = dmc.newUInt32();
-	dmc.mov(reg, x86::ptr(current_iter, offsetof(DMListIterator, current_index)));
+	const auto current_iter = dmc.getCurrentIterator();
+	const auto reg = dmc.newUInt32("list_len_comparator");
+	dmc.mov(reg, x86::dword_ptr(current_iter, offsetof(DMListIterator, current_index)));
 	dmc.inc(reg);
 	dmc.commitStack();
-	dmc.cmp(reg, x86::ptr(current_iter, offsetof(DMListIterator, length)));
+	dmc.cmp(reg, x86::dword_ptr(current_iter, offsetof(DMListIterator, length)));
 	dmc.jge(blocks.at(jmp.bytes().at(1)).label);
-	dmc.mov(x86::ptr(current_iter, offsetof(DMListIterator, current_index)), reg);
-	auto elements = dmc.newUIntPtr();
-	dmc.mov(elements, x86::ptr(current_iter, offsetof(DMListIterator, elements)));
-	auto type = dmc.newUInt32();
-	dmc.mov(type, x86::ptr(elements, reg, shift(sizeof(Value))));
-	auto value = dmc.newUInt32();
-	dmc.mov(value, x86::ptr(elements, reg, shift(sizeof(Value)), offsetof(Value, value)));
+	dmc.mov(x86::dword_ptr(current_iter, offsetof(DMListIterator, current_index)), reg);
+	const auto elements = dmc.newUIntPtr("iterator_elements");
+	dmc.mov(elements, x86::dword_ptr(current_iter, offsetof(DMListIterator, elements)));
+	const auto type = dmc.newUInt32("current_iter_type");
+	dmc.mov(type, x86::dword_ptr(elements, reg, shift(sizeof(Value))));
+	const auto value = dmc.newUInt32("current_iter_value");
+	dmc.mov(value, x86::dword_ptr(elements, reg, shift(sizeof(Value)), offsetof(Value, value)));
 	dmc.setLocal(setvar.bytes().at(2), Variable{type, value});
 }
 
@@ -374,9 +407,10 @@ static void Emit_Jump(DMCompiler& dmc, uint32_t target, std::map<unsigned int, P
 
 static void Emit_GetListElement(DMCompiler& dmc)
 {
-	auto [container, key] = dmc.popStack<2>();
-	auto ret = dmc.pushStack();
-	auto getelem = dmc.call((uint32_t)GetAssocElement, FuncSignatureT<asmjit::Type::I64, int, int, int, int>());
+	const auto [container, key] = dmc.popStack<2>();
+	const auto ret = dmc.pushStack();
+	InvokeNode* getelem;
+	dmc.invoke(&getelem, reinterpret_cast<uint32_t>(GetAssocElement), FuncSignatureT<asmjit::Type::I64, int, int, int, int>());
 	getelem->setArg(0, container.Type.as<x86::Gp>());
 	getelem->setArg(1, container.Value.as<x86::Gp>());
 	getelem->setArg(2, key.Type.as<x86::Gp>());
@@ -387,20 +421,21 @@ static void Emit_GetListElement(DMCompiler& dmc)
 
 static void Emit_SetListElement(DMCompiler& dmc)
 {
-	auto [container, key, value] = dmc.popStack<3>();
-	auto getelem = dmc.call((uint32_t)SetAssocElement, FuncSignatureT<void, int, int, int, int, int, int>());
-	getelem->setArg(0, container.Type.as<x86::Gp>());
-	getelem->setArg(1, container.Value.as<x86::Gp>());
-	getelem->setArg(2, key.Type.as<x86::Gp>());
-	getelem->setArg(3, key.Value.as<x86::Gp>());
-	getelem->setArg(4, value.Type.as<x86::Gp>());
-	getelem->setArg(5, value.Value.as<x86::Gp>());
+	const auto [container, key, value] = dmc.popStack<3>();
+	InvokeNode* setelem;
+	dmc.invoke(&setelem, reinterpret_cast<uint32_t>(SetAssocElement), FuncSignatureT<void, int, int, int, int, int, int>());
+	setelem->setArg(0, container.Type.as<x86::Gp>());
+	setelem->setArg(1, container.Value.as<x86::Gp>());
+	setelem->setArg(2, key.Type.as<x86::Gp>());
+	setelem->setArg(3, key.Value.as<x86::Gp>());
+	setelem->setArg(4, value.Type.as<x86::Gp>());
+	setelem->setArg(5, value.Value.as<x86::Gp>());
 }
 
 trvh create_list(Value* elements, unsigned int num_elements)
 {
 	List l;
-	for (int i = 0; i < num_elements; i++)
+	for (size_t i = 0; i < num_elements; i++)
 	{
 		l.append(elements[i]);
 	}
@@ -408,22 +443,23 @@ trvh create_list(Value* elements, unsigned int num_elements)
 	return l;
 }
 
-static void Emit_CreateList(DMCompiler& dmc, unsigned int num_elements)
+static void Emit_CreateList(DMCompiler& dmc, const uint64_t num_elements)
 {
 	auto args = dmc.newStack(sizeof(Value) * num_elements, 4);
-	for (int i = 0; i < num_elements; i++)
+	for (size_t i = 0; i < num_elements; i++)
 	{
 		auto arg = dmc.popStack();
-		args.setOffset(((uint64_t)num_elements - i - 1) * sizeof(Value) + offsetof(Value, type));
+		args.setOffset((num_elements - i - 1) * sizeof(Value) + offsetof(Value, type));
 		dmc.mov(args, arg.Type);
-		args.setOffset(((uint64_t)num_elements - i - 1) * sizeof(Value) + offsetof(Value, value));
+		args.setOffset((num_elements - i - 1) * sizeof(Value) + offsetof(Value, value));
 		dmc.mov(args, arg.Value);
 	}
 	args.resetOffset();
-	auto args_ptr = dmc.newUInt32();
+	const auto args_ptr = dmc.newUInt32("create_list_args");
 	dmc.lea(args_ptr, args);
-	auto result = dmc.pushStack(Imm(DataType::LIST), Imm(0xFFFF)); // Seems like pushStack needs to happen after newStack?
-	auto cl = dmc.call((uint32_t)create_list, FuncSignatureT<asmjit::Type::I64, Value*, unsigned int>());
+	const auto result = dmc.pushStack(Imm(DataType::LIST), Imm(0xFFFF)); // Seems like pushStack needs to happen after newStack?
+	InvokeNode* cl;
+	dmc.invoke(&cl, reinterpret_cast<uint32_t>(create_list), FuncSignatureT<asmjit::Type::I64, Value*, unsigned int>());
 	cl->setArg(0, args_ptr);
 	cl->setArg(1, Imm(num_elements));
 	cl->setRet(0, result.Type);
@@ -431,10 +467,10 @@ static void Emit_CreateList(DMCompiler& dmc, unsigned int num_elements)
 
 }
 
-static void Emit_Output(DMCompiler& dmc)
+/*static void Emit_Output(DMCompiler& dmc)
 {
 
-}
+}*/
 
 static void Emit_End(DMCompiler& dmc)
 {
@@ -469,7 +505,7 @@ static bool Emit_Block(DMCompiler& dmc, ProcBlock& block, std::map<unsigned int,
 		case Bytecode::DIV:
 			jit_out << "Assembling math op" << std::endl;
 			dmc.setInlineComment("math operation");
-			Emit_MathOp(dmc, (Bytecode)instr.bytes()[0]);
+			Emit_BinaryOp(dmc, (Bytecode)instr.bytes()[0]);
 			break;
 		case Bytecode::SETVAR:
 			switch (instr.bytes()[1])
@@ -593,148 +629,114 @@ static bool Emit_Block(DMCompiler& dmc, ProcBlock& block, std::map<unsigned int,
 	return true;
 }
 
-/*void OnResumed(ProcConstants* pc)
-{
-	JitEntryPoint(pc->jit_code_base, 0, nullptr, pc->src, pc->usr, (JitContext*)pc->jit_context);
-}
-
-void ResumeHook(ProcConstants* pc)
-{
-	if (pc->proc_id == -1)
-	{
-		OnResumed(pc);
-	}
-	else
-	{
-		RunDM(pc);
-	}
-}
-*/
-static CreateContextPtr oCreateContext;
-static void* exit_proc = nullptr;
-
 static SuspendPtr oSuspend;
 static ProcConstants* hSuspend(ExecutionContext* ctx, int unknown)
 {
-	const int proc_id = ctx->constants->proc_id;
+	const uint32_t proc_id = ctx->constants->proc_id;
 	if (proc_id == Core::get_proc("/proc/jit_wrapper").id)
 	{
-		JitContext* jc = (JitContext*)ctx->constants->args[1].value;
+		auto* const jc = reinterpret_cast<JitContext*>(ctx->constants->args[1].value);
 		jc->suspended = true;
 	}
 	return oSuspend(ctx, unknown);
 }
 
-static void hCreateContext(ProcConstants* pc, ExecutionContext* new_context)
-{
-	oCreateContext(pc, new_context);
-	/*new_context = pc->context;
-	if (pc->proc_id == Core::get_proc("/proc/jit_wrapper").id)
-	{
-		// This flag might actually be something like "suspendable", doubt it though
-		new_context->paused = 1;
-		JitContext* jctx = (JitContext*)pc->args[1].value;
-		if (!jctx->suspended)
-		{
-			// The first 2 arguments are base and context, we pass the pointer to the third arg onwards.
-			Value retval = JitEntryPoint((void*)pc->args[0].value, std::max(0, pc->arg_count - 2), pc->args + 2, pc->src, pc->usr, (JitContext*)pc->args[1].value);
-			new_context = Core::get_context();
-			new_context->stack_size++;
-			new_context->stack[new_context->stack_size - 1] = retval;
-		}
-	}*/
-}
-
 static ExecutionContext* fuck()
 {
-	ExecutionContext* dmctx = Core::get_context();
-	ProcConstants* pc = dmctx->constants;
-	if (pc->proc_id == Core::get_proc("/proc/jit_wrapper").id)
-	{
-		// This flag might actually be something like "suspendable", doubt it though
-		dmctx->paused = 1;
-		JitContext* jctx = (JitContext*)pc->args[1].value;
-		jctx->suspended = false;
-		// The first 2 arguments are base and context, we pass the pointer to the third arg onwards.
-		Value retval = JitEntryPoint((void*)pc->args[0].value, std::max(0, pc->arg_count - 2), pc->args + 2, pc->src, pc->usr, (JitContext*)pc->args[1].value);
-		dmctx->stack_size++;
-		dmctx->stack[dmctx->stack_size - 1] = retval;
+	ExecutionContext* dmctx;
+	__asm {
+		mov dmctx, eax
 	}
+	ProcConstants* const pc = dmctx->constants;
+	// This flag might actually be something like "suspendable", doubt it though
+	dmctx->paused = true;
+	auto* const jctx = reinterpret_cast<JitContext*>(pc->args[1].value);
+	jctx->suspended = false;
+	// The first 2 arguments are base and context, we pass the pointer to the third arg onwards.
+	const unsigned int args_len = std::max(0, pc->arg_count - 2);
+	const Value retval = JitEntryPoint(reinterpret_cast<void*>(pc->args[0].value), args_len, pc->args + 2, pc->src, pc->usr, reinterpret_cast<JitContext*>(pc->args[1].value));
+	dmctx->stack_size++;
+	dmctx->stack[dmctx->stack_size - 1] = retval;
+	dmctx->dot = retval;
 	return dmctx;
 }
+
+static uint32_t wrapper_id = 0;
 
 __declspec(naked) ExecutionContext* just_before_execution_hook()
 {
 	__asm {
-		pushfd
+		mov eax, DWORD PTR [Core::current_execution_context_ptr]
+		mov eax, DWORD PTR [eax]
+		mov edx, DWORD PTR [eax]
+		mov ecx, DWORD PTR [wrapper_id]
+		cmp DWORD PTR [edx], ecx
+		jne yeet
 		call fuck
-		popfd
+		xor edx, edx
+		yeet:
 		ret
 	}
+	// xoring a register sets the zero flag. This hook is preceded by a TEST and followed by a JE which jumps over the bytecode interpreting part.
+	// So we're pretty much skipping the entire bytecode bit and go faster.
 }
 
 static void hook_resumption()
 {
-	int* rundm_offset = (int*)Pocket::Sigscan::FindPattern("byondcore.dll", "E8 ?? ?? ?? ?? A1 ?? ?? ?? ?? 83 C4 04 89 46 18 89 ?? ?? ?? ?? ?? E8 ?? ?? ?? ?? 8B F0 85 F6 75 AB 8B ?? ?? ?? ?? ?? 5F 5E", 1);
-	DWORD old_prot;
-	VirtualProtect(rundm_offset, 4, PAGE_READWRITE, &old_prot);
-	//*rundm_offset = (int)&ResumeHook - (int)rundm_offset - 4;
-	VirtualProtect(rundm_offset, 4, old_prot, &old_prot);
+	wrapper_id = Core::get_proc("/proc/jit_wrapper").id;
 
-	oCreateContext = Core::install_hook(CreateContext, hCreateContext);
 	oSuspend = Core::install_hook(Suspend, hSuspend);
-	exit_proc = Pocket::Sigscan::FindPattern("byondcore.dll", "A1 ?? ?? ?? ?? 83 3D ?? ?? ?? ?? ?? C7 45 ?? ?? ?? ?? ?? 74 1F 8B 00 FF 30 E8 ?? ?? ?? ?? FF 30 E8 ?? ?? ?? ?? FF 30 68 ?? ?? ?? ?? E8 ?? ?? ?? ?? 83 C4 10 8B");
 
+	DWORD old_prot;
 	char* remember_to_return_context = (char*)Pocket::Sigscan::FindPattern("byondcore.dll", "A1 ?? ?? ?? ?? 0F 84 ?? ?? ?? ?? 66 FF 40 14 EB 18 8B 00 80 78 10 22 A1 ?? ?? ?? ?? 0F 84 ?? ?? ?? ?? EB 05 A1 ?? ?? ?? ?? 8B ?? ?? ?? ?? ?? 89 ?? ?? ?? ?? ?? 8B ?? ?? ?? ?? ?? 89");
 	VirtualProtect(remember_to_return_context, 5, PAGE_READWRITE, &old_prot);
-	remember_to_return_context[0] = 0xE8; //CALL
-	*((int*)(remember_to_return_context + 1)) = ((int)&just_before_execution_hook - (int)remember_to_return_context - 5);
+	remember_to_return_context[0] = (char)0xE8; //CALL
+	*(int*)(remember_to_return_context + 1) = (int)&just_before_execution_hook - (int)remember_to_return_context - 5;
 	VirtualProtect(remember_to_return_context, 5, old_prot, &old_prot);
 
 	remember_to_return_context = (char*)Pocket::Sigscan::FindPattern("byondcore.dll", "A1 ?? ?? ?? ?? 8B ?? ?? ?? ?? ?? 89 ?? ?? ?? ?? ?? 8B ?? ?? ?? ?? ?? 89 ?? ?? ?? ?? ?? 0F B7 48 14 8B 78 10 8B F1 8B 14 B7 81 FA");
 	VirtualProtect(remember_to_return_context, 5, PAGE_READWRITE, &old_prot);
-	remember_to_return_context[0] = 0xE8; //CALL
-	*((int*)(remember_to_return_context + 1)) = ((int)&just_before_execution_hook - (int)remember_to_return_context - 5);
+	remember_to_return_context[0] = (char)0xE8; //CALL
+	*(int*)(remember_to_return_context + 1) = (int)&just_before_execution_hook - (int)remember_to_return_context - 5;
 	VirtualProtect(remember_to_return_context, 5, old_prot, &old_prot);
 	
 	remember_to_return_context = (char*)Pocket::Sigscan::FindPattern("byondcore.dll", "A1 ?? ?? ?? ?? 0F 84 ?? ?? ?? ?? EB 05 E8 ?? ?? ?? ?? 8B ?? ?? ?? ?? ?? 89 ?? ?? ?? ?? ?? 8B ?? ?? ?? ?? ?? 89 ?? ?? ?? ?? ?? 0F B7 48 14 8B 78 10 8B F1 8B 14 B7 81 FA ?? ?? ?? ?? 0F 87 ?? ?? ?? ?? FF 24 ?? ?? ?? ?? ?? 8B ?? ?? ?? ?? ?? 8D 41 01 0F B7 C8");
 	VirtualProtect(remember_to_return_context, 5, PAGE_READWRITE, &old_prot);
-	remember_to_return_context[0] = 0xE8; //CALL
-	*((int*)(remember_to_return_context + 1)) = ((int)&just_before_execution_hook - (int)remember_to_return_context - 5);
+	remember_to_return_context[0] = (char)0xE8; //CALL
+	*(int*)(remember_to_return_context + 1) = (int)&just_before_execution_hook - (int)remember_to_return_context - 5;
 	VirtualProtect(remember_to_return_context, 5, old_prot, &old_prot);
 }
 
-trvh JitEntryPoint(void* code_base, unsigned int args_len, Value* args, Value src, Value usr, JitContext* ctx)
+trvh JitEntryPoint(void* code_base, const unsigned int args_len, Value* const args, const Value src, const Value usr, JitContext* ctx)
 {
 	if (!ctx)
 	{
 		ctx = new JitContext();
 	}
-	Proc code = static_cast<Proc>(code_base);
+	const Proc code = static_cast<Proc>(code_base);
 
-	ProcResult res = code(ctx, args_len, args, src, usr);
+	const ProcResult res = code(ctx, args_len, args, src, usr);
 
 	switch (res)
 	{
 	case ProcResult::Success:
 	{
-		if (ctx->Count() != 1)
+		/*if (ctx->CountFrame() != 1)
 		{
 			__debugbreak();
 			break;
-		}
-		Value return_value = ctx->stack[0];
+		}*/
+		const Value return_value = *--ctx->stack_top;
 		if (!ctx->stack_frame)
 		{
 			// We've returned from the only proc in this context's stack, so it is no longer needed.
 			delete ctx;
 		}
 		return return_value;
-		break;
 	}
 	case ProcResult::Yielded:
 	{
-		Value dot = *--ctx->stack_top;
+		const Value dot = *--ctx->stack_top;
 		// No need to do anything here, the JitContext is already marked as suspended
 		if (!ctx->suspended)
 		{
@@ -742,36 +744,34 @@ trvh JitEntryPoint(void* code_base, unsigned int args_len, Value* args, Value sr
 			__debugbreak();
 		}
 		return dot;
-		break;
 	}
 	case ProcResult::Sleeping:
 	{
-		Value dot = *--ctx->stack_top;
-		Value sleep_time = *--ctx->stack_top;
+		const Value dot = *--ctx->stack_top;
+		const Value sleep_time = *--ctx->stack_top;
 		// We are inside of a DM proc wrapper. It will be suspended by this call,
 		// and the suspension will propagate to parent jit calls.
 		ProcConstants* suspended = Suspend(Core::get_context(), 0);
-		suspended->time_to_resume = static_cast<int>(sleep_time.valuef / Value::World().get("tick_lag").valuef);
+		suspended->time_to_resume = static_cast<unsigned int>(sleep_time.valuef / Value::World().get("tick_lag").valuef);
 		StartTiming(suspended);
 		return dot;
-		break;
 	}
 	}
 	__debugbreak();
 	return Value::Null();
 }
 
-static void compile(std::vector<Core::Proc*> procs)
+static void compile(std::vector<Core::Proc*> procs, DMCompiler* parent_compiler = nullptr)
 {
-	FILE* fuck = fopen("asm.txt", "w");
+	FILE* fuck;
+	fopen_s(&fuck, "asm.txt", "w");
 	asmjit::FileLogger logger(fuck);
 	logger.addFlags(FormatOptions::kFlagRegCasts | FormatOptions::kFlagExplainImms | FormatOptions::kFlagDebugPasses | FormatOptions::kFlagDebugRA | FormatOptions::kFlagAnnotations);
 	SimpleErrorHandler eh;
 	asmjit::CodeHolder code;
-	code.init(rt.codeInfo());
+	code.init(rt.environment());
 	code.setLogger(&logger);
 	code.setErrorHandler(&eh);
-
 	DMCompiler dmc(code);
 
 	std::vector<Label> entrypoints;
@@ -780,18 +780,19 @@ static void compile(std::vector<Core::Proc*> procs)
 	for (auto& proc : procs)
 	{
 		Disassembly dis = proc->disassemble();
-		byteout_out << "BEGIN " << proc->name << '\n';
-		for (Instruction i : dis)
+		bytecode_out << "BEGIN " << proc->name << '\n';
+		for (const Instruction& i : dis)
 		{
-			byteout_out << i.bytes_str() << std::endl;
+			bytecode_out << i.bytes_str() << std::endl;
 		}
-		byteout_out << "END " << proc->name << '\n';
+		bytecode_out << "END " << proc->name << '\n';
 
-		size_t locals_count = 1; // Defaulting to 1 because asmjit does not like empty vectors apparently (causes an assertion error)
-		size_t args_count = 2;
-		auto blocks = split_into_blocks(dis, dmc, locals_count, args_count);
+		size_t locals_count = 0; // Defaulting to 1 because asmjit does not like empty vectors apparently (causes an assertion error)
+		size_t args_count = 0;
+		bool need_sleep = false;
+		auto blocks = split_into_blocks(dis, dmc, locals_count, args_count, need_sleep);
 
-		ProcNode* node = dmc.addProc(locals_count, args_count);
+		ProcNode* node = dmc.addProc(locals_count, args_count, need_sleep);
 		entrypoints.push_back(node->_entryPoint);
 		for (auto& [k, v] : blocks)
 		{
@@ -804,12 +805,11 @@ static void compile(std::vector<Core::Proc*> procs)
 	void* code_base = nullptr;
 	rt.add(&code_base, &code);
 
-	for (int i = 0; i < procs.size(); i++)
+	for (size_t i = 0; i < procs.size(); i++)
 	{
-		std::string procname = procs.at(i)->name;
-		void* entrypoint = (void*)((uint32_t)code_base + code.labelOffset(entrypoints.at(i)));
-		jitted_procs[procname] = entrypoint;
-		jit_out << procname << ": " << entrypoint << std::endl;
+		void* entrypoint = reinterpret_cast<void*>(reinterpret_cast<uint32_t>(code_base) + code.labelOffset(entrypoints.at(i)));
+		jitted_procs[procs.at(i)->id] = entrypoint;
+		jit_out << procs.at(i)->name << ": " << entrypoint << std::endl;
 	}
 	fflush(fuck);
 }
@@ -817,10 +817,10 @@ static void compile(std::vector<Core::Proc*> procs)
 void* compile_one(Core::Proc& proc)
 {
 	compile({ &proc });
-	return jitted_procs[proc.name]; //todo
+	return jitted_procs[proc.id]; //todo
 }
 
-EXPORT const char* ::jit_test(int n_args, const char** args)
+EXPORT const char* jit_test(int n_args, const char** args)
 {
 	if (!Core::initialize())
 	{
@@ -829,6 +829,7 @@ EXPORT const char* ::jit_test(int n_args, const char** args)
 
 	hook_resumption();
 	//compile({&Core::get_proc("/proc/jit_test_compiled_proc"), &Core::get_proc("/proc/recursleep")});
+	Core::get_proc("/proc/tiny_proc").jit();
 	Core::get_proc("/proc/jit_test_compiled_proc").jit();
 	Core::get_proc("/proc/jit_wrapper").set_bytecode({ Bytecode::RET, Bytecode::RET, Bytecode::RET });
 	return Core::SUCCESS;

@@ -11,7 +11,5 @@ struct JitArguments
 	dmjit::JitContext* jc;
 };
 
-extern "C" EXPORT const char* jit_test(int n_args, const char** args);
-
 void* compile_one(Core::Proc& proc);
 trvh JitEntryPoint(void* code_base, unsigned int args_len, Value* args, Value src, Value usr, dmjit::JitContext* ctx);
