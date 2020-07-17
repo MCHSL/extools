@@ -108,8 +108,8 @@ namespace Core
 
 
 	//extern std::vector<bool> codecov_executed_procs;
-	unsigned int GetStringId(std::string str, bool increment_refcount = 0);
-	ManagedString GetManagedString(std::string str);
+	unsigned int GetStringId(const std::string& str, const bool increment_refcount = 0);
+	ManagedString GetManagedString(const std::string& str);
 	void FreeByondString(std::string s);
 	void FreeByondString(unsigned int id);
 	std::string GetStringFromId(unsigned int id);

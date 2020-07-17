@@ -150,7 +150,7 @@ trvh hInitializeListFromContext(unsigned int list_id)
 		if (isdatom(value) || islist(value))
 		{
 			forward_references[DataType::LIST][list_id].emplace_back(value, 0);
-			back_references[value.type][value.value].emplace_back(trvh{ DataType::LIST, (int)list_id }, 0);
+			back_references[value.type][value.value].emplace_back(trvh{ DataType::LIST, list_id }, 0);
 		}
 	}
 	return result;

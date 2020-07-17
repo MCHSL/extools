@@ -12,11 +12,11 @@ trvh get_profile(unsigned int args_len, Value* args, Value src)
 	std::string proc = Core::stringify(args[0]);
 	Container res = List();
 	ProfileInfo* profile = Core::get_proc(proc).profile();
-	res["call count"] = (float)profile->call_count; // This proc has been called 8232093.000000000001 times
-	res["real"] = profile->real.as_seconds();
-	res["total"] = profile->total.as_seconds();
-	res["self"] = profile->self .as_seconds();
-	res["overtime"] = profile->overtime.as_seconds();
+	res["call count"] = Value::Number((float)profile->call_count); // This proc has been called 8232093.000000000001 times
+	res["real"] = Value::Number(profile->real.as_seconds());
+	res["total"] = Value::Number(profile->total.as_seconds());
+	res["self"] = Value::Number(profile->self.as_seconds());
+	res["overtime"] = Value::Number(profile->overtime.as_seconds());
 	return res;
 }
 

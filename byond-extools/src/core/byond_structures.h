@@ -29,7 +29,7 @@ struct trvh //temporary return value holder, used for sidestepping the fact that
 	DataType type;
 	union
 	{
-		int value;
+		unsigned int value;
 		float valuef;
 	};
 };
@@ -47,7 +47,7 @@ struct Value
 	DataType type;
 	union
 	{
-		int value;
+		unsigned int value;
 		float valuef;
 	};
 	Value() { type = DataType::NULL_D; value = 0; }
@@ -62,9 +62,8 @@ struct Value
 		else
 			valuef = trvh.valuef;
 	}
-	Value(float valuef) : type(DataType::NUMBER), valuef(valuef) {};
-	Value(std::string s);
-	Value(const char* s);
+	Value(const std::string& s);
+	//Value(const char* s);
 	Value(Core::ManagedString& ms);
 
 
@@ -94,6 +93,15 @@ struct Value
 		return { DataType::WORLD_D, 0x00 };
 	}
 
+	static Value Number(const float f)
+	{
+		trvh t{ DataType::NUMBER };
+		t.valuef = f;
+		return t;
+	}
+
+	static Value String(const std::string& s);
+
 	/* inline static Value Tralse()
 	{
 		return { 0x2A, rand() % 1 };
@@ -114,25 +122,16 @@ struct Value
 		return !(*this == rhs);
 	}
 
-	Value& operator +=(const Value& rhs);
-	Value& operator -=(const Value& rhs);
-	Value& operator *=(const Value& rhs);
-	Value& operator /=(const Value& rhs);
-	/*inline Value& operator +=(float rhs);
-	inline Value& operator -=(float rhs);
-	inline Value& operator *=(float rhs);
-	inline Value& operator /=(float rhs);*/
-
-	operator std::string();
-	operator float();
-	operator void*();
-	ManagedValue get(std::string name);
-	ManagedValue get_safe(std::string name);
-	ManagedValue get_by_id(int id);
-	ManagedValue invoke(std::string name, std::vector<Value> args, Value usr = Value::Null());
-	std::unordered_map<std::string, Value> get_all_vars();
-	bool has_var(std::string name);
-	void set(std::string name, Value value);
+	operator std::string() const;
+	operator float() const;
+	operator void*() const;
+	[[nodiscard]] ManagedValue get(const std::string& name) const;
+	[[nodiscard]] ManagedValue get_safe(const std::string& name) const;
+	[[nodiscard]] ManagedValue get_by_id(const int id) const;
+	ManagedValue invoke(std::string name, std::vector<Value> args, Value usr = Value::Null()) const;
+	[[nodiscard]] std::unordered_map<std::string, Value> get_all_vars() const;
+	[[nodiscard]] bool has_var(const std::string& name) const;
+	void set(const std::string& name, const Value value) const;
 };
 
 struct ManagedValue : Value
@@ -179,7 +178,7 @@ struct RawList
 	int refcount;
 	int unk3; //this one appears to be a pointer to a struct holding the vector_part pointer, a zero, and maybe the initial size? no clue.
 
-	bool is_assoc()
+	[[nodiscard]] bool is_assoc() const
 	{
 		return map_part != nullptr;
 	}
@@ -194,37 +193,42 @@ struct ContainerProxy
 	Value key = Value::Null();
 	ContainerProxy(Container& c, Value key) : c(c), key(key) {}
 
-	operator Value();
-	void operator=(Value val);
+	operator Value() const;
+	void operator=(Value val) const;
 };
 
 struct Container //All kinds of lists, including magical snowflake lists like contents
 {
 	Container();
-	Container(DataType type, int id);
+	Container(const DataType type, const int id);
 	Container(Value val);
 	~Container();
 	DataType type;
-	int id;
+	unsigned int id;
 
-	Value at(unsigned int index);
-	Value at(Value key);
+	[[nodiscard]] Value at(unsigned int index) const;
+	[[nodiscard]] Value at(Value key) const;
 
-	unsigned int length();
+	unsigned int length() const;
 
-	operator Value()
+	operator Value() const
 	{
 		return { type, id };
 	}
 
-	operator trvh()
+	operator trvh() const
 	{
 		return { type, id };
 	}
 
 	ContainerProxy operator[](unsigned int index)
 	{
-		return ContainerProxy(*this, Value((float)(index + 1)));
+		return ContainerProxy(*this, Value::Number(index + 1));
+	}
+
+	ContainerProxy operator[](const std::string& index)
+	{
+		return ContainerProxy(*this, Value::String(index));
 	}
 
 	ContainerProxy operator[](Value key)
@@ -241,28 +245,33 @@ struct List //Specialization for Container with fast access by index
 	~List();
 	RawList* list;
 
-	int id;
+	unsigned int id;
 
-	Value at(int index);
-	Value at(Value key);
+	Value at(int index) const;
+	Value at(Value key) const;
 	void append(Value val);
 
-	bool is_assoc()
+	[[nodiscard]] bool is_assoc() const
 	{
 		return list->is_assoc();
 	}
 
-	Value* begin() { return list->vector_part; }
-	Value* end() { return list->vector_part + list->length; }
+	[[nodiscard]] Value* begin() const { return list->vector_part; }
+	[[nodiscard]] Value* end() const { return list->vector_part + list->length; }
 
-	operator trvh()
+	operator trvh() const
 	{
-		return { DataType::LIST, id };
+		trvh t{ LIST };
+		t.value = id;
+		return t;
 	}
 
-	operator Container()
+	operator Container() const
 	{
-		return { DataType::LIST, id };
+		Container c;
+		c.type = LIST;
+		c.id = id;
+		return c;
 	}
 };
 
@@ -374,11 +383,11 @@ struct ProfileEntry
 	std::uint32_t seconds;
 	std::uint32_t microseconds;
 
-	unsigned long long as_microseconds()
+	unsigned long long as_microseconds() const
 	{
 		return 1000000 * (unsigned long long)seconds + microseconds;
 	}
-	double as_seconds()
+	double as_seconds() const
 	{
 		return (double)seconds + ((double)microseconds / 1000000);
 	}

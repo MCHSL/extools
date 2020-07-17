@@ -59,7 +59,7 @@ Core::ManagedString::~ManagedString()
 	DecRefCount(DataType::STRING, string_id);
 }
 
-Core::ManagedString Core::GetManagedString(std::string str)
+Core::ManagedString Core::GetManagedString(const std::string& str)
 {
 	return ManagedString(str);
 }
@@ -118,7 +118,7 @@ void Core::Alert(int what)
 	Alert(std::to_string(what));
 }
 
-unsigned int Core::GetStringId(std::string str, bool increment_refcount) {
+unsigned int Core::GetStringId(const std::string& str, const bool increment_refcount) {
 	switch (ByondVersion) {
 	case 512:
 		{

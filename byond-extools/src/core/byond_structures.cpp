@@ -4,17 +4,17 @@
 #include <vector>
 #include <cassert>
 
-Value::Value(std::string s)
+Value::Value(const std::string& s)
 {
 	type = DataType::STRING;
 	value = Core::GetStringId(s);
 }
 
-Value::Value(const char* s)
+/*Value::Value(const char* s)
 {
 	type = DataType::STRING;
 	value = Core::GetStringId(s);
-}
+}*/
 
 Value::Value(Core::ManagedString& ms)
 {
@@ -22,40 +22,47 @@ Value::Value(Core::ManagedString& ms)
 	value = ms;
 }
 
-Value::operator std::string()
+Value Value::String(const std::string& s)
+{
+	trvh t{ DataType::STRING };
+	t.value = Core::GetStringId(s);
+	return t;
+}
+
+Value::operator std::string() const
 {
 	return Core::GetStringFromId(value);
 }
 
-Value::operator float()
+Value::operator float() const
 {
 	return valuef;
 }
 
-Value::operator void*() //if you attempt to delete a value I will eat you
+Value::operator void*() const //if you attempt to delete a value I will eat you
 {
 	return (void*)((type == 0x2A && valuef != 0.0f) || (type == 0x06 && *(GetStringTableEntry(value)->stringData) != 0) || (type != 0 && value != 0xFFFF));
 }
 
-ManagedValue Value::get(std::string name)
+ManagedValue Value::get(const std::string& name) const
 {
 	return GetVariable(type, value, Core::GetStringId(name));
 }
 
-ManagedValue Value::get_safe(std::string name)
+ManagedValue Value::get_safe(const std::string& name) const
 {
 	return has_var(name) ? static_cast<trvh>(get(name)) : Value::Null();
 }
 
-ManagedValue Value::get_by_id(int id)
+ManagedValue Value::get_by_id(const int id) const
 {
 	return GetVariable(type, value, id);
 }
 
-std::unordered_map<std::string, Value> Value::get_all_vars()
+std::unordered_map<std::string, Value> Value::get_all_vars() const
 {
-	Container vars = *this == Global() ? Value { DataType::LIST_GLOBAL_VARS, 0 } : get("vars");
-	int len = vars.length();
+	const Container vars = *this == Global() ? Value { DataType::LIST_GLOBAL_VARS, 0 } : get("vars");
+	const int len = vars.length();
 	std::unordered_map<std::string, Value> vals;
 	for (int i = 0; i < len; i++)
 	{
@@ -65,10 +72,10 @@ std::unordered_map<std::string, Value> Value::get_all_vars()
 	return vals;
 }
 
-bool Value::has_var(std::string name)
+bool Value::has_var(const std::string& name) const
 {
-	Value v = name;
-	Value vars = get("vars");
+	const Value v = Value::String(name);
+	const Value vars = get("vars");
 	return IsInContainer(v.type, v.value, vars.type, vars.value);
 	/*int name_str_id = Core::GetStringId(name); //good night sweet prince
 	Container contents = get("vars");
@@ -96,12 +103,12 @@ bool Value::has_var(std::string name)
 	return false;*/
 }
 
-void Value::set(std::string name, Value newvalue)
+void Value::set(const std::string& name, Value newvalue) const
 {
 	SetVariable(type, value, Core::GetStringId(name), newvalue);
 }
 
-ManagedValue Value::invoke(std::string name, std::vector<Value> args, Value usr)
+ManagedValue Value::invoke(std::string name, std::vector<Value> args, Value usr) const
 {
 	std::replace(name.begin(), name.end(), '_', ' ');
 	std::vector<ManagedValue> margs;
@@ -113,69 +120,12 @@ ManagedValue Value::invoke(std::string name, std::vector<Value> args, Value usr)
 	return CallProcByName(usr.type, usr.value, 2, Core::GetStringId(name), type, value, args.data(), args.size(), 0, 0);
 }
 
-Value& Value::operator+=(const Value& rhs)
-{
-	if (type == 0x2A && rhs.type == 0x2A)
-		valuef += rhs.valuef;
-	else if (type == 0x06 && rhs.type == 0x06)
-		value = Core::GetStringId(Core::GetStringFromId(value) + Core::GetStringFromId(rhs.value));
-	else
-	{
-		assert(false);
-		//Runtime("Attempt to add invalid types in native code! (good luck)");
-	}
-	return *this;
-}
-
-Value& Value::operator-=(const Value& rhs)
-{
-	if (type == 0x2A && rhs.type == 0x2A)
-		valuef -= rhs.valuef;
-	else
-	{
-		assert(false);
-		//Runtime("Attempt to subtract invalid types in native code! (good luck)");
-	}
-	return *this;
-}
-
-Value& Value::operator*=(const Value& rhs)
-{
-	if (type == 0x2A && rhs.type == 0x2A)
-		valuef *= rhs.valuef;
-	else
-	{
-		assert(false);
-		//Runtime("Attempt to multiply invalid types in native code! (good luck)");
-	}
-	return *this;
-}
-
-Value& Value::operator/=(const Value& rhs)
-{
-	if (type == 0x2A && rhs.type == 0x2A)
-		valuef /= rhs.valuef;
-	else
-	{
-		assert(false);
-		//Runtime("Attempt to divide invalid types in native code! (good luck)");
-	}
-	return *this;
-}
-
-#define VALOPS(ret, l, r, op) inline ret operator op(l lhs, r rhs) { return lhs op##= rhs; }
-#define ALLVALOPS(ret, l, r) VALOPS(ret, l, r, +); VALOPS(ret, l, r, -); VALOPS(ret, l, r, *); VALOPS(ret, l, r, /);
-
-ALLVALOPS(Value, Value, Value&)
-ALLVALOPS(Value, Value, float)
-ALLVALOPS(Value, Value, std::string)
-
-Value List::at(int index)
+Value List::at(int index) const
 {
 	return list->vector_part[index];
 }
 
-Value List::at(Value key)
+Value List::at(Value key) const
 {
 	return GetAssocElement(0x0F, id, key.type, key.value);
 }
@@ -220,12 +170,12 @@ Container::Container()
 	IncRefCount(0x0F, id);
 }
 
-Container::Container(DataType type, int id) : type(type), id(id)
+Container::Container(const DataType type, const int id) : type(type), id(id)
 {
 	IncRefCount(type, id);
 }
 
-Container::Container(Value val) : type(val.type), id(val.value)
+Container::Container(const Value val) : type(val.type), id(val.value)
 {
 	IncRefCount(type, id);
 }
@@ -235,27 +185,27 @@ Container::~Container()
 	DecRefCount(type, id);
 }
 
-unsigned int Container::length()
+unsigned int Container::length() const
 {
 	return Length(type, id);
 }
 
-Value Container::at(unsigned int index)
+Value Container::at(unsigned int index) const
 {
-	return at(Value(index+1));
+	return at(Value::Number(index+1));
 }
 
-Value Container::at(Value key)
+Value Container::at(Value key) const
 {
 	return GetAssocElement(type, id, key.type, key.value);
 }
 
-ContainerProxy::operator Value()
+ContainerProxy::operator Value() const
 {
 	return GetAssocElement(c.type, c.id, key.type, key.value);
 }
 
-void ContainerProxy::operator=(Value val)
+void ContainerProxy::operator=(Value val) const
 {
 	SetAssocElement(c.type, c.id, key.type, key.value, val.type, val.value);
 }

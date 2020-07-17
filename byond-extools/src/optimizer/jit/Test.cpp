@@ -26,9 +26,16 @@ static std::ofstream bytecode_out("bytecode.txt");
 static std::ofstream blocks_out("blocks.txt");
 static asmjit::JitRuntime rt;
 
+struct JittedInfo
+{
+	void* code_base;
+	bool needs_sleep;
 
+	JittedInfo(void* cb, bool ns) : code_base(cb), needs_sleep(ns) {}
+	JittedInfo() : code_base(nullptr), needs_sleep(true) {}
+};
 
-static robin_hood::unordered_map<unsigned int, void*> jitted_procs;
+static robin_hood::unordered_map<unsigned int, JittedInfo> jitted_procs;
 
 // How much to shift when using x86::ptr - [base + (offset << shift)]
 unsigned int shift(const unsigned int n)
@@ -112,7 +119,22 @@ static std::map<unsigned int, ProcBlock> split_into_blocks(Disassembly& dis, DMC
 			current_block_offset = i.offset()+i.size();
 			blocks[current_block_offset] = ProcBlock(current_block_offset);
 		}
-		else if (i == Bytecode::SLEEP || i == Bytecode::CALLGLOB || i == Bytecode::CALL || i == Bytecode::CALLNR)
+		else if (i == Bytecode::SLEEP)
+		{
+			need_sleep = true;
+			current_block_offset = i.offset() + i.size();
+			blocks[current_block_offset] = ProcBlock(current_block_offset);
+		}
+		else if (i == Bytecode::CALLGLOB)
+		{
+			if(!need_sleep)
+			{
+				need_sleep = jitted_procs[i.bytes().at(2)].needs_sleep;
+			}
+			current_block_offset = i.offset() + i.size();
+			blocks[current_block_offset] = ProcBlock(current_block_offset);
+		}
+		else if (i == Bytecode::CALL || i == Bytecode::CALLNR)
 		{
 			need_sleep = true;
 			current_block_offset = i.offset() + i.size();
@@ -171,11 +193,17 @@ static unsigned int add_strings(unsigned int str1, unsigned int str2)
 	return Core::GetStringId(Core::GetStringFromId(str1) + Core::GetStringFromId(str2));
 }
 
-static void Emit_GenericBinaryOp(DMCompiler& dmc, Bytecode op_type);
-
-static void Emit_BinaryOp(DMCompiler& dmc, Bytecode op_type, DataType optimize_for = DataType::NULL_D)
+static void Emit_StringAddition(DMCompiler& dmc)
 {
-	Emit_GenericBinaryOp(dmc, op_type);
+	auto [lhs, rhs] = dmc.popStack<2>();
+	const Variable result = dmc.pushStack(Imm(DataType::NUMBER), Imm(0));
+	
+	InvokeNode* call;
+	dmc.invoke(&call, reinterpret_cast<uint32_t>(add_strings), FuncSignatureT<unsigned int, unsigned int, unsigned int>());
+	call->setArg(0, lhs.Value);
+	call->setArg(1, rhs.Value);
+	call->setRet(0, result.Value);
+	dmc.mov(result.Type, Imm(DataType::STRING));
 }
 
 static void Emit_GenericBinaryOp(DMCompiler& dmc, Bytecode op_type)
@@ -248,6 +276,16 @@ static void Emit_GenericBinaryOp(DMCompiler& dmc, Bytecode op_type)
 	dmc.bind(done_adding_strings);
 }
 
+static void Emit_BinaryOp(DMCompiler& dmc, Bytecode op_type, DataType optimize_for = DataType::NULL_D)
+{
+	if (op_type == ADD && optimize_for == STRING)
+	{
+		Emit_StringAddition(dmc);
+		return;
+	}
+	Emit_GenericBinaryOp(dmc, op_type);
+}
+
 static void Emit_CallGlobal(DMCompiler& dmc, uint32_t arg_count, uint32_t proc_id)
 {
 	x86::Mem args = dmc.newStack(sizeof(Value) * arg_count, 4);
@@ -292,7 +330,7 @@ static void Emit_CallGlobal(DMCompiler& dmc, uint32_t arg_count, uint32_t proc_i
 	auto proc_it = jitted_procs.find(proc_id);
 	if (proc_it != jitted_procs.end())
 	{
-		void* code_base = proc_it->second;
+		void* code_base = proc_it->second.code_base;
 		InvokeNode* call;
 		dmc.invoke(&call, reinterpret_cast<uint64_t>(JitEntryPoint), FuncSignatureT<asmjit::Type::I64, void*, int, Value*, int, int, int, int, JitContext*>());
 		call->setArg(0, imm(code_base));
@@ -684,7 +722,6 @@ __declspec(naked) ExecutionContext* just_before_execution_hook()
 static void hook_resumption()
 {
 	wrapper_id = Core::get_proc("/proc/jit_wrapper").id;
-
 	oSuspend = Core::install_hook(Suspend, hSuspend);
 
 	DWORD old_prot;
@@ -713,7 +750,8 @@ trvh JitEntryPoint(void* code_base, const unsigned int args_len, Value* const ar
 	{
 		ctx = new JitContext();
 	}
-	const Proc code = static_cast<Proc>(code_base);
+	
+	const Proc code = reinterpret_cast<Proc>(code_base);
 
 	const ProcResult res = code(ctx, args_len, args, src, usr);
 
@@ -808,7 +846,7 @@ static void compile(std::vector<Core::Proc*> procs, DMCompiler* parent_compiler 
 	for (size_t i = 0; i < procs.size(); i++)
 	{
 		void* entrypoint = reinterpret_cast<void*>(reinterpret_cast<uint32_t>(code_base) + code.labelOffset(entrypoints.at(i)));
-		jitted_procs[procs.at(i)->id] = entrypoint;
+		jitted_procs.emplace(procs.at(i)->id, JittedInfo(entrypoint, false ));
 		jit_out << procs.at(i)->name << ": " << entrypoint << std::endl;
 	}
 	fflush(fuck);
@@ -817,7 +855,7 @@ static void compile(std::vector<Core::Proc*> procs, DMCompiler* parent_compiler 
 void* compile_one(Core::Proc& proc)
 {
 	compile({ &proc });
-	return jitted_procs[proc.id]; //todo
+	return jitted_procs[proc.id].code_base; //todo
 }
 
 EXPORT const char* jit_test(int n_args, const char** args)

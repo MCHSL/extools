@@ -24,21 +24,20 @@ public:
 	virtual void Disassemble(Context* context, Disassembler* dism);
 	virtual unsigned int arguments() const { return 0; }
 
-
 	unsigned int size() { return bytes().size(); }
 
 	std::vector<std::uint32_t>& bytes() { return bytes_; }
-	void add_byte(std::uint32_t byte);
-	const std::string bytes_str() const;
+	void add_byte(const std::uint32_t byte);
+	[[nodiscard]] const std::string bytes_str() const;
 
 	Opcode& opcode() { return opcode_; }
-	const Opcode& opcode() const { return opcode_; }
+	[[nodiscard]] const Opcode& opcode() const { return opcode_; }
 
-	std::string comment() { return comment_; }
-	void set_comment(std::string comment) { comment_ = comment; }
-	void add_comment(std::string comment) { comment_ += comment; }
+	[[nodiscard]] std::string comment() const { return comment_; }
+	void set_comment(const std::string&& comment) { comment_ = comment; }
+	void add_comment(const std::string& comment) { comment_ += comment; }
 
-	std::uint16_t offset() const { return offset_; }
+	[[nodiscard]] std::uint16_t offset() const { return offset_; }
 	void set_offset(std::uint16_t offset) { offset_ = offset; }
 
 	bool operator==(const Bytecode rhs);
@@ -47,8 +46,8 @@ public:
 	std::vector<unsigned short>& jump_locations() { return jump_locations_; }
 	void add_jump(unsigned short off) { jump_locations_.push_back(off); }
 
-	std::vector<std::string> extra_info() { return extra_info_; }
-	void add_info(std::string s) { extra_info_.push_back(s); }
+	[[nodiscard]] const std::vector<std::string>& extra_info() const { return extra_info_; }
+	void add_info(const std::string&& s) { extra_info_.push_back(s); }
 
 	std::pair<AccessModifier, unsigned int> acc_base;
 	std::vector<unsigned int> acc_chain;
