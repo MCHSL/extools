@@ -47,6 +47,10 @@ struct ProcStackFrame
 	Value usr;
 	Value dot;
 
+	// This holds the last accessed datum. If getvar or setvar doesn't specify what to read from, it's this.
+	// By default cached is set to src.
+	Value cached;
+
 	// These variable-length arrays follow in memory, but are not strictly part of this struct
 	// Value[] args;
 	// Value[] locals;

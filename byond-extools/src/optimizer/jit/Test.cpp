@@ -188,7 +188,6 @@ static void print_jit_runtime(const char* err)
 
 static void Emit_Abort(DMCompiler& dmc, const char* message)
 {
-	static const char err[] = "JIT Runtime";
 	//dmc.clearStack();
 	InvokeNode* call;
 	dmc.invoke(&call, reinterpret_cast<uint32_t>(print_jit_runtime), FuncSignatureT<void, char*>());
@@ -593,7 +592,7 @@ static void Emit_Sleep(DMCompiler& dmc)
 	dmc.doSleep();
 }
 
-static void Emit_FieldAccess(DMCompiler& dmc, const Instruction& instr)
+static void Emit_FieldRead(DMCompiler& dmc, const Instruction& instr)
 {
 	const auto& base = instr.acc_base;
 	Variable base_var;
@@ -613,6 +612,8 @@ static void Emit_FieldAccess(DMCompiler& dmc, const Instruction& instr)
 		break;
 	}
 
+	dmc.setCached(base_var);
+
 	for (unsigned int name : instr.acc_chain)
 	{
 		auto* call = dmc.call((uint64_t)GetVariable, FuncSignatureT<asmjit::Type::I64, int, int, int>());
@@ -623,7 +624,67 @@ static void Emit_FieldAccess(DMCompiler& dmc, const Instruction& instr)
 		call->setRet(1, base_var.Value);
 	}
 
+
 	dmc.pushStackRaw(base_var);
+}
+
+static void Emit_FieldWrite(DMCompiler& dmc, const Instruction& instr)
+{
+	Variable new_value = dmc.popStack();
+	const auto& base = instr.acc_base;
+	Variable base_var;
+	switch (base.first)
+	{
+	case AccessModifier::ARG:
+		base_var = dmc.getArg(base.second);
+		break;
+	case AccessModifier::LOCAL:
+		base_var = dmc.getLocal(base.second);
+		break;
+	case AccessModifier::SRC:
+		base_var = dmc.getSrc();
+		break;
+	default:
+		if(base.first > 64000)
+		{
+			Core::Alert("Unknown access modifier in jit get_variable");
+		}
+		break;
+	}
+
+	dmc.setCached(base_var);
+
+	for (unsigned int i=0; i<instr.acc_chain.size() - 1; i++)
+	{
+		const unsigned int name = instr.acc_chain.at(i);
+		auto* call = dmc.call((uint64_t)GetVariable, FuncSignatureT<asmjit::Type::I64, int, int, int>());
+		call->setArg(0, base_var.Type);
+		call->setArg(1, base_var.Value);
+		call->setArg(2, imm(name));
+		call->setRet(0, base_var.Type);
+		call->setRet(1, base_var.Value);
+	}
+
+	const unsigned int final_field_name = instr.acc_chain.back();
+	auto* call = dmc.call((uint64_t)SetVariable, FuncSignatureT<void, int, int, int, int, int>());
+	call->setArg(0, base_var.Type);
+	call->setArg(1, base_var.Value);
+	call->setArg(2, imm(final_field_name));
+	call->setArg(3, new_value.Type);
+	call->setArg(4, new_value.Value);
+
+}
+
+static void Emit_GetCachedField(DMCompiler& dmc, const unsigned int name)
+{
+	const Variable result = dmc.pushStack();
+	const Variable cached = dmc.getCached();
+	auto* call = dmc.call((uint64_t)GetVariable, FuncSignatureT<asmjit::Type::I64, int, int, int>());
+	call->setArg(0, cached.Type);
+	call->setArg(1, cached.Value);
+	call->setArg(2, imm(name));
+	call->setRet(0, result.Type);
+	call->setRet(1, result.Value);
 }
 
 static bool Emit_Block(DMCompiler& dmc, ProcBlock& block, std::map<unsigned int, ProcBlock>& blocks)
@@ -663,6 +724,9 @@ static bool Emit_Block(DMCompiler& dmc, ProcBlock& block, std::map<unsigned int,
 				dmc.setInlineComment("set dot");
 				dmc.setDot(dmc.popStack());
 				break;
+			case AccessModifier::SUBVAR:
+				Emit_FieldWrite(dmc, instr);
+				break;
 			default:
 				Core::Alert("Failed to assemble setvar ");
 				break;
@@ -684,11 +748,17 @@ static bool Emit_Block(DMCompiler& dmc, ProcBlock& block, std::map<unsigned int,
 				dmc.pushStackRaw(dmc.getDot());
 				break;
 			case AccessModifier::SUBVAR:
-				Emit_FieldAccess(dmc, instr);
+				Emit_FieldRead(dmc, instr);
 				break;
 			default:
-				Core::Alert("Failed to assemble getvar");
-				Core::Alert(instr.bytes()[1]);
+				if(instr.bytes()[1] > 64000)
+				{
+					Core::Alert("Failed to assemble getvar");
+				}
+				else
+				{
+					Emit_GetCachedField(dmc, instr.bytes()[1]);
+				}
 				break;
 			}
 			break;
@@ -740,7 +810,7 @@ static bool Emit_Block(DMCompiler& dmc, ProcBlock& block, std::map<unsigned int,
 			i += 2;
 			break;
 		case Bytecode::ITERATOR_PUSH:
-			break; //What this opcode does is already handled in ITERLOAD
+			break; // What this opcode does is already handled in ITERLOAD
 		case Bytecode::ITERATOR_POP:
 			jit_out << "Assembling iterator pop" << std::endl;
 			Emit_Iterpop(dmc);

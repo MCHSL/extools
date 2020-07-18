@@ -82,6 +82,9 @@ public:
 	Variable getDot();
 	void setDot(const Variable& variable);
 
+	Variable getCached();
+	void setCached(const Variable& variable);
+
 	template<std::size_t I>
 	std::array<Variable, I> popStack()
 	{

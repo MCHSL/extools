@@ -79,7 +79,7 @@ ProcNode* DMCompiler::addProc(uint32_t locals_count, uint32_t args_count, bool z
 	x86::Gp new_frame = getStackFramePtr();
 	mov(x86::dword_ptr(new_frame, offsetof(ProcStackFrame, previous)), previous);
 
-	static_assert(sizeof(ProcStackFrame) == sizeof(Value) * 5);
+	static_assert(sizeof(ProcStackFrame) == sizeof(Value) * 6);
 	//mov(x86::ptr(stack_top, offsetof(Value, type), sizeof(uint32_t)), old_stack_frame);
 	//mov(x86::ptr(stack_top, offsetof(Value, value), sizeof(uint32_t)), old_stack_frame);
 	add(x86::dword_ptr(_currentProc->_jit_context, offsetof(JitContext, stack_top)), sizeof(ProcStackFrame));
@@ -90,18 +90,17 @@ ProcNode* DMCompiler::addProc(uint32_t locals_count, uint32_t args_count, bool z
 
 	x86::Gp args_ptr = newUInt32("args_ptr");
 	x86::Gp arg_count = newUInt32("arg_count");
-	x86::Gp frame = getStackFramePtr();
 	setArg(1, arg_count);
 	setArg(2, args_ptr);
-	x86::Gp copier = newUInt32("arg type");
+	x86::Gp copier = newUInt32("copier");
 	//todo: have the loop read the actual arg count and not the procnode one
 	for (uint32_t i = 0; i < args_count; i++) // Copy args to stack frame
 	{
 		setInlineComment((std::string("mov arg ") + std::to_string(i)).c_str());
 		mov(copier, x86::dword_ptr(args_ptr, i * sizeof(Value) + offsetof(Value, type)));
-		mov(x86::dword_ptr(frame, sizeof(ProcStackFrame) + i * sizeof(Value) + offsetof(Value, type)), copier);
+		mov(x86::dword_ptr(new_frame, sizeof(ProcStackFrame) + i * sizeof(Value) + offsetof(Value, type)), copier);
 		mov(copier, x86::dword_ptr(args_ptr, i * sizeof(Value) + offsetof(Value, value)));
-		mov(x86::dword_ptr(frame, sizeof(ProcStackFrame) + i * sizeof(Value) + offsetof(Value, value)), copier);
+		mov(x86::dword_ptr(new_frame, sizeof(ProcStackFrame) + i * sizeof(Value) + offsetof(Value, value)), copier);
 	}
 
 	// Set src type and value
@@ -114,6 +113,8 @@ ProcNode* DMCompiler::addProc(uint32_t locals_count, uint32_t args_count, bool z
 
 	// Set the current iterator to nullptr
 	mov(x86::ptr(new_frame, offsetof(ProcStackFrame, current_iterator), sizeof(uint32_t)), Imm(0));
+
+	
 
 	// Set parent execution context
 	/*x86::Gp parent_ctx_ptr = newUIntPtr("parent context pointer");
@@ -315,6 +316,19 @@ void DMCompiler::setDot(const Variable& variable)
 	mov(x86::dword_ptr(dot, offsetof(Value, value)), variable.Value.as<x86::Gp>());
 }
 
+Variable DMCompiler::getCached()
+{
+	return getFrameEmbeddedValue(offsetof(ProcStackFrame, cached));
+}
+
+void DMCompiler::setCached(const Variable& variable)
+{
+	auto dot = newUInt32("dot");
+	lea(dot, x86::ptr(getStackFramePtr(), offsetof(ProcStackFrame, cached)));
+	mov(x86::dword_ptr(dot, offsetof(Value, type)), variable.Type.as<x86::Gp>());
+	mov(x86::dword_ptr(dot, offsetof(Value, value)), variable.Value.as<x86::Gp>());
+}
+
 void DMCompiler::pushStackRaw(const Variable& variable)
 {
 	if (_currentBlock == nullptr)
@@ -405,7 +419,7 @@ void DMCompiler::commitLocals()
 		case Local::CacheState::Ok:
 			break;
 		case Local::CacheState::Modified:
-			mov(x86::ptr(stack_frame, sizeof(ProcStackFrame) + sizeof(Value) * proc._args_count +  i * sizeof(Value) + offsetof(Value, type), sizeof(uint32_t)), local.Variable.Type.as<x86::Gp>());
+			mov(x86::ptr(stack_frame, sizeof(ProcStackFrame) + sizeof(Value) * proc._args_count + i * sizeof(Value) + offsetof(Value, type), sizeof(uint32_t)), local.Variable.Type.as<x86::Gp>());
 			mov(x86::ptr(stack_frame, sizeof(ProcStackFrame) + sizeof(Value) * proc._args_count + i * sizeof(Value) + offsetof(Value, value), sizeof(uint32_t)), local.Variable.Value.as<x86::Gp>());
 
 			// i can't decide if this is valid
@@ -462,6 +476,7 @@ x86::Gp DMCompiler::getStackFramePtr()
 {
 	if(_currentProc == nullptr)
 		__debugbreak();
+	mov(_currentProc->_stack_frame, x86::dword_ptr(_currentProc->_jit_context, offsetof(JitContext, stack_frame)));
 	return _currentProc->_stack_frame;
 }
 
