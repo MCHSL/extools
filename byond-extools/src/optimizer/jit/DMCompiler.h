@@ -93,7 +93,7 @@ public:
 		int popped_count = 0;
 
 		// The stack cache could be empty if something was pushed to it before jumping to a new block
-		for (popped_count; popped_count < I && !block._stack.empty(); popped_count++)
+		for (; popped_count < I && !block._stack.empty(); popped_count++)
 		{
 			res[I - popped_count - 1] = block._stack.pop(); // Pop and place in correct order
 		}
@@ -104,7 +104,7 @@ public:
 			return res;
 		}
 
-		int diff = I - popped_count;
+		const int diff = I - popped_count;
 
 		setInlineComment("popStack (overpopped)");
 
@@ -112,10 +112,10 @@ public:
 		mov(stack_top, x86::dword_ptr(_currentProc->_jit_context, offsetof(JitContext, stack_top)));
 		//add(stack_top, block._stack_top_offset * sizeof(Value));
 
-		for (popped_count; popped_count < I; popped_count++)
+		for (; popped_count < I; popped_count++)
 		{
-			auto type = newUInt32("pop_type");
-			auto value = newUInt32("pop_value");
+			const auto type = newUInt32("pop_type");
+			const auto value = newUInt32("pop_value");
 			mov(type, x86::ptr(stack_top, (block._stack_top_offset - popped_count) * sizeof(Value) - sizeof(Value), sizeof(uint32_t)));
 			mov(value, x86::ptr(stack_top, (block._stack_top_offset - popped_count) * sizeof(Value) - offsetof(Value, value), sizeof(uint32_t)));
 			res[I - popped_count - 1] = { type, value };
@@ -166,7 +166,7 @@ public:
 	void setCurrentIterator(Operand iter);
 
 	// Returns the value at the top of the stack
-	void doReturn();
+	void doReturn(bool immediate = false);
 
 	// Pauses execution until called again
 	void doYield();
@@ -236,6 +236,7 @@ public:
 		DMCompiler& dmc = *static_cast<DMCompiler*>(cb);
 
 		_jit_context = dmc.newUIntPtr("_jit_context");
+		_stack_frame = dmc.newUIntPtr("stack_frame");
 		//_current_iterator = dmc.newUIntPtr("_current_iterator");
 		_prolog = dmc.newLabel();
 		_continuationPointTable = dmc.newLabel();
@@ -268,7 +269,7 @@ public:
 	}
 
 	x86::Gp _jit_context;
-	//x86::Gp _stack_frame;
+	x86::Gp _stack_frame;
 	//x86::Gp _current_iterator;
 
 	bool needs_sleep;

@@ -27,6 +27,7 @@ public:
 	unsigned int size() { return bytes().size(); }
 
 	std::vector<std::uint32_t>& bytes() { return bytes_; }
+	[[nodiscard]] const std::vector<std::uint32_t>& bytes() const { return bytes_; }
 	void add_byte(const std::uint32_t byte);
 	[[nodiscard]] const std::string bytes_str() const;
 

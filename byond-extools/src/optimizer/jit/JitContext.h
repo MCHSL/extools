@@ -99,8 +99,8 @@ struct JitContext
 
 	JitContext(JitContext&& src) noexcept
 		: stack(std::exchange(src.stack, nullptr))
-		, stack_allocated(std::exchange(src.stack_allocated, 0))
 		, stack_top(std::exchange(src.stack_top, nullptr))
+		, stack_allocated(std::exchange(src.stack_allocated, 0))
 		, stack_frame(std::exchange(src.stack_frame, nullptr))
 		, suspended(std::exchange(src.suspended, false))
 	{}
@@ -116,12 +116,12 @@ struct JitContext
 	}
 
 	// The number of slots in use
-	size_t Count()
+	[[nodiscard]] size_t Count() const
 	{
 		return stack_top - stack;
 	}
 
-	size_t CountFrame()
+	[[nodiscard]] size_t CountFrame() const
 	{
 		return ((int)stack_top - (int)stack_frame) / sizeof(Value);
 	}
@@ -130,7 +130,7 @@ struct JitContext
 	// Called by JitProc prologues
 	void Reserve(size_t slots)
 	{
-		size_t free_slots = stack_allocated - Count();
+		const size_t free_slots = stack_allocated - Count();
 
 		if (free_slots >= slots)
 			return;

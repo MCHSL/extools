@@ -28,9 +28,13 @@ struct FreeContext
 
 };
 
+#define FEATURE_JIT
+#define FEATURE_PROC_HOOKING
+
 trvh REGPARM3 hCallGlobalProc(char usr_type, int usr_value, int proc_type, unsigned int proc_id, int const_0, DataType src_type, int src_value, Value *argList, unsigned char argListLen, int const_0_2, int const_0_3)
 {
-	auto jit_hooks_it = jit_hooks.find((unsigned short)proc_id);
+#ifdef FEATURE_JIT
+	const auto jit_hooks_it = jit_hooks.find((unsigned short)proc_id);
 	if (jit_hooks_it != jit_hooks.end())
 	{
 		// The first two Values passed as args to the jit wrapper contain the function code and the jit context.
@@ -54,9 +58,12 @@ trvh REGPARM3 hCallGlobalProc(char usr_type, int usr_value, int proc_type, unsig
 		}
 		return result;
 	}
-
+#endif
+#ifdef FEATURE_EXTENDED_PROFILING
 	Core::extended_profiling_insanely_hacky_check_if_its_a_new_call_or_resume = proc_id;
-	auto proc_hooks_it = proc_hooks.find((unsigned short)proc_id);
+#endif
+#ifdef FEATURE_PROC_HOOKING
+	const auto proc_hooks_it = proc_hooks.find((unsigned short)proc_id);
 	if (proc_hooks_it != proc_hooks.end())
 	{
 		trvh result = proc_hooks_it->second(argListLen, argList, src_type ? Value(src_type, src_value) : static_cast<Value>(Value::Null()));
@@ -66,8 +73,11 @@ trvh REGPARM3 hCallGlobalProc(char usr_type, int usr_value, int proc_type, unsig
 		}
 		return result;
 	}
-	trvh result = oCallGlobalProc(usr_type, usr_value, proc_type, proc_id, const_0, src_type, src_value, argList, argListLen, const_0_2, const_0_3);
+#endif
+	const trvh result = oCallGlobalProc(usr_type, usr_value, proc_type, proc_id, const_0, src_type, src_value, argList, argListLen, const_0_2, const_0_3);
+#ifdef FEATURE_EXTENDED_PROFILING
 	Core::extended_profiling_insanely_hacky_check_if_its_a_new_call_or_resume = -1;
+#endif
 	return result;
 }
 

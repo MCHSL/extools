@@ -32,7 +32,7 @@ struct JittedInfo
 	bool needs_sleep;
 
 	JittedInfo(void* cb, bool ns) : code_base(cb), needs_sleep(ns) {}
-	JittedInfo() : code_base(nullptr), needs_sleep(true) {}
+	JittedInfo() : code_base(nullptr), needs_sleep(true) {} //by default assume that a proc needs sleep
 };
 
 static robin_hood::unordered_map<unsigned int, JittedInfo> jitted_procs;
@@ -84,6 +84,15 @@ static std::map<unsigned int, ProcBlock> split_into_blocks(Disassembly& dis, DMC
 			case AccessModifier::ARG:
 				args_max_count = std::max(args_max_count, i.bytes()[2] + 1);
 				break;
+			case AccessModifier::SUBVAR:
+				if (i.acc_base.first == AccessModifier::LOCAL)
+				{
+					locals_max_count = std::max(locals_max_count, i.acc_base.second + 1);
+				}
+				else if(i.acc_base.first == AccessModifier::ARG)
+				{
+					args_max_count = std::max(args_max_count, i.acc_base.second + 1);
+				}
 			default:
 				break;
 			}
@@ -129,7 +138,11 @@ static std::map<unsigned int, ProcBlock> split_into_blocks(Disassembly& dis, DMC
 		{
 			if(!need_sleep)
 			{
-				need_sleep = jitted_procs[i.bytes().at(2)].needs_sleep;
+				auto jitted_it = jitted_procs.find(i.bytes().at(2));
+				if(jitted_it != jitted_procs.end())
+				{
+					need_sleep = jitted_it->second.needs_sleep;
+				}
 			}
 			current_block_offset = i.offset() + i.size();
 			blocks[current_block_offset] = ProcBlock(current_block_offset);
@@ -168,6 +181,22 @@ static float DecodeFloat(uint32_t i)
 	return *reinterpret_cast<float*>(&i);
 }
 
+static void print_jit_runtime(const char* err)
+{
+	Core::alert_dd(err);
+}
+
+static void Emit_Abort(DMCompiler& dmc, const char* message)
+{
+	static const char err[] = "JIT Runtime";
+	//dmc.clearStack();
+	InvokeNode* call;
+	dmc.invoke(&call, reinterpret_cast<uint32_t>(print_jit_runtime), FuncSignatureT<void, char*>());
+	call->setArg(0, imm(message));
+	dmc.pushStack(imm(NULL_D), imm(0));
+	dmc.doReturn(true);
+}
+
 static void Emit_PushInteger(DMCompiler& dmc, float not_an_integer)
 {
 	dmc.pushStack(Imm(DataType::NUMBER), Imm(EncodeFloat(not_an_integer)));
@@ -193,11 +222,8 @@ static unsigned int add_strings(unsigned int str1, unsigned int str2)
 	return Core::GetStringId(Core::GetStringFromId(str1) + Core::GetStringFromId(str2));
 }
 
-static void Emit_StringAddition(DMCompiler& dmc)
+static void doStringAddition(DMCompiler& dmc, const Variable lhs, const Variable rhs, const Variable result)
 {
-	auto [lhs, rhs] = dmc.popStack<2>();
-	const Variable result = dmc.pushStack(Imm(DataType::NUMBER), Imm(0));
-	
 	InvokeNode* call;
 	dmc.invoke(&call, reinterpret_cast<uint32_t>(add_strings), FuncSignatureT<unsigned int, unsigned int, unsigned int>());
 	call->setArg(0, lhs.Value);
@@ -206,31 +232,8 @@ static void Emit_StringAddition(DMCompiler& dmc)
 	dmc.mov(result.Type, Imm(DataType::STRING));
 }
 
-static void Emit_GenericBinaryOp(DMCompiler& dmc, Bytecode op_type)
+static void doMathOperation(DMCompiler& dmc, const Bytecode op_type, const Variable lhs, const Variable rhs, const Variable result)
 {
-	auto [lhs, rhs] = dmc.popStack<2>();
-	const Variable result = dmc.pushStack(Imm(DataType::NUMBER), Imm(0));
-
-	const auto done_adding_strings = dmc.newLabel();
-	if (op_type == Bytecode::ADD)
-	{
-		const auto reg = dmc.newUInt32("lhs_type");
-		dmc.mov(reg, lhs.Type);
-
-		dmc.cmp(reg, Imm(DataType::STRING));
-		const auto notstring = dmc.newLabel();
-		dmc.jne(notstring);
-
-		InvokeNode* call;
-		dmc.invoke(&call, reinterpret_cast<uint32_t>(add_strings), FuncSignatureT<unsigned int, unsigned int, unsigned int>());
-		call->setArg(0, lhs.Value);
-		call->setArg(1, rhs.Value);
-		call->setRet(0, result.Value);
-		dmc.mov(result.Type, Imm(DataType::STRING));
-		dmc.jmp(done_adding_strings);
-		dmc.bind(notstring);
-	}
-
 	const auto xmm0 = dmc.newXmm("lhs");
 	const auto xmm1 = dmc.newXmm("rhs");
 
@@ -256,23 +259,87 @@ static void Emit_GenericBinaryOp(DMCompiler& dmc, Bytecode op_type)
 
 	switch (op_type)
 	{
-		case Bytecode::ADD:
-			dmc.addss(xmm0, xmm1);
-			break;
-		case Bytecode::SUB:
-			dmc.subss(xmm0, xmm1);
-			break;
-		case Bytecode::MUL:
-			dmc.mulss(xmm0, xmm1);
-			break;
-		case Bytecode::DIV:
-			dmc.divss(xmm0, xmm1);
-			break;
-		default:
-			Core::Alert("Unknown binary operation");
+	case Bytecode::ADD:
+		dmc.addss(xmm0, xmm1);
+		break;
+	case Bytecode::SUB:
+		dmc.subss(xmm0, xmm1);
+		break;
+	case Bytecode::MUL:
+		dmc.mulss(xmm0, xmm1);
+		break;
+	case Bytecode::DIV:
+		dmc.divss(xmm0, xmm1);
+		break;
+	default:
+		Core::Alert("Unknown math operation");
 	}
 
+	dmc.mov(result.Type, NUMBER);
 	dmc.movd(result.Value, xmm0);
+}
+
+static void Emit_StringAddition(DMCompiler& dmc)
+{
+	const auto [lhs, rhs] = dmc.popStack<2>();
+	const auto result = dmc.pushStack();
+	doStringAddition(dmc, lhs, rhs, result);
+}
+
+static void Emit_MathOp(DMCompiler& dmc, const Bytecode op_type)
+{
+	auto [lhs, rhs] = dmc.popStack<2>();
+	const Variable result = dmc.pushStack();
+	doMathOperation(dmc, op_type, lhs, rhs, result);
+}
+
+static void Emit_GenericBinaryOp(DMCompiler& dmc, Bytecode op_type)
+{
+	auto [lhs, rhs] = dmc.popStack<2>();
+	const Variable result = dmc.pushStack(Imm(DataType::NUMBER), Imm(0));
+	const auto type_comparator = dmc.newUInt32("type_comparator");
+	const auto done_adding_strings = dmc.newLabel();
+	const auto invalid_arguments = dmc.newLabel();
+
+	// At least one of the operands to cmp needs to be a register.
+	if(!lhs.Type.isReg())
+	{
+		dmc.mov(type_comparator, lhs.Type);
+		dmc.cmp(type_comparator, rhs.Type);
+	}
+	else if(!rhs.Type.isReg())
+	{
+		dmc.mov(type_comparator, rhs.Type);
+		dmc.cmp(type_comparator, lhs.Type);
+	}
+	else
+	{
+		dmc.cmp(lhs.Type, rhs.Type);
+	}
+	dmc.jne(invalid_arguments);
+
+	if (op_type == Bytecode::ADD)
+	{
+		const auto notstring = dmc.newLabel();
+		
+		dmc.mov(type_comparator, lhs.Type);
+		dmc.cmp(type_comparator, Imm(DataType::STRING));
+		dmc.jne(notstring);
+
+		dmc.mov(type_comparator, rhs.Type);
+		dmc.cmp(type_comparator, Imm(DataType::STRING));
+		dmc.jne(notstring);
+		
+		doStringAddition(dmc, lhs, rhs, result);
+		dmc.jmp(done_adding_strings);
+		
+		dmc.bind(notstring);
+	}
+
+	doMathOperation(dmc, op_type, lhs, rhs, result);
+	dmc.jmp(done_adding_strings);
+	dmc.bind(invalid_arguments);
+	Emit_Abort(dmc, "Runtime in JIT compiled function: Invalid operand types for binary operation");
 	dmc.bind(done_adding_strings);
 }
 
@@ -281,6 +348,11 @@ static void Emit_BinaryOp(DMCompiler& dmc, Bytecode op_type, DataType optimize_f
 	if (op_type == ADD && optimize_for == STRING)
 	{
 		Emit_StringAddition(dmc);
+		return;
+	}
+	if(optimize_for == NUMBER)
+	{
+		Emit_MathOp(dmc, op_type);
 		return;
 	}
 	Emit_GenericBinaryOp(dmc, op_type);
@@ -398,10 +470,10 @@ static void Emit_Iterload(DMCompiler& dmc)
 {
 	const auto list = dmc.popStack();
 	const auto new_iter = dmc.newUIntPtr("new iterator");
+	const auto stack = dmc.getStackFramePtr();
 	InvokeNode* create_iter;
 	dmc.invoke(&create_iter, reinterpret_cast<uint64_t>(create_iterator), FuncSignatureT<int*, int*, int>());
-	const auto stack_frame_ptr = dmc.getStackFramePtr();
-	create_iter->setArg(0, stack_frame_ptr);
+	create_iter->setArg(0, stack);
 	create_iter->setArg(1, list.Value);
 	create_iter->setRet(0, new_iter);
 	dmc.setCurrentIterator(new_iter);
@@ -419,7 +491,7 @@ static void Emit_Iterpop(DMCompiler& dmc)
 
 // DM bytecode pushes the next value to the stack, immediately sets a local variable to it then checks to zero flag.
 // Doing it the same way by compiling the next few instructions would screw up our zero flag, so we do all of it here.
-static void Emit_Iternext(DMCompiler& dmc, Instruction& setvar, Instruction& jmp, std::map<unsigned int, ProcBlock>& blocks)
+static void Emit_Iternext(DMCompiler& dmc, const Instruction& setvar, const Instruction& jmp, const std::map<unsigned int, ProcBlock>& blocks)
 {
 	const auto current_iter = dmc.getCurrentIterator();
 	const auto reg = dmc.newUInt32("list_len_comparator");
@@ -521,6 +593,39 @@ static void Emit_Sleep(DMCompiler& dmc)
 	dmc.doSleep();
 }
 
+static void Emit_FieldAccess(DMCompiler& dmc, const Instruction& instr)
+{
+	const auto& base = instr.acc_base;
+	Variable base_var;
+	switch (base.first)
+	{
+	case AccessModifier::ARG:
+		base_var = dmc.getArg(base.second);
+		break;
+	case AccessModifier::LOCAL:
+		base_var = dmc.getLocal(base.second);
+		break;
+	case AccessModifier::SRC:
+		base_var = dmc.getSrc();
+		break;
+	default:
+		Core::Alert("Unknown access modifier in jit get_variable");
+		break;
+	}
+
+	for (unsigned int name : instr.acc_chain)
+	{
+		auto* call = dmc.call((uint64_t)GetVariable, FuncSignatureT<asmjit::Type::I64, int, int, int>());
+		call->setArg(0, base_var.Type);
+		call->setArg(1, base_var.Value);
+		call->setArg(2, imm(name));
+		call->setRet(0, base_var.Type);
+		call->setRet(1, base_var.Value);
+	}
+
+	dmc.pushStackRaw(base_var);
+}
+
 static bool Emit_Block(DMCompiler& dmc, ProcBlock& block, std::map<unsigned int, ProcBlock>& blocks)
 {
 	/*block.node = */
@@ -577,6 +682,9 @@ static bool Emit_Block(DMCompiler& dmc, ProcBlock& block, std::map<unsigned int,
 				break;
 			case AccessModifier::DOT:
 				dmc.pushStackRaw(dmc.getDot());
+				break;
+			case AccessModifier::SUBVAR:
+				Emit_FieldAccess(dmc, instr);
 				break;
 			default:
 				Core::Alert("Failed to assemble getvar");
@@ -679,12 +787,8 @@ static ProcConstants* hSuspend(ExecutionContext* ctx, int unknown)
 	return oSuspend(ctx, unknown);
 }
 
-static ExecutionContext* fuck()
+static ExecutionContext* __fastcall fuck(ExecutionContext* dmctx)
 {
-	ExecutionContext* dmctx;
-	__asm {
-		mov dmctx, eax
-	}
 	ProcConstants* const pc = dmctx->constants;
 	// This flag might actually be something like "suspendable", doubt it though
 	dmctx->paused = true;
@@ -710,7 +814,8 @@ __declspec(naked) ExecutionContext* just_before_execution_hook()
 		mov ecx, DWORD PTR [wrapper_id]
 		cmp DWORD PTR [edx], ecx
 		jne yeet
-		call fuck
+		mov ecx, eax
+		call fuck // fastcall - the context must be passed in ecx
 		xor edx, edx
 		yeet:
 		ret
@@ -858,7 +963,7 @@ void* compile_one(Core::Proc& proc)
 	return jitted_procs[proc.id].code_base; //todo
 }
 
-EXPORT const char* jit_test(int n_args, const char** args)
+extern "C" EXPORT const char* jit_test(int n_args, const char** args)
 {
 	if (!Core::initialize())
 	{
@@ -867,7 +972,7 @@ EXPORT const char* jit_test(int n_args, const char** args)
 
 	hook_resumption();
 	//compile({&Core::get_proc("/proc/jit_test_compiled_proc"), &Core::get_proc("/proc/recursleep")});
-	Core::get_proc("/proc/tiny_proc").jit();
+	//Core::get_proc("/proc/tiny_proc").jit();
 	Core::get_proc("/proc/jit_test_compiled_proc").jit();
 	Core::get_proc("/proc/jit_wrapper").set_bytecode({ Bytecode::RET, Bytecode::RET, Bytecode::RET });
 	return Core::SUCCESS;
