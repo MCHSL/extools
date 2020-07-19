@@ -1,6 +1,7 @@
 #pragma once
 
 #include <unordered_map>
+#include <variant>
 #include "../core/byond_constants.h"
 
 enum Bytecode
@@ -199,16 +200,19 @@ enum AccessModifier
 	GLOBAL = 0xFFDB,
 	SUBVAR = 0xFFDC,
 
-	SRC_PROC_SPEC = 0xFFDD,
-	SRC_PROC = 0xFFDE,
-	PROC_ = 0xFFDF,
-	PROC_NO_RET = 0xFFE0,
-
 	WORLD = 0xFFE5,
 	NULL_ = 0xFFE6,
 };
 
-const std::unordered_map<AccessModifier, std::string> modifier_names = {
+enum ProcSelector
+{
+	SRC_PROC_SPEC = 0xFFDD,
+	SRC_PROC = 0xFFDE,
+	PROC_ = 0xFFDF,
+	PROC_NO_RET = 0xFFE0,
+};
+
+const std::unordered_map<std::variant<AccessModifier, ProcSelector>, std::string> modifier_names = {
 	{SRC, "SRC"},
 	{DOT, "DOT" },
 	{ARG, "ARG" },

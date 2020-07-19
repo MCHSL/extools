@@ -65,7 +65,7 @@ struct ProcBlock
 	//BlockNode* node;
 };
 
-static std::map<unsigned int, ProcBlock> split_into_blocks(Disassembly& dis, DMCompiler& dmc, size_t& locals_max_count, size_t& args_max_count, bool& need_sleep)
+static std::optional<std::map<unsigned int, ProcBlock>> split_into_blocks(Disassembly& dis, DMCompiler& dmc, size_t& locals_max_count, size_t& args_max_count, bool& need_sleep)
 {
 	std::map<unsigned int, ProcBlock> blocks;
 	unsigned int current_block_offset = 0;
@@ -152,6 +152,17 @@ static std::map<unsigned int, ProcBlock> split_into_blocks(Disassembly& dis, DMC
 			need_sleep = true;
 			current_block_offset = i.offset() + i.size();
 			blocks[current_block_offset] = ProcBlock(current_block_offset);
+			if(i.bytes()[1] == SUBVAR)
+			{
+				if (i.acc_base.first == AccessModifier::LOCAL)
+				{
+					locals_max_count = std::max(locals_max_count, i.acc_base.second + 1);
+				}
+				else if (i.acc_base.first == AccessModifier::ARG)
+				{
+					args_max_count = std::max(args_max_count, i.acc_base.second + 1);
+				}
+			}
 		}
 	}
 	
@@ -509,7 +520,7 @@ static void Emit_Iternext(DMCompiler& dmc, const Instruction& setvar, const Inst
 	dmc.setLocal(setvar.bytes().at(2), Variable{type, value});
 }
 
-static void Emit_Jump(DMCompiler& dmc, uint32_t target, std::map<unsigned int, ProcBlock>& blocks)
+static void Emit_Jump(DMCompiler& dmc, const uint32_t target, const std::map<unsigned int, ProcBlock>& blocks)
 {
 	dmc.jump(blocks.at(target).label);
 }
@@ -576,10 +587,18 @@ static void Emit_CreateList(DMCompiler& dmc, const uint64_t num_elements)
 
 }
 
-/*static void Emit_Output(DMCompiler& dmc)
+static void Emit_Output(DMCompiler& dmc)
 {
-
-}*/
+	auto [target, outputee] = dmc.popStack<2>();
+	InvokeNode* call;
+	dmc.invoke(&call, (uint64_t)Output, FuncSignatureT<bool, char, int, int, int, char, int>());
+	call->setArg(0, target.Type);
+	call->setArg(1, target.Value);
+	call->setArg(2, imm(0));
+	call->setArg(3, imm(0));
+	call->setArg(4, outputee.Type);
+	call->setArg(5, outputee.Value);
+}
 
 static void Emit_End(DMCompiler& dmc)
 {
@@ -687,14 +706,150 @@ static void Emit_GetCachedField(DMCompiler& dmc, const unsigned int name)
 	call->setRet(1, result.Value);
 }
 
-static bool Emit_Block(DMCompiler& dmc, ProcBlock& block, std::map<unsigned int, ProcBlock>& blocks)
+unsigned int translate_proc_name(unsigned int datum_type, unsigned int datum_id, unsigned int name)
+{
+	unsigned int omegalul;
+	return TranslateProcNameToProcId(0x02, name, 0, datum_type, datum_id, &omegalul, 1);
+}
+
+static void Emit_Call(DMCompiler& dmc, const Instruction& instr)
+{
+	const auto& bytes = instr.bytes();
+	const unsigned int proc_selector = bytes.end()[-3];
+	const unsigned int proc_identifier = bytes.end()[-2];
+	const unsigned int arg_count = bytes.end()[-1];
+
+	//TODO: Extract this from this function and the other calls
+	x86::Mem args = dmc.newStack(sizeof(Value) * arg_count, 4);
+	args.setSize(sizeof(uint32_t));
+	uint32_t arg_i = arg_count;
+	while (arg_i--)
+	{
+		Variable var = dmc.popStack();
+
+		args.setOffset((uint64_t)arg_i * sizeof(Value) + offsetof(Value, type));
+		if (var.Type.isImm())
+		{
+			//auto data = dmc.newFloatConst(ConstPool::kScopeLocal, DecodeFloat(var.Type.as<Imm>().value()));
+			dmc.mov(args, var.Type.as<Imm>());
+		}
+		else
+		{
+			dmc.mov(args, var.Type.as<x86::Gp>());
+		}
+
+		args.setOffset((uint64_t)arg_i * sizeof(Value) + offsetof(Value, value));
+		if (var.Value.isImm())
+		{
+			//auto data = dmc.newFloatConst(ConstPool::kScopeLocal, DecodeFloat(var.Value.as<Imm>().value()));
+			dmc.mov(args, var.Value.as<Imm>());
+		}
+		else
+		{
+			dmc.mov(args, var.Value.as<x86::Gp>());
+		}
+	}
+	args.resetOffset();
+	const auto args_ptr = dmc.newUIntPtr("call_global_args_ptr");
+	dmc.lea(args_ptr, args);
+
+	const Variable result = dmc.pushStack();
+
+	const auto& base = instr.acc_base;
+
+	Variable base_var;
+	switch (base.first)
+	{
+	case AccessModifier::ARG:
+		base_var = dmc.getArg(base.second);
+		break;
+	case AccessModifier::LOCAL:
+		base_var = dmc.getLocal(base.second);
+		break;
+	case AccessModifier::SRC:
+		base_var = dmc.getSrc();
+		break;
+	default:
+		if (base.first > 64000)
+		{
+			Core::Alert("Unknown access modifier in jit get_variable");
+		}
+		break;
+	}
+
+	for (unsigned int i = 0; i < instr.acc_chain.size() - 1; i++)
+	{
+		const unsigned int name = instr.acc_chain.at(i);
+		auto* call = dmc.call((uint64_t)GetVariable, FuncSignatureT<asmjit::Type::I64, int, int, int>());
+		call->setArg(0, base_var.Type);
+		call->setArg(1, base_var.Value);
+		call->setArg(2, imm(name));
+		call->setRet(0, base_var.Type);
+		call->setRet(1, base_var.Value);
+	}
+
+
+	//auto proc_it = jitted_procs.find(proc_id);
+	const auto usr = dmc.getUsr();
+	/*if (proc_it != jitted_procs.end())
+	{
+		void* code_base = proc_it->second.code_base;
+		InvokeNode* call;
+		dmc.invoke(&call, reinterpret_cast<uint64_t>(JitEntryPoint), FuncSignatureT<asmjit::Type::I64, void*, int, Value*, int, int, int, int, JitContext*>());
+		call->setArg(0, imm(code_base));
+		call->setArg(1, imm(arg_count));
+		call->setArg(2, args_ptr);
+		call->setArg(3, base_var.Type);
+		call->setArg(4, base_var.Value);
+		call->setArg(5, usr.Type);
+		call->setArg(6, usr.Value);
+		call->setArg(7, dmc.getJitContext());
+		call->setRet(0, result.Type);
+		call->setRet(1, result.Value);
+	}
+	else
+	{*/
+
+	const auto proc_id = dmc.newUInt32("proc_id");
+
+	if(proc_selector == ProcSelector::SRC_PROC_SPEC)
+	{
+		InvokeNode* call;
+		dmc.invoke(&call, (uint64_t)translate_proc_name, FuncSignatureT<unsigned int, unsigned int, unsigned int, unsigned int>());
+		call->setArg(0, base_var.Type);
+		call->setArg(1, base_var.Value);
+		call->setArg(2, imm(proc_identifier));
+		call->setRet(0, proc_id);
+	}
+	else
+	{
+		dmc.mov(proc_id, imm(proc_identifier));
+	}
+
+	auto* call = dmc.call((uint64_t)CallGlobalProc, FuncSignatureT<asmjit::Type::I64, int, int, int, int, int, int, Value*, int, int, int, int>());
+	call->setArg(0, usr.Type);
+	call->setArg(1, usr.Value);
+	call->setArg(2, imm(0x2));
+	call->setArg(3, proc_id);
+	call->setArg(4, imm(0));
+	call->setArg(5, base_var.Type);
+	call->setArg(6, base_var.Value);
+	call->setArg(7, args_ptr);
+	call->setArg(8, imm(arg_count));
+	call->setArg(9, imm(0));
+	call->setArg(10, imm(0));
+	call->setRet(0, result.Type);
+	call->setRet(1, result.Value);
+}
+
+static bool Emit_Block(DMCompiler& dmc, const ProcBlock& block, const std::map<unsigned int, ProcBlock>& blocks)
 {
 	/*block.node = */
 	dmc.addBlock(block.label);
 
 	for (size_t i=0; i < block.contents.size(); i++)
 	{
-		Instruction& instr = block.contents[i];
+		const Instruction& instr = block.contents[i];
 
 		switch (instr.bytes()[0])
 		{
@@ -750,6 +905,9 @@ static bool Emit_Block(DMCompiler& dmc, ProcBlock& block, std::map<unsigned int,
 			case AccessModifier::SUBVAR:
 				Emit_FieldRead(dmc, instr);
 				break;
+			case AccessModifier::WORLD:
+				dmc.pushStack(imm(DataType::WORLD_D), imm(0));
+				break;
 			default:
 				if(instr.bytes()[1] > 64000)
 				{
@@ -767,6 +925,11 @@ static bool Emit_Block(DMCompiler& dmc, ProcBlock& block, std::map<unsigned int,
 			dmc.setInlineComment("pop from stack");
 			Emit_Pop(dmc);
 			break;
+		case Bytecode::OUTPUT:
+			jit_out << "Assembling output" << std::endl;
+			dmc.setInlineComment("output");
+			Emit_Output(dmc);
+			break;
 		case Bytecode::PUSHVAL:
 			jit_out << "Assembling push value" << std::endl;
 			dmc.setInlineComment("push value");
@@ -783,6 +946,11 @@ static bool Emit_Block(DMCompiler& dmc, ProcBlock& block, std::map<unsigned int,
 			jit_out << "Assembling call global" << std::endl;
 			dmc.setInlineComment("call global proc");
 			Emit_CallGlobal(dmc, instr.bytes()[1], instr.bytes()[2]);
+			break;
+		case Bytecode::CALL:
+			jit_out << "Assembling call" << std::endl;
+			dmc.setInlineComment("call proc");
+			Emit_Call(dmc, instr);
 			break;
 		case Bytecode::CREATELIST:
 			jit_out << "Assembling create list" << std::endl;
@@ -837,6 +1005,8 @@ static bool Emit_Block(DMCompiler& dmc, ProcBlock& block, std::map<unsigned int,
 			break;
 		default:
 			jit_out << "Unknown instruction: " << instr.opcode().tostring() << std::endl;
+			Core::Alert("Compilation failed!");
+			return false;
 			break;
 		}
 	}
@@ -974,7 +1144,7 @@ trvh JitEntryPoint(void* code_base, const unsigned int args_len, Value* const ar
 	return Value::Null();
 }
 
-static void compile(std::vector<Core::Proc*> procs, DMCompiler* parent_compiler = nullptr)
+static bool compile(std::vector<Core::Proc*> procs, DMCompiler* parent_compiler = nullptr)
 {
 	FILE* fuck;
 	fopen_s(&fuck, "asm.txt", "w");
@@ -1000,16 +1170,26 @@ static void compile(std::vector<Core::Proc*> procs, DMCompiler* parent_compiler 
 		}
 		bytecode_out << "END " << proc->name << '\n';
 
-		size_t locals_count = 0; // Defaulting to 1 because asmjit does not like empty vectors apparently (causes an assertion error)
+		size_t locals_count = 0;
 		size_t args_count = 0;
 		bool need_sleep = false;
 		auto blocks = split_into_blocks(dis, dmc, locals_count, args_count, need_sleep);
 
+		if(!blocks)
+		{
+			Core::Alert("Analysis for " + proc->name + " failed.");
+			return false;
+		}
+
 		ProcNode* node = dmc.addProc(locals_count, args_count, need_sleep);
 		entrypoints.push_back(node->_entryPoint);
-		for (auto& [k, v] : blocks)
+		for (auto& [k, v] : *blocks)
 		{
-			Emit_Block(dmc, v, blocks);
+			if(!Emit_Block(dmc, v, *blocks))
+			{
+				fflush(fuck);
+				return false;
+			}
 		}
 		dmc.endProc();
 	}
@@ -1025,11 +1205,15 @@ static void compile(std::vector<Core::Proc*> procs, DMCompiler* parent_compiler 
 		jit_out << procs.at(i)->name << ": " << entrypoint << std::endl;
 	}
 	fflush(fuck);
+	return true;
 }
 
 void* compile_one(Core::Proc& proc)
 {
-	compile({ &proc });
+	if(!compile({ &proc }))
+	{
+		return nullptr;
+	}
 	return jitted_procs[proc.id].code_base; //todo
 }
 
@@ -1042,6 +1226,7 @@ extern "C" EXPORT const char* jit_test(int n_args, const char** args)
 
 	hook_resumption();
 	//compile({&Core::get_proc("/proc/jit_test_compiled_proc"), &Core::get_proc("/proc/recursleep")});
+	//Core::get_proc("/datum/proc/buttfart").jit();
 	//Core::get_proc("/proc/tiny_proc").jit();
 	Core::get_proc("/proc/jit_test_compiled_proc").jit();
 	Core::get_proc("/proc/jit_wrapper").set_bytecode({ Bytecode::RET, Bytecode::RET, Bytecode::RET });

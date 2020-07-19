@@ -73,7 +73,11 @@ void Core::Proc::extended_profile()
 
 void Core::Proc::jit()
 {
-	jit_hooks[id] = compile_one(*this);
+	void* result = compile_one(*this);
+	if(result)
+	{
+		jit_hooks[id] = result;
+	}
 }
 
 void Core::Proc::hook(ProcHook hook_func)

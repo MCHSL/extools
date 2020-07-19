@@ -47,3 +47,5 @@ DestroyListPtr DestroyList;
 DestroyDatumPtr DestroyDatum;
 AddSleeperToListPtr AddSleeperToList;
 RunDMPtr RunDM;
+TranslateProcNameToProcIdPtr TranslateProcNameToProcId;
+OutputPtr Output;

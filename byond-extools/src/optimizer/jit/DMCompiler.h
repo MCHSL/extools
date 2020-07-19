@@ -64,7 +64,7 @@ public:
 	ProcNode* addProc(uint32_t locals_count, uint32_t args_count, bool zzz);
 	void endProc();
 
-	BlockNode* addBlock(Label& label, uint32_t continuation_index = -1);
+	BlockNode* addBlock(const Label& label, uint32_t continuation_index = -1);
 	void endBlock();
 
 	Variable getLocal(uint32_t index);
@@ -193,7 +193,7 @@ class BlockNode
 	: public BaseNode
 {
 public:
-	BlockNode(BaseBuilder* cb, Label& label)
+	BlockNode(BaseBuilder* cb, const Label& label)
 		: BaseNode(cb, static_cast<uint32_t>(NodeTypes::kNodeBlock), kFlagHasNoEffect)
 		, _label(label)
 		, _stack_top_offset(0)
@@ -206,7 +206,7 @@ public:
 		//_stack.init(&cb->_allocator);		
 	}
 
-	Label _label;
+	const Label _label;
 	int32_t _stack_top_offset;
 	ZoneVector<Variable> _stack;
 

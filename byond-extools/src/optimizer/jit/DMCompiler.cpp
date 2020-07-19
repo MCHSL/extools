@@ -184,7 +184,7 @@ unsigned int DMCompiler::prepareNextContinuationIndex()
 	return _currentProc->_continuationPoints.size();
 }
 
-BlockNode* DMCompiler::addBlock(Label& label, uint32_t continuation_index)
+BlockNode* DMCompiler::addBlock(const Label& label, const uint32_t continuation_index)
 {
 	if (_currentProc == nullptr)
 		__debugbreak();
