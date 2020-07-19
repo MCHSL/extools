@@ -712,6 +712,16 @@ unsigned int translate_proc_name(unsigned int datum_type, unsigned int datum_id,
 	return TranslateProcNameToProcId(0x02, name, 0, datum_type, datum_id, &omegalul, 1);
 }
 
+void* check_is_jitted(unsigned int proc_id)
+{
+	auto jit_it = jitted_procs.find(proc_id);
+	if(jit_it != jitted_procs.end())
+	{
+		return jit_it->second.code_base;
+	}
+	return nullptr;
+}
+
 static void Emit_Call(DMCompiler& dmc, const Instruction& instr)
 {
 	const auto& bytes = instr.bytes();
@@ -826,6 +836,33 @@ static void Emit_Call(DMCompiler& dmc, const Instruction& instr)
 		dmc.mov(proc_id, imm(proc_identifier));
 	}
 
+	const auto not_jitted = dmc.newLabel();
+	const auto done = dmc.newLabel();
+
+	const auto code_base = dmc.newUIntPtr("code_base");
+
+	InvokeNode* check_jit;
+	dmc.invoke(&check_jit, reinterpret_cast<uint64_t>(check_is_jitted), FuncSignatureT<void*, unsigned int>());
+	check_jit->setArg(0, proc_id);
+	check_jit->setRet(0, code_base);
+
+	dmc.test(code_base, code_base);
+	dmc.je(not_jitted);
+	InvokeNode* jitcall;
+	dmc.invoke(&jitcall, reinterpret_cast<uint64_t>(JitEntryPoint), FuncSignatureT<asmjit::Type::I64, void*, int, Value*, int, int, int, int, JitContext*>());
+	jitcall->setArg(0, code_base);
+	jitcall->setArg(1, imm(arg_count));
+	jitcall->setArg(2, args_ptr);
+	jitcall->setArg(3, base_var.Type);
+	jitcall->setArg(4, base_var.Value);
+	jitcall->setArg(5, usr.Type);
+	jitcall->setArg(6, usr.Value);
+	jitcall->setArg(7, dmc.getJitContext());
+	jitcall->setRet(0, result.Type);
+	jitcall->setRet(1, result.Value);
+	
+	dmc.jmp(done);
+	dmc.bind(not_jitted);
 	auto* call = dmc.call((uint64_t)CallGlobalProc, FuncSignatureT<asmjit::Type::I64, int, int, int, int, int, int, Value*, int, int, int, int>());
 	call->setArg(0, usr.Type);
 	call->setArg(1, usr.Value);
@@ -840,6 +877,7 @@ static void Emit_Call(DMCompiler& dmc, const Instruction& instr)
 	call->setArg(10, imm(0));
 	call->setRet(0, result.Type);
 	call->setRet(1, result.Value);
+	dmc.bind(done);
 }
 
 static bool Emit_Block(DMCompiler& dmc, const ProcBlock& block, const std::map<unsigned int, ProcBlock>& blocks)
@@ -1226,8 +1264,8 @@ extern "C" EXPORT const char* jit_test(int n_args, const char** args)
 
 	hook_resumption();
 	//compile({&Core::get_proc("/proc/jit_test_compiled_proc"), &Core::get_proc("/proc/recursleep")});
-	//Core::get_proc("/datum/proc/buttfart").jit();
-	//Core::get_proc("/proc/tiny_proc").jit();
+	Core::get_proc("/datum/proc/buttfart").jit();
+	Core::get_proc("/proc/tiny_proc").jit();
 	Core::get_proc("/proc/jit_test_compiled_proc").jit();
 	Core::get_proc("/proc/jit_wrapper").set_bytecode({ Bytecode::RET, Bytecode::RET, Bytecode::RET });
 	return Core::SUCCESS;
