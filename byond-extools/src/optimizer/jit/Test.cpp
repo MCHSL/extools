@@ -1053,11 +1053,13 @@ static bool Emit_Block(DMCompiler& dmc, const ProcBlock& block, const std::map<u
 	return true;
 }
 
+static uint32_t wrapper_id = 0;
+
 static SuspendPtr oSuspend;
 static ProcConstants* hSuspend(ExecutionContext* ctx, int unknown)
 {
 	const uint32_t proc_id = ctx->constants->proc_id;
-	if (proc_id == Core::get_proc("/proc/jit_wrapper").id)
+	if (proc_id == wrapper_id)
 	{
 		auto* const jc = reinterpret_cast<JitContext*>(ctx->constants->args[1].value);
 		jc->suspended = true;
@@ -1080,8 +1082,6 @@ static ExecutionContext* __fastcall fuck(ExecutionContext* dmctx)
 	dmctx->dot = retval;
 	return dmctx;
 }
-
-static uint32_t wrapper_id = 0;
 
 __declspec(naked) ExecutionContext* just_before_execution_hook()
 {
@@ -1264,9 +1264,30 @@ extern "C" EXPORT const char* jit_test(int n_args, const char** args)
 
 	hook_resumption();
 	//compile({&Core::get_proc("/proc/jit_test_compiled_proc"), &Core::get_proc("/proc/recursleep")});
-	Core::get_proc("/datum/proc/buttfart").jit();
+	Core::get_proc("/datum/subtype/proc/buttfart").jit();
 	Core::get_proc("/proc/tiny_proc").jit();
 	Core::get_proc("/proc/jit_test_compiled_proc").jit();
 	Core::get_proc("/proc/jit_wrapper").set_bytecode({ Bytecode::RET, Bytecode::RET, Bytecode::RET });
+	return Core::SUCCESS;
+}
+
+extern "C" EXPORT const char* jit_compile(int n_args, const char** args)
+{
+	if (!Core::initialize())
+	{
+		return Core::FAIL;
+	}
+
+	Core::Alert((int)Core::get_proc("/mob/living/carbon/human/Life").id);
+	Core::Alert((int)Core::get_proc("/mob/living/carbon/human/Life").setup_entry_bytecode);
+	Core::Alert((int)Core::get_proc("/mob/living/carbon/human/Life").get_bytecode());
+	static bool res_hooked = false;
+	if(!res_hooked)
+	{
+		hook_resumption();
+		res_hooked = true;
+	}
+
+	Core::get_proc(args[0]).jit();
 	return Core::SUCCESS;
 }

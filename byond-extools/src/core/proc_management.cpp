@@ -45,6 +45,8 @@ void Core::Proc::reset_bytecode()
 
 std::uint32_t* Core::Proc::get_bytecode()
 {
+	ProcArrayEntry* entry = GetProcArrayEntry(id);
+	return GetProcSetupEntry(entry->bytecode_idx)->bytecode;
 	return setup_entry_bytecode->bytecode;
 }
 
@@ -172,8 +174,8 @@ bool Core::populate_proc_list()
 		}
 		p.simple_name = p.name.substr(p.name.rfind("/") + 1);
 		p.proc_table_entry = entry;
-		p.setup_entry_bytecode = proc_setup_table[entry->bytecode_idx];
-		p.setup_entry_varcount = proc_setup_table[entry->local_var_count_idx];
+		p.setup_entry_bytecode = (*proc_setup_table_ptr)[entry->bytecode_idx];
+		p.setup_entry_varcount = (*proc_setup_table_ptr)[entry->local_var_count_idx];
 		p.bytecode_idx = entry->bytecode_idx;
 		p.varcount_idx = entry->local_var_count_idx;
 		if (procs_by_name.find(p.name) == procs_by_name.end())

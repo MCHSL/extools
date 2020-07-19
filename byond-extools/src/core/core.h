@@ -91,7 +91,7 @@ namespace Core
 	extern std::map<std::string, unsigned int> name_to_opcode;
 	extern ExecutionContext** current_execution_context_ptr;
 	extern ExecutionContext** parent_context_ptr_hack;
-	extern ProcSetupEntry** proc_setup_table;
+	extern ProcSetupEntry*** proc_setup_table_ptr;
 	extern unsigned int* some_flags_including_profile;
 	extern unsigned int* name_table_id_ptr;
 	extern unsigned int* name_table;

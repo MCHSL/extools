@@ -86,6 +86,7 @@ typedef void(*AddSleeperToListPtr)(ProcConstants* sleeper);
 typedef void(*RunDMPtr)(ProcConstants* setup_info);
 typedef unsigned int(*TranslateProcNameToProcIdPtr)(unsigned int proc_type, unsigned int name, unsigned int const_0, unsigned char datum_type, unsigned char datum_id, unsigned int* failure_flag, unsigned int const_1);
 typedef bool(*OutputPtr)(unsigned char target_type, unsigned int target_value, unsigned int some_flag_1, unsigned int some_flag_2, unsigned char message_type, unsigned int message_value);
+typedef ProcSetupEntry* (*GetProcSetupEntryPtr)(unsigned int index);
 
 extern CrashProcPtr CrashProc;
 extern StartTimingPtr StartTiming;
@@ -137,3 +138,4 @@ extern AddSleeperToListPtr AddSleeperToList;
 extern RunDMPtr RunDM;
 extern TranslateProcNameToProcIdPtr TranslateProcNameToProcId;
 extern OutputPtr Output;
+extern GetProcSetupEntryPtr GetProcSetupEntry;

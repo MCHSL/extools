@@ -49,3 +49,4 @@ AddSleeperToListPtr AddSleeperToList;
 RunDMPtr RunDM;
 TranslateProcNameToProcIdPtr TranslateProcNameToProcId;
 OutputPtr Output;
+GetProcSetupEntryPtr GetProcSetupEntry;

@@ -9,7 +9,7 @@
 
 ExecutionContext** Core::current_execution_context_ptr;
 ExecutionContext** Core::parent_context_ptr_hack;
-ProcSetupEntry** Core::proc_setup_table;
+ProcSetupEntry*** Core::proc_setup_table_ptr;
 
 int ByondVersion;
 int ByondBuild;
