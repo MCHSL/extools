@@ -21,7 +21,7 @@ extern "C" EXPORT const char* jit_test(int n_args, const char** args)
 
 	enable_jit();
 	//compile({&Core::get_proc("/proc/jit_test_compiled_proc"), &Core::get_proc("/proc/recursleep")});
-	Core::get_proc("/datum/subtype/proc/buttfart").jit();
+	//Core::get_proc("/mob/living/carbon/human/Life").jit();
 	//Core::get_proc("/proc/tiny_proc").jit();
 	
 	

@@ -10,6 +10,11 @@ using namespace dmjit;
 
 static uint32_t wrapper_id = 0;
 
+void dmjit::context_reserve_stack_space(JitContext* jctx, const unsigned int slots)
+{
+	jctx->Reserve(slots);
+}
+
 static SuspendPtr oSuspend;
 static ProcConstants* hSuspend(ExecutionContext* ctx, int unknown)
 {

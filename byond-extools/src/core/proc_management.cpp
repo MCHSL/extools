@@ -1,10 +1,15 @@
 #include "proc_management.h"
+
+#include <algorithm>
+
 #include "../dmdism/disassembly.h"
 #include "../dmdism/disassembler.h"
 #include "../extended_profiling/extended_profiling.h"
-#include "../optimizer/jit/translation.h"
+#include "../optimizer/jit/dm_interface.h"
 #include <optional>
 #include <functional>
+
+#include "../optimizer/jit/translation.h"
 
 std::vector<Core::Proc> procs_by_id;
 std::unordered_map<std::string, std::vector<unsigned int>> procs_by_name;
@@ -20,6 +25,7 @@ void strip_proc_path(std::string& name)
 	{
 		name.erase(proc_pos, 5);
 	}
+	std::replace(name.begin(), name.end(), ' ', '_');
 }
 
 void Core::Proc::set_bytecode(std::vector<std::uint32_t>&& new_bytecode)
@@ -73,13 +79,16 @@ void Core::Proc::extended_profile()
 	procs_to_profile[id] = true;
 }
 
-void Core::Proc::jit()
+void Core::Proc::jit() const
 {
 	void* result = compile_one(*this);
 	if(result)
 	{
+		//Core::Alert(name + " has been compiled!");
 		jit_hooks[id] = result;
+		add_jitted_proc(id, result);
 	}
+
 }
 
 void Core::Proc::hook(ProcHook hook_func)

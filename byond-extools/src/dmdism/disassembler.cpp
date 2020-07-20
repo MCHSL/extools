@@ -99,6 +99,12 @@ bool Disassembler::disassemble_var(Instruction& instr, bool raw_var_access)
 		instr.opcode().add_info(" SUBVAR");
 		
 		const AccessModifier mod = (AccessModifier)context_->eat(&instr);
+		if(mod == SRC_PROC_SPEC || mod == PROC_)
+		{
+			instr.acc_base = { (AccessModifier)0, 0 };
+			instr.acc_chain = std::vector<unsigned int>();
+			break;
+		}
 		unsigned int id = 0;
 		if (mod != AccessModifier::SRC)
 		{

@@ -23,6 +23,7 @@ struct AnalysisResult
 	unsigned int argument_count;
 	unsigned int local_count;
 	unsigned int stack_size;
+	std::vector<unsigned int> called_proc_ids;
 
 	AnalysisResult()
 		: needs_sleep(false)

@@ -58,7 +58,7 @@ namespace Core
 
 		ProfileInfo* profile() const;
 		void extended_profile();
-		void jit();
+		void jit() const;
 		void hook(ProcHook hook_func);
 		Value call(std::vector<Value> arguments, Value usr = Value::Null());
 

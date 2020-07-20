@@ -49,13 +49,13 @@ trvh REGPARM3 hCallGlobalProc(char usr_type, int usr_value, int proc_type, unsig
 		args_with_jit_stuff[0].value = (int)jit_hooks_it->second;
 		args_with_jit_stuff[1].value = (int)gjc;
 		std::copy(argList, argList + argListLen, args_with_jit_stuff + 2);
-		auto result = oCallGlobalProc(0, 0, 2, Core::get_proc("/proc/jit_wrapper").id, 0, DataType::NULL_D, 0, args_with_jit_stuff, argListLen + 2, 0, 0);
+		auto result = oCallGlobalProc(0, 0, 2, Core::get_proc("/proc/jit_wrapper").id, 0, src_type, src_value, args_with_jit_stuff, argListLen + 2, 0, 0);
 		// We can delete this because BYOND creates a copy of the ProcConstants struct when it will need one later, and copies over the arguments.
 		delete[] args_with_jit_stuff;
-		for (int i = 0; i < argListLen; i++)
+		/*for (int i = 0; i < argListLen; i++)
 		{
 			DecRefCount(argList[i].type, argList[i].value);
-		}
+		}*/
 		return result;
 	}
 #endif

@@ -65,7 +65,7 @@ static_assert(sizeof(ProcStackFrame) % sizeof(Value) == 0);
 
 struct JitContext
 {
-	static const size_t DefaultSlotAllocation = 24;
+	static const size_t DefaultSlotAllocation = 64;
 
 	JitContext()
 		: stack(new Value[DefaultSlotAllocation])
@@ -170,5 +170,7 @@ struct JitContext
 	// ProcConstants* what_called_us;
 	// Value dot;
 };
+
+void context_reserve_stack_space(JitContext* jctx, const unsigned int slots);
 
 }

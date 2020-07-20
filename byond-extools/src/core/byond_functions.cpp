@@ -51,3 +51,4 @@ TranslateProcNameToProcIdPtr TranslateProcNameToProcId;
 OutputPtr Output;
 GetProcSetupEntryPtr GetProcSetupEntry;
 TextToPathPtr TextToPath;
+IsTypePtr IsType;

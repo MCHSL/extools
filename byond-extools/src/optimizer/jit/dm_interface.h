@@ -11,5 +11,5 @@ struct JitArguments
 	dmjit::JitContext* jc;
 };
 
-void* compile_one(Core::Proc& proc);
+void* compile_one(const Core::Proc& proc);
 trvh JitEntryPoint(void* code_base, unsigned int args_len, Value* args, Value src, Value usr, dmjit::JitContext* ctx);

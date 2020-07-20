@@ -2,4 +2,4 @@
 #pragma once
 #include "../../core/core.h"
 
-void* compile_one(Core::Proc& proc);
+void add_jitted_proc(unsigned int proc_id, void* code_base);

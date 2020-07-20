@@ -153,6 +153,7 @@ enum Bytecode
 	COS = 0xC3,
 
 	CRASH = 0xC7,
+	ASSOC_LIST = 0xC8,
 
 	CALL_GLOBAL_ARGLIST = 0xCD,
 
@@ -399,4 +400,5 @@ const std::unordered_map<Bytecode, std::string> mnemonics = {
 	{ BROWSE_RSC, "BROWSE_RSC" },
 	{ BROWSE, "BROWSE" },
 	{ BROWSE_OPT, "BROWSE_OPT" },
+	{ ASSOC_LIST, "ASSOC_LIST"},
 };

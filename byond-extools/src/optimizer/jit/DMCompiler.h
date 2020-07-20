@@ -74,6 +74,7 @@ public:
 	void setLocal(uint32_t index, const Variable& variable);
 
 	Variable getArg(uint32_t index);
+	unsigned int getArgCount() const;
 
 	Variable getFrameEmbeddedValue(uint32_t offset);
 

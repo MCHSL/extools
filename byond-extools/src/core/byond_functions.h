@@ -88,6 +88,7 @@ typedef unsigned int(*TranslateProcNameToProcIdPtr)(unsigned int proc_type, unsi
 typedef bool(*OutputPtr)(unsigned char target_type, unsigned int target_value, unsigned int some_flag_1, unsigned int some_flag_2, unsigned char message_type, unsigned int message_value);
 typedef ProcSetupEntry* (*GetProcSetupEntryPtr)(unsigned int index);
 typedef trvh(*TextToPathPtr)(unsigned int path);
+typedef bool(*IsTypePtr)(trvh datum, trvh type);
 
 extern CrashProcPtr CrashProc;
 extern StartTimingPtr StartTiming;
@@ -141,3 +142,4 @@ extern TranslateProcNameToProcIdPtr TranslateProcNameToProcId;
 extern OutputPtr Output;
 extern GetProcSetupEntryPtr GetProcSetupEntry;
 extern TextToPathPtr TextToPath;
+extern IsTypePtr IsType;

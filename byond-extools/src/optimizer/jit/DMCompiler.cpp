@@ -72,6 +72,7 @@ ProcNode* DMCompiler::addProc(uint32_t locals_count, uint32_t args_count, bool z
 	// New stack frame
 	// TODO: allocate more space on stack if necessary
 
+	
 	x86::Gp previous = newUIntPtr("previous_stack_frame");
 	mov(previous, x86::dword_ptr(_currentProc->_jit_context, offsetof(JitContext, stack_frame)));
 	x86::Gp stack_top = newUIntPtr("stack_top");
@@ -81,6 +82,11 @@ ProcNode* DMCompiler::addProc(uint32_t locals_count, uint32_t args_count, bool z
 	x86::Gp new_frame = getStackFramePtr();
 	mov(x86::dword_ptr(new_frame, offsetof(ProcStackFrame, previous)), previous);
 
+	InvokeNode* reserve_stack;
+	invoke(&reserve_stack, (uint64_t)context_reserve_stack_space, FuncSignatureT<void, JitContext*, unsigned int>());
+	reserve_stack->setArg(0, getJitContext());
+	reserve_stack->setArg(1, imm(12)); //reserve 12 slots per 1 call stack depth, might need to adjust
+	
 	static_assert(sizeof(ProcStackFrame) == sizeof(Value) * 6);
 	//mov(x86::ptr(stack_top, offsetof(Value, type), sizeof(uint32_t)), old_stack_frame);
 	//mov(x86::ptr(stack_top, offsetof(Value, value), sizeof(uint32_t)), old_stack_frame);
@@ -274,6 +280,13 @@ Variable DMCompiler::getArg(uint32_t index)
 	return { type, value };
 }
 
+unsigned int DMCompiler::getArgCount() const
+{
+	if (_currentProc == nullptr)
+		__debugbreak();
+	return _currentProc->_args_count;
+}
+
 void DMCompiler::setLocal(uint32_t index, const Variable& variable)
 {
 	if (_currentProc == nullptr)
@@ -326,7 +339,7 @@ Variable DMCompiler::getCached()
 
 void DMCompiler::setCached(const Variable& variable)
 {
-	auto dot = newUInt32("dot");
+	auto dot = newUInt32("cached");
 	lea(dot, x86::ptr(getStackFramePtr(), offsetof(ProcStackFrame, cached)));
 	mov(x86::dword_ptr(dot, offsetof(Value, type)), variable.Type.as<x86::Gp>());
 	mov(x86::dword_ptr(dot, offsetof(Value, value)), variable.Value.as<x86::Gp>());
