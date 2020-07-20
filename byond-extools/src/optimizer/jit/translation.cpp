@@ -194,17 +194,17 @@ static void Emit_GenericBinaryOp(DMCompiler& dmc, Bytecode op_type)
 	// At least one of the operands to cmp needs to be a register.
 	if (!lhs.Type.isReg())
 	{
-		dmc.mov(type_comparator, lhs.Type);
-		dmc.cmp(type_comparator, rhs.Type);
+		dmc.movzx(type_comparator, lhs.Type);
+		dmc.cmp(type_comparator.r8Lo(), rhs.Type.r8Lo());
 	}
 	else if (!rhs.Type.isReg())
 	{
 		dmc.mov(type_comparator, rhs.Type);
-		dmc.cmp(type_comparator, lhs.Type);
+		dmc.cmp(type_comparator.r8Lo(), lhs.Type.r8Lo());
 	}
 	else
 	{
-		dmc.cmp(lhs.Type, rhs.Type);
+		dmc.cmp(lhs.Type.r8Lo(), rhs.Type.r8Lo());
 	}
 	dmc.jne(invalid_arguments);
 
@@ -213,11 +213,11 @@ static void Emit_GenericBinaryOp(DMCompiler& dmc, Bytecode op_type)
 		const auto notstring = dmc.newLabel();
 
 		dmc.mov(type_comparator, lhs.Type);
-		dmc.cmp(type_comparator, Imm(DataType::STRING));
+		dmc.cmp(type_comparator.r8Lo(), Imm(DataType::STRING));
 		dmc.jne(notstring);
 
 		dmc.mov(type_comparator, rhs.Type);
-		dmc.cmp(type_comparator, Imm(DataType::STRING));
+		dmc.cmp(type_comparator.r8Lo(), Imm(DataType::STRING));
 		dmc.jne(notstring);
 
 		doStringAddition(dmc, lhs, rhs, result);
@@ -770,12 +770,8 @@ static void Emit_Comparison(DMCompiler& dmc, const Bytecode comp)
 	}
 }
 
-static void Emit_Test(DMCompiler& dmc)
+static void check_truthiness(DMCompiler& dmc, const Variable& val, const Label& truthy, const Label& falsey)
 {
-	const auto val = dmc.popStack();
-	const auto truthy = dmc.newLabel();
-	const auto falsey = dmc.newLabel();
-	const auto done = dmc.newLabel();
 	dmc.cmp(val.Value, imm(0)); // If the value is not 0, then it must be truthy.
 	dmc.jne(truthy);
 	dmc.cmp(val.Type.r8Lo(), imm(0)); // If it has a value of zero but is not NULL, a string or a number, it's truthy.
@@ -785,6 +781,15 @@ static void Emit_Test(DMCompiler& dmc)
 	dmc.cmp(val.Type.r8Lo(), imm(NUMBER));
 	dmc.je(falsey);
 	dmc.jmp(truthy);
+}
+
+static void Emit_Test(DMCompiler& dmc)
+{
+	const auto val = dmc.popStack();
+	const auto truthy = dmc.newLabel();
+	const auto falsey = dmc.newLabel();
+	const auto done = dmc.newLabel();
+	check_truthiness(dmc, val, truthy, falsey);
 	dmc.bind(falsey);
 	dmc.unsetZeroFlag();
 	dmc.jmp(done);
@@ -843,7 +848,68 @@ static void Emit_ConditionalChainJump(DMCompiler& dmc, Bytecode cond, const uint
 	dmc.bind(done);
 }
 
-static bool Emit_Block(DMCompiler& dmc, const ProcBlock& block, const std::map<unsigned int, ProcBlock>& blocks)
+static void Emit_LogicalNot(DMCompiler& dmc)
+{
+	const auto val = dmc.popStack();
+	const auto result = dmc.pushStack(imm(NUMBER), imm(0));
+	const auto truthy = dmc.newLabel();
+	const auto falsey = dmc.newLabel();
+	check_truthiness(dmc, val, truthy, falsey);
+	dmc.bind(falsey);
+	dmc.mov(result.Value, imm(0x3f800000));
+	dmc.bind(truthy); // We push FALSE by default so no need to do anything
+}
+
+Core::Proc* find_parent_proc(const unsigned int proc_id)
+{
+	const Core::Proc& proc = Core::get_proc(proc_id);
+	std::string proc_path = proc.name;
+	const std::string& proc_name = proc.simple_name;
+
+	while (proc_path.find("/") != std::string::npos)
+	{
+		const size_t proc_pos = proc_path.rfind("/");
+		if (proc_pos != std::string::npos)
+		{
+			proc_path.erase(proc_pos);
+		}
+		Value path = TextToPath(Core::GetStringId(proc_path));
+		TType* type = GetTypeById(path.value);
+		std::string parent_path = Core::GetStringFromId(GetTypeById(type->parentTypeIdx)->path);
+		proc_path = parent_path;
+		Core::Proc* p = Core::try_get_proc(parent_path + "/" + proc_name);
+		return p;
+	}
+	return nullptr;
+}
+
+static void Emit_CallParent(DMCompiler& dmc, const unsigned int proc_id)
+{
+	//TODO: Forward args!!!!!!!!!!!!!
+	const Core::Proc* const parent_proc = find_parent_proc(proc_id);
+	Core::Alert(parent_proc->name);
+	const auto result = dmc.pushStack();
+
+	const auto usr = dmc.getUsr();
+	const auto src = dmc.getSrc();
+	auto* call = dmc.call((uint64_t)CallGlobalProc, FuncSignatureT<asmjit::Type::I64, int, int, int, int, int, int, Value*, int, int, int, int>());
+	call->setArg(0, usr.Type);
+	call->setArg(1, usr.Value);
+	call->setArg(2, imm(0x2));
+	call->setArg(3, imm(parent_proc->id));
+	call->setArg(4, imm(0));
+	call->setArg(5, src.Type);
+	call->setArg(6, src.Value);
+	call->setArg(7, imm(0));
+	call->setArg(8, imm(0));
+	call->setArg(9, imm(0));
+	call->setArg(10, imm(0));
+	call->setRet(0, result.Type);
+	call->setRet(1, result.Value);
+	
+}
+
+static bool Emit_Block(DMCompiler& dmc, const ProcBlock& block, const std::map<unsigned int, ProcBlock>& blocks, const unsigned int proc_id)
 {
 	/*block.node = */
 	dmc.addBlock(block.label, block.may_sleep);
@@ -949,9 +1015,15 @@ static bool Emit_Block(DMCompiler& dmc, const ProcBlock& block, const std::map<u
 			Emit_CallGlobal(dmc, instr.bytes()[1], instr.bytes()[2]);
 			break;
 		case Bytecode::CALL:
+		case Bytecode::CALLNR:
 			jit_out << "Assembling call" << std::endl;
 			dmc.setInlineComment("call proc");
 			Emit_Call(dmc, instr);
+			break;
+		case Bytecode::CALLPARENT:
+			jit_out << "Assembling default call parent" << std::endl;
+			dmc.setInlineComment("call default parent");
+			Emit_CallParent(dmc, proc_id);
 			break;
 		case Bytecode::CREATELIST:
 			jit_out << "Assembling create list" << std::endl;
@@ -1021,6 +1093,10 @@ static bool Emit_Block(DMCompiler& dmc, const ProcBlock& block, const std::map<u
 		case Bytecode::GETFLAG:
 			jit_out << "Assembling getflag" << std::endl;
 			Emit_GetFlag(dmc);
+			break;
+		case Bytecode::NOT:
+			jit_out << "Assembling logical not" << std::endl;
+			Emit_LogicalNot(dmc);
 			break;
 		case Bytecode::RET:
 			Emit_Return(dmc);
@@ -1106,7 +1182,7 @@ static bool compile(std::vector<Core::Proc*> procs, DMCompiler* parent_compiler 
 		entrypoints.push_back(node->_entryPoint);
 		for (auto& [k, v] : result.blocks)
 		{
-			if (!Emit_Block(dmc, v, result.blocks))
+			if (!Emit_Block(dmc, v, result.blocks, proc->id))
 			{
 				fflush(fuck);
 				return false;

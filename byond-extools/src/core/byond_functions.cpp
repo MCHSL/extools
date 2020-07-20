@@ -50,3 +50,4 @@ RunDMPtr RunDM;
 TranslateProcNameToProcIdPtr TranslateProcNameToProcId;
 OutputPtr Output;
 GetProcSetupEntryPtr GetProcSetupEntry;
+TextToPathPtr TextToPath;

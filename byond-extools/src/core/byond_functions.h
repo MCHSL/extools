@@ -36,7 +36,7 @@ typedef void(*AppendToContainerPtr)(unsigned char containerType, unsigned int co
 typedef bool(*RemoveFromContainerPtr)(unsigned char containerType, unsigned int containerValue, unsigned char valueType, unsigned int newValue);
 typedef String* (*GetStringTableEntryPtr)(int stringId);
 typedef unsigned int(*Path2TextPtr)(unsigned int pathType, unsigned int pathValue);
-typedef Type* (*GetTypeByIdPtr)(unsigned int typeIndex);
+typedef TType* (*GetTypeByIdPtr)(unsigned int typeIndex);
 typedef unsigned int* (*MobTableIndexToGlobalTableIndexPtr)(unsigned int mobTypeIndex);
 typedef trvh(*GetAssocElementPtr)(unsigned int listType, unsigned int listId, unsigned int keyType, unsigned int keyValue);
 typedef void(*SetAssocElementPtr)(unsigned int listType, unsigned int listId, unsigned int keyType, unsigned int keyValue, unsigned int valueType, unsigned int valueValue);
@@ -87,6 +87,7 @@ typedef void(*RunDMPtr)(ProcConstants* setup_info);
 typedef unsigned int(*TranslateProcNameToProcIdPtr)(unsigned int proc_type, unsigned int name, unsigned int const_0, unsigned char datum_type, unsigned char datum_id, unsigned int* failure_flag, unsigned int const_1);
 typedef bool(*OutputPtr)(unsigned char target_type, unsigned int target_value, unsigned int some_flag_1, unsigned int some_flag_2, unsigned char message_type, unsigned int message_value);
 typedef ProcSetupEntry* (*GetProcSetupEntryPtr)(unsigned int index);
+typedef trvh(*TextToPathPtr)(unsigned int path);
 
 extern CrashProcPtr CrashProc;
 extern StartTimingPtr StartTiming;
@@ -139,3 +140,4 @@ extern RunDMPtr RunDM;
 extern TranslateProcNameToProcIdPtr TranslateProcNameToProcId;
 extern OutputPtr Output;
 extern GetProcSetupEntryPtr GetProcSetupEntry;
+extern TextToPathPtr TextToPath;

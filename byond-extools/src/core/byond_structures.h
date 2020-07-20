@@ -275,7 +275,7 @@ struct List //Specialization for Container with fast access by index
 	}
 };
 
-struct Type
+struct TType
 {
 	unsigned int path;
 	unsigned int parentTypeIdx;
