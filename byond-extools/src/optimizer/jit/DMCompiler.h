@@ -4,9 +4,12 @@
 #include "../../third_party/asmjit/asmjit.h"
 #include "JitContext.h"
 
-#include <stdint.h>
+#include <cstdint>
 #include <vector>
 #include <array>
+#include <fstream>
+
+extern std::ofstream jit_out; // Could probably find a better spot but it will be here for now
 
 namespace dmjit
 {
@@ -64,7 +67,7 @@ public:
 	ProcNode* addProc(uint32_t locals_count, uint32_t args_count, bool zzz);
 	void endProc();
 
-	BlockNode* addBlock(const Label& label, uint32_t continuation_index = -1);
+	BlockNode* addBlock(const Label& label, const bool may_sleep);
 	void endBlock();
 
 	Variable getLocal(uint32_t index);
@@ -84,6 +87,11 @@ public:
 
 	Variable getCached();
 	void setCached(const Variable& variable);
+
+	// These functions are different than the ones above! They generate the instructions to get the value of the zero flag.
+	x86::Gp getZeroFlag();
+	void setZeroFlag();
+	void unsetZeroFlag();
 
 	template<std::size_t I>
 	std::array<Variable, I> popStack()
@@ -137,6 +145,8 @@ public:
 	{
 		return popStack<1>()[0];
 	}
+
+	void pushStackDirect(const Variable& variable);
 
 
 	void pushStackRaw(const Variable& variable);
@@ -193,20 +203,21 @@ class BlockNode
 	: public BaseNode
 {
 public:
-	BlockNode(BaseBuilder* cb, const Label& label)
+	BlockNode(BaseBuilder* cb, const Label& label, const bool may_sleep)
 		: BaseNode(cb, static_cast<uint32_t>(NodeTypes::kNodeBlock), kFlagHasNoEffect)
 		, _label(label)
+		, may_sleep(may_sleep)
 		, _stack_top_offset(0)
 		, _end(nullptr)
 	{
-		DMCompiler& dmc = *static_cast<DMCompiler*>(cb);
-
+		
 		//_stack_top = dmc.newUIntPtr("block_stack_top");
 		cb->_newNodeT<BlockEndNode>(&_end);
 		//_stack.init(&cb->_allocator);		
 	}
 
 	const Label _label;
+	const bool may_sleep;
 	int32_t _stack_top_offset;
 	ZoneVector<Variable> _stack;
 

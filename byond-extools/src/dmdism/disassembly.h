@@ -10,7 +10,7 @@ public:
 	Disassembly(std::vector<Instruction>&& i) : instructions(std::move(i)) {}
 	//~Disassembly() { for (auto i : instructions) delete& i; } //heap corruption woo
 	std::vector<Instruction> instructions;
-	Core::Proc* proc;
+	const Core::Proc* proc;
 
 	std::vector<std::uint32_t> assemble();
 	Instruction& at(std::size_t i);
@@ -25,5 +25,5 @@ public:
 	std::size_t size();
 	std::size_t bytecount();
 
-	static Disassembly from_proc(Core::Proc& proc);
+	static Disassembly from_proc(const Core::Proc& proc);
 };

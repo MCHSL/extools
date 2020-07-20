@@ -41,7 +41,9 @@ struct ProcStackFrame
 	// The stack of iterators implemented as a linked list. Points to the iterator currently being iterated.
 	DMListIterator* current_iterator;
 
-	uint32_t padding;
+	// We need to save the zero flag because of BYOND's terrible bytecode design and the fact
+	// that one opcode translates into several instructions all of which modify the real zero flag.
+	uint32_t zero_flag;
 
 	Value src;
 	Value usr;

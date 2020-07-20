@@ -48,12 +48,12 @@ namespace Core
 		std::vector<std::uint32_t> bytecode;
 
 		void set_bytecode(std::vector<std::uint32_t>&& new_bytecode);
-		std::uint32_t* get_bytecode();
-		std::uint16_t get_bytecode_length();
+		std::uint32_t* get_bytecode() const;
+		std::uint16_t get_bytecode_length() const;
 		void reset_bytecode();
 
-		std::uint16_t get_local_varcount();
-		Disassembly disassemble();
+		std::uint16_t get_local_varcount() const;
+		Disassembly disassemble() const;
 		void assemble(Disassembly disasm);
 
 		ProfileInfo* profile() const;

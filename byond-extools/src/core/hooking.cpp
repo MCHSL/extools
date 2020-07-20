@@ -7,7 +7,7 @@
 #include <stack>
 #include "../extended_profiling/extended_profiling.h"
 #include <mutex>
-#include "../optimizer/jit/Test.h"
+#include "../optimizer/jit/JitContext.h"
 
 CrashProcPtr oCrashProc;
 CallGlobalProcPtr oCallGlobalProc;

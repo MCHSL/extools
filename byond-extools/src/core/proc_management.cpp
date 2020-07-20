@@ -2,7 +2,7 @@
 #include "../dmdism/disassembly.h"
 #include "../dmdism/disassembler.h"
 #include "../extended_profiling/extended_profiling.h"
-#include "../optimizer/jit/Test.h"
+#include "../optimizer/jit/translation.h"
 #include <optional>
 #include <functional>
 
@@ -43,19 +43,19 @@ void Core::Proc::reset_bytecode()
 	}
 }
 
-std::uint32_t* Core::Proc::get_bytecode()
+std::uint32_t* Core::Proc::get_bytecode() const
 {
 	ProcArrayEntry* entry = GetProcArrayEntry(id);
 	return GetProcSetupEntry(entry->bytecode_idx)->bytecode;
 	return setup_entry_bytecode->bytecode;
 }
 
-std::uint16_t Core::Proc::get_bytecode_length()
+std::uint16_t Core::Proc::get_bytecode_length() const
 {
 	return setup_entry_bytecode->bytecode_length;
 }
 
-std::uint16_t Core::Proc::get_local_varcount() //TODO: this is broken
+std::uint16_t Core::Proc::get_local_varcount() const //TODO: this is broken
 {
 	//Core::Alert(std::to_string(setup_entry_varcount->local_var_count));
 	//Core::Alert(std::to_string((int)proc_setup_table[varcount_idx]));
@@ -98,7 +98,7 @@ Value Core::Proc::call(std::vector<Value> arguments, Value usr)
 	return CallGlobalProc(usr.type, usr.value, 2, id, 0, DataType::NULL_D, 0, margs.data(), margs.size(), 0, 0);
 }
 
-Disassembly Core::Proc::disassemble()
+Disassembly Core::Proc::disassemble() const
 {
 	return Disassembly::from_proc(*this);
 }

@@ -111,7 +111,7 @@ void Disassembly::recalculate_offsets()
 	}
 }
 
-Disassembly Disassembly::from_proc(Core::Proc& proc)
+Disassembly Disassembly::from_proc(const Core::Proc& proc)
 {
 	std::uint32_t* bytecode = proc.get_bytecode();
 	Disassembly dis = Disassembler(std::vector<uint32_t>(bytecode, bytecode + proc.get_bytecode_length()), Core::get_all_procs()).disassemble();

@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <array>
 
+std::ofstream jit_out("jit_out.txt");
+
 using namespace asmjit;
 
 namespace dmjit
@@ -112,9 +114,10 @@ ProcNode* DMCompiler::addProc(uint32_t locals_count, uint32_t args_count, bool z
 	mov(x86::ptr(new_frame, offsetof(ProcStackFrame, src) + offsetof(Value, value)), copy_thingy2);
 
 	// Set the current iterator to nullptr
-	mov(x86::ptr(new_frame, offsetof(ProcStackFrame, current_iterator), sizeof(uint32_t)), Imm(0));
+	mov(x86::ptr(new_frame, offsetof(ProcStackFrame, current_iterator), sizeof(uint32_t)), imm(0));
 
-	
+	// Ensure the zero flag is, well, zero.
+	mov(x86::ptr(new_frame, offsetof(ProcStackFrame, zero_flag), sizeof(uint32_t)), imm(0));
 
 	// Set parent execution context
 	/*x86::Gp parent_ctx_ptr = newUIntPtr("parent context pointer");
@@ -184,27 +187,19 @@ unsigned int DMCompiler::prepareNextContinuationIndex()
 	return _currentProc->_continuationPoints.size();
 }
 
-BlockNode* DMCompiler::addBlock(const Label& label, const uint32_t continuation_index)
+BlockNode* DMCompiler::addBlock(const Label& label, const bool may_sleep)
 {
 	if (_currentProc == nullptr)
 		__debugbreak();
 	if (_currentBlock != nullptr)
 		__debugbreak();
 
-	_newNodeT<BlockNode>(&_currentBlock, label);
+	_newNodeT<BlockNode>(&_currentBlock, label, may_sleep);
 	//_currentProc->_blocks.append(&_allocator, _currentBlock);
 	setInlineComment("Block Start");
 	bind(_currentBlock->_label);
 	addNode(_currentBlock);
 	//mov(_currentBlock->_stack_top, x86::dword_ptr(_currentProc->_jit_context, offsetof(JitContext, stack_top)));
-	if (_currentProc->needs_sleep)
-	{
-		cmp(x86::byte_ptr(_currentProc->_jit_context, offsetof(JitContext, suspended)), imm(1));
-		Label not_suspended = newLabel();
-		jne(not_suspended);
-		doYield();
-		bind(not_suspended);
-	}
 	return _currentBlock;
 }
 
@@ -214,6 +209,14 @@ void DMCompiler::endBlock()
 		__debugbreak();
 	commitStack();
 	setInlineComment("Block End");
+	if (_currentProc->needs_sleep && _currentBlock->may_sleep)
+	{
+		cmp(x86::byte_ptr(_currentProc->_jit_context, offsetof(JitContext, suspended)), imm(1));
+		const Label not_suspended = newLabel();
+		jne(not_suspended);
+		doYield();
+		bind(not_suspended);
+	}
 	addNode(_currentBlock->_end);
 	_currentBlock = nullptr;
 }
@@ -327,6 +330,37 @@ void DMCompiler::setCached(const Variable& variable)
 	lea(dot, x86::ptr(getStackFramePtr(), offsetof(ProcStackFrame, cached)));
 	mov(x86::dword_ptr(dot, offsetof(Value, type)), variable.Type.as<x86::Gp>());
 	mov(x86::dword_ptr(dot, offsetof(Value, value)), variable.Value.as<x86::Gp>());
+}
+
+x86::Gp DMCompiler::getZeroFlag()
+{
+	const auto zero_flag = newUInt32("zero_flag");
+	const auto stack_frame = getStackFramePtr();
+	mov(zero_flag, x86::dword_ptr(stack_frame, offsetof(ProcStackFrame, zero_flag)));
+	return zero_flag;
+}
+
+void DMCompiler::setZeroFlag()
+{
+	const auto stack_frame = getStackFramePtr();
+	mov(x86::dword_ptr(stack_frame, offsetof(ProcStackFrame, zero_flag)), imm(1));
+}
+
+void DMCompiler::unsetZeroFlag()
+{
+	const auto stack_frame = getStackFramePtr();
+	mov(x86::dword_ptr(stack_frame, offsetof(ProcStackFrame, zero_flag)), imm(0));
+}
+
+void DMCompiler::pushStackDirect(const Variable& variable)
+{
+	commitStack();
+	const x86::Gp stack_top = newUIntPtr("direct_stack_top");
+	mov(stack_top, x86::dword_ptr(_currentProc->_jit_context, offsetof(JitContext, stack_top)));
+	add(stack_top, sizeof(Value));
+	mov(x86::dword_ptr(stack_top, -sizeof(Value) + offsetof(Value, type)), variable.Type);
+	mov(x86::dword_ptr(stack_top, -sizeof(Value) + offsetof(Value, value)), variable.Value);
+	mov(x86::dword_ptr(_currentProc->_jit_context, offsetof(JitContext, stack_top)), stack_top);
 }
 
 void DMCompiler::pushStackRaw(const Variable& variable)
