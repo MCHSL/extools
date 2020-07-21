@@ -632,7 +632,7 @@ static void add_unjitted_proc(unsigned int proc_id)
 	{
 		const Core::Proc& proc = Core::get_proc(proc_id);
 		//Core::Alert(proc.name);
-		//proc.jit();
+		proc.jit();
 	}
 }
 
@@ -776,10 +776,10 @@ static void Emit_Call(DMCompiler& dmc, const Instruction& instr)
 static void Emit_GetFlag(DMCompiler& dmc)
 {
 	const auto done = dmc.newLabel();
-	const auto flag = dmc.getZeroFlag();
+	const auto flag = dmc.getFlag();
 	const auto stack_crap = dmc.pushStack(imm(NUMBER), imm(0));
 	dmc.test(flag, flag);
-	dmc.je(done); // we push FALSE by default so no need to update it.
+	dmc.jz(done); // we push FALSE by default so no need to update it.
 	dmc.mov(stack_crap.Value, imm(0x3f800000)); // Floating point representation of 1 (TRUE)
 	dmc.bind(done);
 }
@@ -797,26 +797,12 @@ static void Emit_Comparison(DMCompiler& dmc, const Bytecode comp)
 		dmc.jne(not_equal);
 		dmc.cmp(lhs.Value, rhs.Value);
 		dmc.jne(not_equal);
-		if(comp == Bytecode::TEQ)
-		{
-			dmc.setZeroFlag();
-			dmc.mov(stack_crap.Value, imm(0x3F800000));
-		}
-		else
-		{
-			dmc.unsetZeroFlag();
-		}
+		dmc.setFlag();
+		dmc.mov(stack_crap.Value, imm(0x3F800000));
 		dmc.jmp(done);
 		dmc.bind(not_equal);
-		if (comp == Bytecode::TNE)
-		{
-			dmc.setZeroFlag();
-			dmc.mov(stack_crap.Value, imm(0x3F800000));
-		}
-		else
-		{
-			dmc.unsetZeroFlag();
-		}
+		dmc.unsetFlag();
+		dmc.mov(stack_crap.Value, imm(0));
 		dmc.bind(done);
 	}
 	else
@@ -849,11 +835,11 @@ static void Emit_Comparison(DMCompiler& dmc, const Bytecode comp)
 			dmc.jmp(does_not_pass);
 			break;
 		}
-		dmc.setZeroFlag();
+		dmc.setFlag();
 		dmc.mov(stack_crap.Value, imm(0x3F800000));
 		dmc.jmp(done);
 		dmc.bind(does_not_pass);
-		dmc.unsetZeroFlag();
+		dmc.unsetFlag();
 		dmc.mov(stack_crap.Value, imm(0));
 		dmc.bind(done);
 	}
@@ -880,26 +866,26 @@ static void Emit_Test(DMCompiler& dmc)
 	const auto done = dmc.newLabel();
 	check_truthiness(dmc, val, truthy, falsey);
 	dmc.bind(falsey);
-	dmc.unsetZeroFlag();
+	dmc.unsetFlag();
 	dmc.jmp(done);
 	dmc.bind(truthy);
-	dmc.setZeroFlag();
+	dmc.setFlag();
 	dmc.bind(done);
 }
 
 static void Emit_ConditionalJump(DMCompiler& dmc, Bytecode cond, const uint32_t target, const std::map<unsigned int, ProcBlock>& blocks)
 {
-	const auto zero_flag = dmc.getZeroFlag();
-	dmc.test(zero_flag, zero_flag);
+	const auto flag = dmc.getFlag();
+	dmc.test(flag, flag);
 	switch(cond)
 	{
-	case Bytecode::JZ:
-	case Bytecode::JZ2:
-		dmc.jnz(blocks.at(target).label);
+	case Bytecode::JUMP_FALSE:
+	case Bytecode::JUMP_FALSE2:
+		dmc.jz(blocks.at(target).label);
 		break;
-	case Bytecode::JNZ:
-	case Bytecode::JNZ2:
-		dmc.jz(blocks.at(target).label); 
+	case Bytecode::JUMP_TRUE:
+	case Bytecode::JUMP_TRUE2:
+		dmc.jnz(blocks.at(target).label); 
 		break;
 	default:
 		break; // Stop complaining, resharper
@@ -995,6 +981,7 @@ Core::Proc* find_parent_proc(const unsigned int proc_id)
 static void Emit_CallParent(DMCompiler& dmc, const unsigned int proc_id)
 {
 	const Core::Proc* const parent_proc = find_parent_proc(proc_id);
+	Core::Alert(parent_proc->name);
 	if(!parent_proc)
 	{
 		Core::Alert("Failed to locate parent proc");
@@ -1034,7 +1021,7 @@ static void Emit_CallParent(DMCompiler& dmc, const unsigned int proc_id)
 	check_jit->setRet(0, code_base);
 
 	dmc.test(code_base, code_base);
-	dmc.je(not_jitted);
+	dmc.jmp(not_jitted);
 	InvokeNode* jitcall;
 	dmc.invoke(&jitcall, reinterpret_cast<uint64_t>(JitEntryPoint), FuncSignatureT<asmjit::Type::I64, void*, int, Value*, int, int, int, int, JitContext*>());
 	jitcall->setArg(0, code_base);
@@ -1308,10 +1295,10 @@ static bool Emit_Block(DMCompiler& dmc, const ProcBlock& block, const std::map<u
 			jit_out << "Assembling jump" << std::endl;
 			Emit_Jump(dmc, instr.bytes()[1], blocks);
 			break;
-		case Bytecode::JZ:
-		case Bytecode::JZ2:
-		case Bytecode::JNZ:
-		case Bytecode::JNZ2:
+		case Bytecode::JUMP_FALSE:
+		case Bytecode::JUMP_FALSE2:
+		case Bytecode::JUMP_TRUE:
+		case Bytecode::JUMP_TRUE2:
 			jit_out << "Assembling conditional jump" << std::endl;
 			Emit_ConditionalJump(dmc, (Bytecode)instr.bytes()[0], instr.bytes()[1], blocks);
 			break;

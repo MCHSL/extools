@@ -57,7 +57,7 @@ void inline_into(Disassembly& recipient, Disassembly& donor, int which_instructi
 				instr.bytes().at(2) += local_count + 1;
 			}
 		}
-		if (instr == JMP || instr == JMP2 || instr == JZ || instr == JNZ || instr == FOR_RANGE)
+		if (instr == JMP || instr == JMP2 || instr == JUMP_FALSE || instr == JUMP_TRUE || instr == FOR_RANGE)
 		{
 			instr.bytes().at(1) += which_instruction;
 		}
@@ -78,7 +78,7 @@ void inline_into(Disassembly& recipient, Disassembly& donor, int which_instructi
 	for (int i = 0; i < recipient.size()-1; i++)
 	{
 		Instruction& instr = recipient.at(i);
-		if (instr == JMP || instr == JMP2 || instr == JZ || instr == JNZ)
+		if (instr == JMP || instr == JMP2 || instr == JUMP_FALSE || instr == JUMP_TRUE)
 		{
 			if (instr.bytes().at(1) == recipient.at(i + 1).offset())
 			{
@@ -90,14 +90,14 @@ void inline_into(Disassembly& recipient, Disassembly& donor, int which_instructi
 	for (int i = 0; i < which_instruction; i++)
 	{
 		Instruction& instr = recipient.at(i);
-		if (instr == JMP || instr == JMP2 || instr == JZ || instr == JNZ || instr == FOR_RANGE)
+		if (instr == JMP || instr == JMP2 || instr == JUMP_FALSE || instr == JUMP_TRUE || instr == FOR_RANGE)
 		{
 			instr.bytes().at(1) += added_instructions;
 		}
 	}
 	for (Instruction& instr : plop_after_inlining)
 	{
-		if (instr == JMP || instr == JMP2 || instr == JZ || instr == JNZ || instr == FOR_RANGE)
+		if (instr == JMP || instr == JMP2 || instr == JUMP_FALSE || instr == JUMP_TRUE || instr == FOR_RANGE)
 		{
 			if (instr.bytes().at(1) <= starting_bytecount)
 			{

@@ -1419,7 +1419,7 @@ std::map<unsigned int, Block> split_into_blocks(Disassembly& dis, x86::Assembler
 			jump_targets.erase(i.offset());
 		}
 		blocks[current_block_offset].contents.push_back(i);
-		if (i == Bytecode::JZ || i == Bytecode::JMP || i == Bytecode::JMP2 || i == Bytecode::JNZ || i == Bytecode::JNZ2)
+		if (i == Bytecode::JUMP_FALSE || i == Bytecode::JMP || i == Bytecode::JMP2 || i == Bytecode::JUMP_TRUE || i == Bytecode::JUMP_TRUE2)
 		{
 			const unsigned int target = i.jump_locations().at(0);
 			if (target > i.offset())

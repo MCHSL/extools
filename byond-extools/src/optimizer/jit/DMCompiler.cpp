@@ -123,7 +123,7 @@ ProcNode* DMCompiler::addProc(uint32_t locals_count, uint32_t args_count, bool z
 	mov(x86::ptr(new_frame, offsetof(ProcStackFrame, current_iterator), sizeof(uint32_t)), imm(0));
 
 	// Ensure the zero flag is, well, zero.
-	mov(x86::ptr(new_frame, offsetof(ProcStackFrame, zero_flag), sizeof(uint32_t)), imm(0));
+	mov(x86::ptr(new_frame, offsetof(ProcStackFrame, flag), sizeof(uint32_t)), imm(0));
 
 	// Set parent execution context
 	/*x86::Gp parent_ctx_ptr = newUIntPtr("parent context pointer");
@@ -345,24 +345,24 @@ void DMCompiler::setCached(const Variable& variable)
 	mov(x86::dword_ptr(dot, offsetof(Value, value)), variable.Value.as<x86::Gp>());
 }
 
-x86::Gp DMCompiler::getZeroFlag()
+x86::Gp DMCompiler::getFlag()
 {
-	const auto zero_flag = newUInt32("zero_flag");
+	const auto flag = newUInt32("flag");
 	const auto stack_frame = getStackFramePtr();
-	mov(zero_flag, x86::dword_ptr(stack_frame, offsetof(ProcStackFrame, zero_flag)));
-	return zero_flag;
+	mov(flag, x86::dword_ptr(stack_frame, offsetof(ProcStackFrame, flag)));
+	return flag;
 }
 
-void DMCompiler::setZeroFlag()
+void DMCompiler::setFlag()
 {
 	const auto stack_frame = getStackFramePtr();
-	mov(x86::dword_ptr(stack_frame, offsetof(ProcStackFrame, zero_flag)), imm(1));
+	mov(x86::dword_ptr(stack_frame, offsetof(ProcStackFrame, flag)), imm(1));
 }
 
-void DMCompiler::unsetZeroFlag()
+void DMCompiler::unsetFlag()
 {
 	const auto stack_frame = getStackFramePtr();
-	mov(x86::dword_ptr(stack_frame, offsetof(ProcStackFrame, zero_flag)), imm(0));
+	mov(x86::dword_ptr(stack_frame, offsetof(ProcStackFrame, flag)), imm(0));
 }
 
 void DMCompiler::pushStackDirect(const Variable& variable)

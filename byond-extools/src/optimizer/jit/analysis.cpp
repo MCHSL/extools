@@ -55,7 +55,7 @@ std::optional<AnalysisResult> analyze_proc(const Core::Proc& proc)
 		}
 
 		blocks[current_block_offset].contents.push_back(i);
-		if (i == Bytecode::JZ || i == Bytecode::JMP || i == Bytecode::JMP2 || i == Bytecode::JNZ || i == Bytecode::JNZ2 || i == JMP_AND || i == JMP_OR)
+		if (i == Bytecode::JUMP_FALSE || i == Bytecode::JMP || i == Bytecode::JMP2 || i == Bytecode::JUMP_TRUE || i == Bytecode::JUMP_TRUE2 || i == JMP_AND || i == JMP_OR)
 		{
 			const unsigned int target = i.jump_locations().at(0);
 			if (blocks.find(target) == blocks.end())

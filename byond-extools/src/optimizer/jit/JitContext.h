@@ -43,7 +43,7 @@ struct ProcStackFrame
 
 	// We need to save the zero flag because of BYOND's terrible bytecode design and the fact
 	// that one opcode translates into several instructions all of which modify the real zero flag.
-	uint32_t zero_flag;
+	uint32_t flag;
 
 	Value src;
 	Value usr;

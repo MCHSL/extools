@@ -90,9 +90,9 @@ public:
 	void setCached(const Variable& variable);
 
 	// These functions are different than the ones above! They generate the instructions to get the value of the zero flag.
-	x86::Gp getZeroFlag();
-	void setZeroFlag();
-	void unsetZeroFlag();
+	x86::Gp getFlag();
+	void setFlag();
+	void unsetFlag();
 
 	template<std::size_t I>
 	std::array<Variable, I> popStack()
