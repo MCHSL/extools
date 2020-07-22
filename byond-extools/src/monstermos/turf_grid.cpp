@@ -134,25 +134,26 @@ void Tile::process_cell(int fire_count) {
 			}*/
 			last_share_check();
 		}
+	}
 
-		if (has_planetary_atmos) {
-			update_planet_atmos();
-			if (air->compare(planet_atmos_info->last_mix)) {
-				if (!excited_group) {
-					std::shared_ptr<ExcitedGroup> eg = std::make_shared<ExcitedGroup>();
-					eg->initialize();
-					eg->add_turf(*this);
-				}
-				air->share(planet_atmos_info->last_mix, adjacent_turfs_length);
-				last_share_check();
+	if (has_planetary_atmos) {
+		update_planet_atmos();
+		if (air->compare(planet_atmos_info->last_mix)) {
+			if (!excited_group) {
+				std::shared_ptr<ExcitedGroup> eg = std::make_shared<ExcitedGroup>();
+				eg->initialize();
+				eg->add_turf(*this);
 			}
+			air->share(planet_atmos_info->last_mix, adjacent_turfs_length);
+			last_share_check();
 		}
-		turf_ref.get_by_id(str_id_air).invoke_by_id(str_id_react, { turf_ref });
-		turf_ref.invoke_by_id(str_id_update_visuals, {});
-		if ((!excited_group && !(air->get_temperature() > MINIMUM_TEMPERATURE_START_SUPERCONDUCTION && turf_ref.invoke("consider_superconductivity", {Value::True()})))
-			|| (atmos_cooldown > (EXCITED_GROUP_DISMANTLE_CYCLES * 2))) {
-			SSair.invoke("remove_from_active", { turf_ref });
-		}
+	}
+		
+	turf_ref.get_by_id(str_id_air).invoke_by_id(str_id_react, { turf_ref });
+	turf_ref.invoke_by_id(str_id_update_visuals, {});
+	if ((!excited_group && !(air->get_temperature() > MINIMUM_TEMPERATURE_START_SUPERCONDUCTION && turf_ref.invoke("consider_superconductivity", {Value::True()})))
+		|| (atmos_cooldown > (EXCITED_GROUP_DISMANTLE_CYCLES * 2))) {
+		SSair.invoke("remove_from_active", { turf_ref });
 	}
 }
 
