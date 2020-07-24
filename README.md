@@ -34,6 +34,17 @@ Known issues:
 - Spawn()s are entirely untested and may not work at all.
 - The files containing profile results can become extremely large, in the range of gigabytes, preventing speedscope from importing them. Be careful when profiling procs that could run for longer than several seconds.
 
+#### Memory Profiler
+
+Counts all soft-code objects currently instantiated in the game world and dumps
+these numbers into a JSON file of your choosing for later inspection. The code
+also attempts to approximate the number of bytes that each object type takes
+up, though the accuracy is not guaranteed.
+
+To use, simply invoke `dump_memory_usage("myfile.json")` with the appropriate
+`call()()` syntax and away you go. This will halt the server for a moment as the
+counting is done.
+
 #### Optimizer
 Currently a proof of concept. The only optimization available is inlining - the optimizer will go through all procs and attempt to inline global proc calls to eliminate call overhead. At the time of writing optimizing takes an incredibly long time to finish, which makes it infeasible to use.
 
