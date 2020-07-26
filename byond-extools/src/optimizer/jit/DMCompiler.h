@@ -20,6 +20,8 @@ class ProcEndNode;
 class BlockNode;
 class BlockEndNode;
 
+class JitStack;
+
 enum class NodeTypes : uint32_t
 {
 	kNodeProc = BaseNode::kNodeUser,
@@ -94,52 +96,48 @@ public:
 	void setFlag();
 	void unsetFlag();
 
-	template<std::size_t I>
-	std::array<Variable, I> popStack()
+	template<std::size_t PopCount>
+	std::array<Variable, PopCount> popStack()
 	{
-		if (_currentBlock == nullptr)
-			__debugbreak();
-		BlockNode& block = *_currentBlock;
-
-		std::array<Variable, I> res;
-		int popped_count = 0;
-
-		// The stack cache could be empty if something was pushed to it before jumping to a new block
-		for (; popped_count < I && !block._stack.empty(); popped_count++)
+		if (PopCount > stack_size)
 		{
-			res[I - popped_count - 1] = block._stack.pop(); // Pop and place in correct order
+			Core::Alert("Trying to pop too many values from the stack!");
+			abort();
 		}
-		_currentBlock->_stack_top_offset -= popped_count;
-
-		if (popped_count == I)
-		{
-			return res;
-		}
-
-		const int diff = I - popped_count;
-
-		setInlineComment("popStack (overpopped)");
-
-		x86::Gp stack_top = newUIntPtr("stack_top");
+		std::array<Variable, PopCount> res;
+		const auto stack_top = newUInt32("stack_top");
 		mov(stack_top, x86::dword_ptr(_currentProc->_jit_context, offsetof(JitContext, stack_top)));
-		//add(stack_top, block._stack_top_offset * sizeof(Value));
 
-		for (; popped_count < I; popped_count++)
+		for (unsigned int i = 0; i < PopCount; i++)
 		{
-			const auto type = newUInt32("pop_type");
-			const auto value = newUInt32("pop_value");
-			mov(type, x86::ptr(stack_top, (block._stack_top_offset - popped_count) * sizeof(Value) - sizeof(Value), sizeof(uint32_t)));
-			mov(value, x86::ptr(stack_top, (block._stack_top_offset - popped_count) * sizeof(Value) - offsetof(Value, value), sizeof(uint32_t)));
-			res[I - popped_count - 1] = { type, value };
-		}
-		if (popped_count == I)
-		{
-			_currentBlock->_stack_top_offset -= diff;
-			return res;
+			auto stack_type_mover = newUInt32("stack_type");
+			auto stack_value_mover = newUInt32("stack_value");
+
+			mov(stack_type_mover, x86::dword_ptr(stack_top, (-PopCount + i) * sizeof(Value) + offsetof(Value, type)));
+			mov(stack_value_mover, x86::dword_ptr(stack_top, (-PopCount + i) * sizeof(Value) + offsetof(Value, value)));
+
+			res[i] = { stack_type_mover, stack_value_mover };
 		}
 
-		Core::Alert("Failed to pop enough arguments from the stack");
-		abort();
+		stack_size -= PopCount;
+
+		return res;
+	}
+
+	template<std::size_t _> // This is stupid but is necessary to be able to compile. Otherwise we get an error saying ProcNode is not defined.
+	void pushStack(Variable& var)
+	{
+		const auto stack_top = newUInt32("stack_top");
+		mov(stack_top, x86::dword_ptr(_currentProc->_jit_context, offsetof(JitContext, stack_top)));
+		add(x86::dword_ptr(_currentProc->_jit_context, offsetof(JitContext, stack_top)), sizeof(Value));
+		
+		mov(x86::dword_ptr(stack_top, offsetof(Value, type)), var.Type);
+		mov(x86::dword_ptr(stack_top, offsetof(Value, value)), var.Value);
+		
+		max_stack_size = std::max(++stack_size, max_stack_size);
+
+		var.Type = x86::Mem(x86::dword_ptr(stack_top, offsetof(Value, type))).as<x86::Gp>();
+		var.Value = x86::Mem(x86::dword_ptr(stack_top, offsetof(Value, value))).as<x86::Gp>();
 	}
 
 	Variable popStack()
@@ -147,10 +145,10 @@ public:
 		return popStack<1>()[0];
 	}
 
-	void pushStackDirect(const Variable& variable);
+	void pushStackDirect(Variable& variable);
 
 
-	void pushStackRaw(const Variable& variable);
+	void pushStackRaw(Variable& variable);
 	void clearStack();
 
 	// Calling these creates a new Variable on the stack and returns an instance of it.
@@ -195,6 +193,9 @@ public:
 private:
 	ProcNode* _currentProc;
 	BlockNode* _currentBlock;
+
+	unsigned int stack_size = 0;
+	unsigned int max_stack_size = 0;
 
 	void _return(ProcResult code);
 };
@@ -247,6 +248,7 @@ public:
 		, _end(nullptr)
 		, _locals(nullptr)
 		, needs_sleep(needs_sleep)
+		, _required_stack(0)
 	{
 		DMCompiler& dmc = *static_cast<DMCompiler*>(cb);
 
@@ -300,6 +302,8 @@ public:
 
 	//Local* _args;
 	uint32_t _args_count;
+
+	uint32_t _required_stack;
 
 	// The very very end of our proc. Nothing of this proc exists after this node.
 	ProcEndNode* _end;

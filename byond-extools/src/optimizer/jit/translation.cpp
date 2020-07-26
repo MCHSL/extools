@@ -1,3 +1,4 @@
+#include "translation.h"
 #include "../../core/core.h"
 #include "DMCompiler.h"
 #include "JitContext.h"
@@ -11,21 +12,7 @@
 using namespace asmjit;
 using namespace dmjit;
 
-struct JittedInfo
-{
-	void* code_base;
-	bool needs_sleep;
-
-	JittedInfo(void* cb, bool ns) : code_base(cb), needs_sleep(ns) {}
-	JittedInfo() : code_base(nullptr), needs_sleep(true) {} //by default assume that a proc needs sleep
-};
-
-static robin_hood::unordered_map<unsigned int, JittedInfo> jitted_procs;
-
-void add_jitted_proc(unsigned int proc_id, void* code_base)
-{
-	jitted_procs[proc_id] = JittedInfo(code_base, true);
-}
+robin_hood::unordered_map<unsigned int, JittedInfo> jitted_procs;
 
 static std::unordered_set<unsigned int> unjitted_procs;
 static std::unordered_set<unsigned int> procs_being_compiled;
@@ -689,27 +676,7 @@ static void Emit_Call(DMCompiler& dmc, const Instruction& instr)
 		}
 	}
 
-	//auto proc_it = jitted_procs.find(proc_id);
 	const auto usr = dmc.getUsr();
-	/*if (proc_it != jitted_procs.end())
-	{
-		void* code_base = proc_it->second.code_base;
-		InvokeNode* call;
-		dmc.invoke(&call, reinterpret_cast<uint64_t>(JitEntryPoint), FuncSignatureT<asmjit::Type::I64, void*, int, Value*, int, int, int, int, JitContext*>());
-		call->setArg(0, imm(code_base));
-		call->setArg(1, imm(arg_count));
-		call->setArg(2, args_ptr);
-		call->setArg(3, base_var.Type);
-		call->setArg(4, base_var.Value);
-		call->setArg(5, usr.Type);
-		call->setArg(6, usr.Value);
-		call->setArg(7, dmc.getJitContext());
-		call->setRet(0, result.Type);
-		call->setRet(1, result.Value);
-	}
-	else
-	{*/
-
 	const auto proc_id = dmc.newUInt32("proc_id");
 
 	if (proc_selector == ProcSelector::SRC_PROC_SPEC)
@@ -896,15 +863,10 @@ static void Emit_ConditionalChainJump(DMCompiler& dmc, Bytecode cond, const uint
 {
 	const auto lhs_result = dmc.popStack();
 	const auto truthy = dmc.newLabel();
+	const auto falsey = dmc.newLabel();
 	const auto done = dmc.newLabel();
-	dmc.cmp(lhs_result.Value, imm(0)); // If the value is not 0, then it must be truthy.
-	dmc.jne(truthy);
-	dmc.cmp(lhs_result.Type.r8Lo(), imm(0)); // If it has a value of zero but is not NULL, a string or a number, it's truthy.
-	dmc.jne(truthy);
-	dmc.cmp(lhs_result.Type.r8Lo(), imm(STRING));
-	dmc.jne(truthy);
-	dmc.cmp(lhs_result.Type.r8Lo(), imm(NUMBER));
-	dmc.jne(truthy);
+	check_truthiness(dmc, lhs_result, truthy, falsey);
+	dmc.bind(falsey);
 	if(cond == JMP_AND)
 	{
 		dmc.pushStackDirect(Variable{ imm(0).as<x86::Gp>(), imm(0).as<x86::Gp>() });
@@ -1021,7 +983,7 @@ static void Emit_CallParent(DMCompiler& dmc, const unsigned int proc_id)
 	check_jit->setRet(0, code_base);
 
 	dmc.test(code_base, code_base);
-	dmc.jmp(not_jitted);
+	dmc.jz(not_jitted);
 	InvokeNode* jitcall;
 	dmc.invoke(&jitcall, reinterpret_cast<uint64_t>(JitEntryPoint), FuncSignatureT<asmjit::Type::I64, void*, int, Value*, int, int, int, int, JitContext*>());
 	jitcall->setArg(0, code_base);
@@ -1101,7 +1063,7 @@ static void Emit_BitwiseNot(DMCompiler& dmc)
 
 static void Emit_AssocList(DMCompiler& dmc, unsigned int num_entries)
 {
-	const auto result = Variable();
+	auto result = Variable();
 	InvokeNode* create;
 	dmc.invoke(&create, (uint64_t)create_list, FuncSignatureT<asmjit::Type::I64, Value*, unsigned int>());
 	create->setArg(0, imm(0));
@@ -1447,13 +1409,4 @@ static bool compile(const std::vector<Core::Proc const*> procs, DMCompiler* pare
 	}
 	fflush(fuck);
 	return true;
-}
-
-void* compile_one(const Core::Proc& proc)
-{
-	if (!compile({ &proc }))
-	{
-		return nullptr;
-	}
-	return jitted_procs[proc.id].code_base; //todo
 }

@@ -1,5 +1,6 @@
 #include "DMCompiler.h"
 #include "JitContext.h"
+#include "JitStack.hpp"
 
 #include <algorithm>
 #include <array>
@@ -16,7 +17,6 @@ DMCompiler::DMCompiler(asmjit::CodeHolder& holder)
 	, _currentProc(nullptr)
 	, _currentBlock(nullptr)
 {
-
 }
 
 ProcNode* DMCompiler::addProc(uint32_t locals_count, uint32_t args_count, bool zzz)
@@ -365,8 +365,10 @@ void DMCompiler::unsetFlag()
 	mov(x86::dword_ptr(stack_frame, offsetof(ProcStackFrame, flag)), imm(0));
 }
 
-void DMCompiler::pushStackDirect(const Variable& variable)
+void DMCompiler::pushStackDirect(Variable& variable)
 {
+	pushStack<1>(variable);
+	return;
 	commitStack();
 	const x86::Gp stack_top = newUIntPtr("direct_stack_top");
 	mov(stack_top, x86::dword_ptr(_currentProc->_jit_context, offsetof(JitContext, stack_top)));
@@ -374,10 +376,13 @@ void DMCompiler::pushStackDirect(const Variable& variable)
 	mov(x86::dword_ptr(stack_top, -sizeof(Value) + offsetof(Value, type)), variable.Type);
 	mov(x86::dword_ptr(stack_top, -sizeof(Value) + offsetof(Value, value)), variable.Value);
 	mov(x86::dword_ptr(_currentProc->_jit_context, offsetof(JitContext, stack_top)), stack_top);
+	commitStack();
 }
 
-void DMCompiler::pushStackRaw(const Variable& variable)
+void DMCompiler::pushStackRaw(Variable& variable)
 {
+	pushStackDirect(variable);
+	return;
 	if (_currentBlock == nullptr)
 		__debugbreak();
 	BlockNode& block = *_currentBlock;
@@ -401,15 +406,6 @@ void DMCompiler::clearStack()
 	_currentBlock->_stack_top_offset -= i;
 }
 
-Variable DMCompiler::pushStack()
-{
-	Variable var;
-	var.Type = newInt32("push_stack_type");
-	var.Value = newInt32("push_stack_value");
-	pushStackRaw(var);
-	return var;
-}
-
 Variable DMCompiler::pushStack(Operand type, Operand value)
 {
 	Variable var;
@@ -421,8 +417,18 @@ Variable DMCompiler::pushStack(Operand type, Operand value)
 	return var;
 }
 
+Variable DMCompiler::pushStack()
+{
+	Variable var;
+	var.Type = newInt32("push stack type");
+	var.Value = newInt32("push stack value");
+	pushStackRaw(var);
+	return var;
+}
+
 void DMCompiler::commitStack()
 {
+	return;
 	if (_currentBlock == nullptr)
 		__debugbreak();
 	BlockNode& block = *_currentBlock;

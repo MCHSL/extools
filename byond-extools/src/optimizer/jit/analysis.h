@@ -25,11 +25,14 @@ struct AnalysisResult
 	unsigned int stack_size;
 	std::vector<unsigned int> called_proc_ids;
 
+	unsigned int proc_id;
+
 	AnalysisResult()
 		: needs_sleep(false)
 		, argument_count(0)
 		, local_count(0)
 		, stack_size(0)
+		, proc_id(0)
 	{}
 };
 
