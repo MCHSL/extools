@@ -1,6 +1,5 @@
 #include "DMCompiler.h"
 #include "JitContext.h"
-#include "JitStack.hpp"
 
 #include <algorithm>
 #include <array>
@@ -24,9 +23,11 @@ ProcNode* DMCompiler::addProc(uint32_t locals_count, uint32_t args_count, bool z
 	if (_currentProc != nullptr)
 		__debugbreak();
 
-	auto label = newLabel();
+	_funcCallArgHolder = newStack(1, 4, "function call args");
+
+	const auto label = newLabel();
 	bind(label);
-	addFunc(FuncSignatureT<uint32_t, JitContext*, uint32_t, Value*, uint32_t, uint32_t, uint32_t, uint32_t>(CallConv::kIdCDecl));
+	addFunc(FuncSignatureT<uint32_t, JitContext*, uint32_t, Value*, uint32_t, uint32_t, uint32_t, uint32_t, bool>(CallConv::kIdCDecl));
 
 	_newNodeT<ProcNode>(&_currentProc, locals_count, args_count, zzz);
 	addNode(_currentProc);
@@ -35,23 +36,25 @@ ProcNode* DMCompiler::addProc(uint32_t locals_count, uint32_t args_count, bool z
 
 	setInlineComment("Proc Entrypoint");
 	setArg(0, _currentProc->_jit_context);
-	x86::Gp stack_frame_ptr = getStackFramePtr();
+
+	const auto was_suspended = newUInt32("was_suspended");
+	setArg(7, was_suspended);
 
 	if (_currentProc->needs_sleep)
 	{
-		test(stack_frame_ptr, stack_frame_ptr);
-		je(_currentProc->_prolog); // If there is no stack frame, create it.
+		test(was_suspended, was_suspended);
+		jz(_currentProc->_prolog); // If this isn't a reentry, create a new stack frame.
 
+		// Otherwise, jump to the given continuation point.
 		mov(_currentProc->_stack_frame, x86::dword_ptr(_currentProc->_jit_context, offsetof(JitContext, stack_frame)));
 		
-		// If there is, we've been called before, so we need to jump to the given continuation point.
-		x86::Gp continuation_index = newUInt32("cont_index");
+		const x86::Gp continuation_index = newUInt32("cont_index");
 		setInlineComment("Get Continuation Index");
 		mov(continuation_index, x86::ptr(getStackFramePtr(), offsetof(ProcStackFrame, continuation_index), sizeof(uint32_t)));
 
 		setInlineComment("Continuation Jump");
-		x86::Gp cont_target = newUIntPtr("cont_target");
-		x86::Gp cont_offset = newUIntPtr("cont_offset");
+		const x86::Gp cont_target = newUIntPtr("cont_target");
+		const x86::Gp cont_offset = newUIntPtr("cont_offset");
 		lea(cont_offset, x86::ptr(_currentProc->_continuationPointTable));
 		mov(cont_target, x86::ptr(cont_offset, continuation_index, 2));
 		add(cont_target, cont_offset);
@@ -70,8 +73,6 @@ ProcNode* DMCompiler::addProc(uint32_t locals_count, uint32_t args_count, bool z
 
 
 	// New stack frame
-	// TODO: allocate more space on stack if necessary
-
 	
 	x86::Gp previous = newUIntPtr("previous_stack_frame");
 	mov(previous, x86::dword_ptr(_currentProc->_jit_context, offsetof(JitContext, stack_frame)));
@@ -86,6 +87,7 @@ ProcNode* DMCompiler::addProc(uint32_t locals_count, uint32_t args_count, bool z
 	invoke(&reserve_stack, (uint64_t)context_reserve_stack_space, FuncSignatureT<void, JitContext*, unsigned int>());
 	reserve_stack->setArg(0, getJitContext());
 	reserve_stack->setArg(1, imm(12)); //reserve 12 slots per 1 call stack depth, might need to adjust
+	_currentProc->_reserve_stack_call = reserve_stack;
 	
 	static_assert(sizeof(ProcStackFrame) == sizeof(Value) * 6);
 	//mov(x86::ptr(stack_top, offsetof(Value, type), sizeof(uint32_t)), old_stack_frame);
@@ -115,15 +117,18 @@ ProcNode* DMCompiler::addProc(uint32_t locals_count, uint32_t args_count, bool z
 	x86::Gp copy_thingy = newUInt32("src type");
 	x86::Gp copy_thingy2 = newUInt32("src value");
 	setArg(3, copy_thingy);
-	mov(x86::ptr(new_frame, offsetof(ProcStackFrame, src) + offsetof(Value, type)), copy_thingy);
+	mov(x86::dword_ptr(new_frame, offsetof(ProcStackFrame, src) + offsetof(Value, type)), copy_thingy);
 	setArg(4, copy_thingy2);
-	mov(x86::ptr(new_frame, offsetof(ProcStackFrame, src) + offsetof(Value, value)), copy_thingy2);
+	mov(x86::dword_ptr(new_frame, offsetof(ProcStackFrame, src) + offsetof(Value, value)), copy_thingy2);
 
 	// Set the current iterator to nullptr
-	mov(x86::ptr(new_frame, offsetof(ProcStackFrame, current_iterator), sizeof(uint32_t)), imm(0));
+	mov(x86::dword_ptr(new_frame, offsetof(ProcStackFrame, current_iterator)), imm(0));
 
 	// Ensure the zero flag is, well, zero.
-	mov(x86::ptr(new_frame, offsetof(ProcStackFrame, flag), sizeof(uint32_t)), imm(0));
+	mov(x86::dword_ptr(new_frame, offsetof(ProcStackFrame, flag)), imm(0));
+
+	// Set continuation index to zero
+	mov(x86::dword_ptr(new_frame, offsetof(ProcStackFrame, continuation_index)), imm(0));
 
 	// Set parent execution context
 	/*x86::Gp parent_ctx_ptr = newUIntPtr("parent context pointer");
@@ -164,7 +169,15 @@ void DMCompiler::endProc()
 	_currentProc = nullptr;
 }
 
-x86::Gp DMCompiler::getJitContext()
+Variable DMCompiler::newVariable()
+{
+	Variable var;
+	var.Type = newUInt32("new variable type");
+	var.Value = newUInt32("new variable value");
+	return var;
+}
+
+x86::Gp DMCompiler::getJitContext() const
 {
 	return _currentProc->_jit_context;
 }
@@ -251,8 +264,8 @@ Variable DMCompiler::getLocal(uint32_t index)
 	auto stack_frame = getStackFramePtr();
 
 	// Locals live after our stack frame
-	auto type = newUInt32();
-	auto value = newUInt32();
+	auto type = newUInt32("local type");
+	auto value = newUInt32("local value");
 	mov(type, x86::ptr(stack_frame, sizeof(ProcStackFrame) + sizeof(Value) * proc._args_count + sizeof(Value) * index, sizeof(uint32_t))); // Locals are located after args.
 	mov(value, x86::ptr(stack_frame, sizeof(ProcStackFrame) + sizeof(Value) * proc._args_count + sizeof(Value) * index + offsetof(Value, value), sizeof(uint32_t)));
 
@@ -303,9 +316,9 @@ Variable DMCompiler::getFrameEmbeddedValue(uint32_t offset)
 	const auto val = getStackFramePtr();
 	const auto type = newUInt32("embedded_type");
 	const auto value = newUInt32("embedded_value");
-	lea(val, x86::ptr(val, offset));
-	mov(type, x86::ptr(val, offsetof(Value, type)));
-	mov(value, x86::ptr(val, offsetof(Value, value)));
+	lea(val, x86::dword_ptr(val, offset));
+	mov(type, x86::dword_ptr(val, offsetof(Value, type)));
+	mov(value, x86::dword_ptr(val, offsetof(Value, value)));
 	return { type, value };
 }
 
@@ -411,9 +424,9 @@ Variable DMCompiler::pushStack(Operand type, Operand value)
 	Variable var;
 	var.Type = newInt32("push stack type");
 	var.Value = newInt32("push stack value");
+	mov(var.Type, type.as<x86::Gp>());
+	mov(var.Value, value.as<x86::Gp>());
 	pushStackRaw(var);
-	mov(var.Type.as<x86::Gp>(), type.as<x86::Gp>());
-	mov(var.Value.as<x86::Gp>(), value.as<x86::Gp>());
 	return var;
 }
 
@@ -552,6 +565,13 @@ void DMCompiler::setCurrentIterator(Operand iter)
 	mov(x86::dword_ptr(frame, offsetof(ProcStackFrame, current_iterator)), iter.as<x86::Gp>());
 }
 
+x86::Mem DMCompiler::getFuncCallArgHolder(unsigned int arg_count)
+{
+	_funcCallArgHolder.resetOffset();
+	setStackSize(_funcCallArgHolder, arg_count * sizeof(Value));
+	return _funcCallArgHolder;
+}
+
 void delete_iterator(DMListIterator* iter)
 {
 	if (!iter)
@@ -595,7 +615,7 @@ void DMCompiler::doReturn(bool immediate)
 
 	x86::Gp frame = getStackFramePtr();
 
-	x86::Gp stack_top = newUInt32();
+	x86::Gp stack_top = newUInt32("stack_top");
 	mov(stack_top, x86::dword_ptr(_currentProc->_jit_context, offsetof(JitContext, stack_top)));
 
 	// Restore previous stack frame

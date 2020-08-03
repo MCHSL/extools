@@ -18,7 +18,7 @@ enum struct ProcResult : uint32_t
 	Sleeping,
 };
 
-typedef ProcResult (*Proc)(JitContext* ctx, unsigned int n_args, Value* args, trvh src, trvh usr);
+typedef ProcResult (*Proc)(JitContext* ctx, unsigned int n_args, Value* args, trvh src, trvh usr, bool was_suspended);
 
 struct DMListIterator
 {
@@ -124,7 +124,7 @@ struct JitContext
 	// The number of slots in use
 	[[nodiscard]] size_t Count() const
 	{
-		return stack_top - stack;
+		return ((int)stack_top - (int)stack) / sizeof(Value);
 	}
 
 	[[nodiscard]] size_t CountFrame() const

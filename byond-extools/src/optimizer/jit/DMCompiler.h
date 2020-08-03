@@ -78,9 +78,11 @@ public:
 	Variable getArg(uint32_t index);
 	unsigned int getArgCount() const;
 
+	Variable newVariable();
+
 	Variable getFrameEmbeddedValue(uint32_t offset);
 
-	x86::Gp getJitContext();
+	x86::Gp getJitContext() const;
 
 	Variable getSrc();
 	Variable getUsr();
@@ -120,6 +122,8 @@ public:
 		}
 
 		stack_size -= PopCount;
+		sub(x86::dword_ptr(_currentProc->_jit_context, offsetof(JitContext, stack_top)), PopCount * sizeof(Value));
+		
 
 		return res;
 	}
@@ -133,11 +137,13 @@ public:
 		
 		mov(x86::dword_ptr(stack_top, offsetof(Value, type)), var.Type);
 		mov(x86::dword_ptr(stack_top, offsetof(Value, value)), var.Value);
-		
-		max_stack_size = std::max(++stack_size, max_stack_size);
 
-		var.Type = x86::Mem(x86::dword_ptr(stack_top, offsetof(Value, type))).as<x86::Gp>();
-		var.Value = x86::Mem(x86::dword_ptr(stack_top, offsetof(Value, value))).as<x86::Gp>();
+		//TODO: calculate this at the end
+		max_stack_size = std::max(++stack_size, max_stack_size);
+		_currentProc->_reserve_stack_call->setArg(1, imm(max_stack_size + _currentProc->_args_count + _currentProc->_locals_count + sizeof(ProcStackFrame) / sizeof(Value)));
+
+		var.Type = x86::dword_ptr(stack_top, offsetof(Value, type)).as<x86::Gp>();
+		var.Value = x86::dword_ptr(stack_top, offsetof(Value, value)).as<x86::Gp>();
 	}
 
 	Variable popStack()
@@ -177,6 +183,8 @@ public:
 	x86::Gp getCurrentIterator();
 	void setCurrentIterator(Operand iter);
 
+	x86::Mem getFuncCallArgHolder(unsigned int size);
+
 	// Returns the value at the top of the stack
 	void doReturn(bool immediate = false);
 
@@ -193,6 +201,7 @@ public:
 private:
 	ProcNode* _currentProc;
 	BlockNode* _currentBlock;
+	x86::Mem _funcCallArgHolder;
 
 	unsigned int stack_size = 0;
 	unsigned int max_stack_size = 0;
@@ -249,6 +258,7 @@ public:
 		, _locals(nullptr)
 		, needs_sleep(needs_sleep)
 		, _required_stack(0)
+		, _reserve_stack_call(nullptr)
 	{
 		DMCompiler& dmc = *static_cast<DMCompiler*>(cb);
 
@@ -307,6 +317,9 @@ public:
 
 	// The very very end of our proc. Nothing of this proc exists after this node.
 	ProcEndNode* _end;
+
+	// We need to set the second argument to the required stack space.
+	InvokeNode* _reserve_stack_call;
 
 	// its all our blocks (TODO: maybe not needed)
 	//ZoneVector<ProcBlock> _blocks;

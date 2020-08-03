@@ -8,8 +8,8 @@
 
 struct ProcBlock
 {
-	explicit ProcBlock(const unsigned int o) : offset(o), may_sleep(false) {}
-	ProcBlock() : offset(0), may_sleep(false) {}
+	explicit ProcBlock(const unsigned int o) : offset(o), may_sleep(true) {}
+	ProcBlock() : offset(0), may_sleep(true) {}
 	std::vector<Instruction> contents;
 	unsigned int offset;
 	asmjit::Label label;
@@ -28,7 +28,7 @@ struct AnalysisResult
 	unsigned int proc_id;
 
 	AnalysisResult()
-		: needs_sleep(false)
+		: needs_sleep(true)
 		, argument_count(0)
 		, local_count(0)
 		, stack_size(0)

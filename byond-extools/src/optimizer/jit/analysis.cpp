@@ -15,6 +15,7 @@ static std::ofstream blocks_out("blocks.txt");
 std::optional<AnalysisResult> analyze_proc(const Core::Proc& proc)
 {
 	AnalysisResult result;
+	result.proc_id = proc.id;
 	auto& blocks = result.blocks;
 	Disassembly dis = proc.disassemble();
 	

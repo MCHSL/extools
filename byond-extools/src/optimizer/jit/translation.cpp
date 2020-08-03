@@ -1033,13 +1033,13 @@ static void Emit_BitwiseOp(DMCompiler& dmc, Bytecode op)
 	dmc.cvtss2si(rhs, converter);
 	switch(op)
 	{
-	case BINARY_AND:
+	case BITWISE_AND:
 		dmc.and_(lhs, rhs);
 		break;
-	case BINARY_OR:
+	case BITWISE_OR:
 		dmc.or_(lhs, rhs);
 		break;
-	case BINARY_XOR:
+	case BITWISE_XOR:
 		dmc.xor_(lhs, rhs);
 		break;
 	default:
@@ -1286,13 +1286,13 @@ static bool Emit_Block(DMCompiler& dmc, const ProcBlock& block, const std::map<u
 			jit_out << "Assembling getflag" << std::endl;
 			Emit_GetFlag(dmc);
 			break;
-		case Bytecode::NOT:
+		case Bytecode::LOGICAL_NOT:
 			jit_out << "Assembling logical not" << std::endl;
 			Emit_LogicalNot(dmc);
 			break;
-		case Bytecode::BINARY_AND:
-		case Bytecode::BINARY_OR:
-		case Bytecode::BINARY_XOR:
+		case Bytecode::BITWISE_AND:
+		case Bytecode::BITWISE_OR:
+		case Bytecode::BITWISE_XOR:
 			jit_out << "Assembling bitwise op" << std::endl;
 			Emit_BitwiseOp(dmc, (Bytecode)instr.bytes()[0]);
 			break;

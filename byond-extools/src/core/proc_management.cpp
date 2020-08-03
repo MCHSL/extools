@@ -84,7 +84,7 @@ void Core::Proc::jit() const
 	void* result = compile_one(*this);
 	if(result)
 	{
-		//Core::Alert(name + " has been compiled!");
+		Core::Alert(name + " has been compiled!");
 		jit_hooks[id] = result;
 		add_jitted_proc(id, result);
 	}

@@ -33,10 +33,11 @@ static ExecutionContext* __fastcall fuck(ExecutionContext* dmctx)
 	// This flag might actually be something like "suspendable", doubt it though
 	dmctx->paused = true;
 	auto* const jctx = reinterpret_cast<JitContext*>(pc->args[1].value);
+	const bool was_suspended = jctx->suspended;
 	jctx->suspended = false;
 	// The first 2 arguments are base and context, we pass the pointer to the third arg onwards.
 	const unsigned int args_len = std::max(0, pc->arg_count - 2);
-	const Value retval = JitEntryPoint(reinterpret_cast<void*>(pc->args[0].value), args_len, pc->args + 2, pc->src, pc->usr, reinterpret_cast<JitContext*>(pc->args[1].value));
+	const Value retval = JitEntryPoint(reinterpret_cast<void*>(pc->args[0].value), args_len, pc->args + 2, pc->src, pc->usr, reinterpret_cast<JitContext*>(pc->args[1].value), was_suspended);
 	dmctx->stack_size++;
 	dmctx->stack[dmctx->stack_size - 1] = retval;
 	dmctx->dot = retval;
@@ -87,16 +88,16 @@ static void hook_resumption()
 	VirtualProtect(remember_to_return_context, 5, old_prot, &old_prot);
 }
 
-trvh JitEntryPoint(void* code_base, const unsigned int args_len, Value* const args, const Value src, const Value usr, JitContext* ctx)
+trvh JitEntryPoint(void* code_base, const unsigned int args_len, Value* const args, const Value src, const Value usr, JitContext* ctx, bool was_suspended)
 {
 	if (!ctx)
 	{
-		ctx = new JitContext();
+		Core::Alert("No context");
 	}
 
 	const Proc code = reinterpret_cast<Proc>(code_base);
 
-	const ProcResult res = code(ctx, args_len, args, src, usr);
+	const ProcResult res = code(ctx, args_len, args, src, usr, was_suspended);
 
 	switch (res)
 	{
