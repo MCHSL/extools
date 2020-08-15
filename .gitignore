@@ -1,4 +1,4 @@
-
+*.cmake
 CMakeLists.txt.user
 CMakeCache.txt
 CMakeFiles
@@ -9,6 +9,7 @@ cmake_install.cmake
 install_manifest.txt
 compile_commands.json
 CTestTestfile.cmake
+byond-extools/cmake
 _deps
 build
 ## Ignore Visual Studio temporary files, build results, and
