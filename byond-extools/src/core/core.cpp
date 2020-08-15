@@ -11,8 +11,8 @@ ExecutionContext** Core::current_execution_context_ptr;
 ExecutionContext** Core::parent_context_ptr_hack;
 ProcSetupEntry** Core::proc_setup_table;
 
-int ByondVersion;
-int ByondBuild;
+const int ByondVersion = GetByondVersion();
+const int ByondBuild = GetByondBuild();
 unsigned int* Core::some_flags_including_profile;
 unsigned int Core::extended_profiling_insanely_hacky_check_if_its_a_new_call_or_resume;
 

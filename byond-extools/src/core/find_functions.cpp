@@ -24,8 +24,8 @@ bool Core::verify_compat()
 	IMPORT_OR_DIE(GetByondBuild, "_ZN8ByondLib13GetByondBuildEv");
 	IMPORT_OR_DIE(StdDefDM, "_ZN11DungBuilder8StdDefDMEv");
 #endif
-	ByondVersion = GetByondVersion();
-	ByondBuild = GetByondBuild();
+//	ByondVersion = GetByondVersion();
+//	ByondBuild = GetByondBuild();
 	if (ByondVersion < MIN_COMPATIBLE_MAJOR || ByondBuild < MIN_COMPATIBLE_MINOR)
 	{
 		Core::Alert("Incompatible BYOND version, must be at least " + std::to_string(MIN_COMPATIBLE_MAJOR) + "." + std::to_string(MIN_COMPATIBLE_MINOR) + " (Current: "+std::to_string(ByondVersion)+"."+std::to_string(ByondBuild)+")");

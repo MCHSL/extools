@@ -13,7 +13,7 @@ jobs:
   include:
     - name: 'Windows version (cross-compiled from Linux)'
       env:
-        - CMAKE_ARGS="-DCMAKE_TOOLCHAIN_FILE=../byond-extools/cmake/i686-w64-mingw32.cmake"
+        - CMAKE_ARGS="-DCMAKE_TOOLCHAIN_FILE=../byond-extools/CMakeTarget/i686-w64-mingw32.cmake"
     - name: 'Linux version'
 
 script:

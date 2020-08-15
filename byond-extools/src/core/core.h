@@ -26,15 +26,15 @@ typedef void(*opcode_handler)(ExecutionContext* ctx);
 
 #define MANAGED(x) Core::ManagedString(x)
 
-extern int ByondVersion;
-extern int ByondBuild;
+extern const int ByondVersion;
+extern const int ByondBuild;
 
 namespace Core
 {
 	const char* const SUCCESS = "SUCCESS";
 	const char* const FAIL = "FAIL";
-
-	//not exactly a byond structure so it's here for now
+    enum result {success, fail}; //I'll save this tool for later
+    //not exactly a byond structure so it's here for now
 
 	class ManagedString
 	{
