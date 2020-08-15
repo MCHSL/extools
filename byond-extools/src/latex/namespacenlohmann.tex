@@ -1,0 +1,102 @@
+\hypertarget{namespacenlohmann}{}\doxysection{nlohmann Namespace Reference}
+\label{namespacenlohmann}\index{nlohmann@{nlohmann}}
+
+
+namespace for Niels Lohmann  
+
+
+\doxysubsection*{Namespaces}
+\begin{DoxyCompactItemize}
+\item 
+ \mbox{\hyperlink{namespacenlohmann_1_1detail}{detail}}
+\begin{DoxyCompactList}\small\item\em detail namespace with internal helper functions \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Data Structures}
+\begin{DoxyCompactItemize}
+\item 
+struct \mbox{\hyperlink{structnlohmann_1_1adl__serializer}{adl\+\_\+serializer}}
+\begin{DoxyCompactList}\small\item\em default J\+S\+O\+N\+Serializer template argument \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classnlohmann_1_1basic__json}{basic\+\_\+json}}
+\begin{DoxyCompactList}\small\item\em a class to store J\+S\+ON values \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classnlohmann_1_1json__pointer}{json\+\_\+pointer}}
+\begin{DoxyCompactList}\small\item\em J\+S\+ON Pointer. \end{DoxyCompactList}\item 
+struct \mbox{\hyperlink{structnlohmann_1_1json__sax}{json\+\_\+sax}}
+\begin{DoxyCompactList}\small\item\em S\+AX interface. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Typedefs}
+\begin{DoxyCompactItemize}
+\item 
+using \mbox{\hyperlink{namespacenlohmann_a2bfd99e845a2e5cd90aeaf1b1431f474}{json}} = \mbox{\hyperlink{classnlohmann_1_1basic__json}{basic\+\_\+json}}$<$$>$
+\begin{DoxyCompactList}\small\item\em default J\+S\+ON class \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+N\+L\+O\+H\+M\+A\+N\+N\+\_\+\+B\+A\+S\+I\+C\+\_\+\+J\+S\+O\+N\+\_\+\+T\+P\+L\+\_\+\+D\+E\+C\+L\+A\+R\+A\+T\+I\+ON std\+::string \mbox{\hyperlink{namespacenlohmann_a6ce645a0b8717757e096a5b5773b7a16}{to\+\_\+string}} (const N\+L\+O\+H\+M\+A\+N\+N\+\_\+\+B\+A\+S\+I\+C\+\_\+\+J\+S\+O\+N\+\_\+\+T\+PL \&j)
+\begin{DoxyCompactList}\small\item\em user-\/defined to\+\_\+string function for J\+S\+ON values \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+namespace for Niels Lohmann 
+
+namespace to hold default {\ttfamily to\+\_\+json} function
+
+\begin{DoxySeeAlso}{See also}
+\href{https://github.com/nlohmann}{\texttt{ https\+://github.\+com/nlohmann}} 
+\end{DoxySeeAlso}
+\begin{DoxySince}{Since}
+version 1.\+0.\+0 
+\end{DoxySince}
+
+
+\doxysubsection{Typedef Documentation}
+\mbox{\Hypertarget{namespacenlohmann_a2bfd99e845a2e5cd90aeaf1b1431f474}\label{namespacenlohmann_a2bfd99e845a2e5cd90aeaf1b1431f474}} 
+\index{nlohmann@{nlohmann}!json@{json}}
+\index{json@{json}!nlohmann@{nlohmann}}
+\doxysubsubsection{\texorpdfstring{json}{json}}
+{\footnotesize\ttfamily using \mbox{\hyperlink{namespacenlohmann_a2bfd99e845a2e5cd90aeaf1b1431f474}{nlohmann\+::json}} = typedef \mbox{\hyperlink{classnlohmann_1_1basic__json}{basic\+\_\+json}}$<$$>$}
+
+
+
+default J\+S\+ON class 
+
+This type is the default specialization of the \mbox{\hyperlink{classnlohmann_1_1basic__json}{basic\+\_\+json}} class which uses the standard template types.
+
+\begin{DoxySince}{Since}
+version 1.\+0.\+0 
+\end{DoxySince}
+
+
+Definition at line 2445 of file json.\+hpp.
+
+
+
+\doxysubsection{Function Documentation}
+\mbox{\Hypertarget{namespacenlohmann_a6ce645a0b8717757e096a5b5773b7a16}\label{namespacenlohmann_a6ce645a0b8717757e096a5b5773b7a16}} 
+\index{nlohmann@{nlohmann}!to\_string@{to\_string}}
+\index{to\_string@{to\_string}!nlohmann@{nlohmann}}
+\doxysubsubsection{\texorpdfstring{to\_string()}{to\_string()}}
+{\footnotesize\ttfamily N\+L\+O\+H\+M\+A\+N\+N\+\_\+\+B\+A\+S\+I\+C\+\_\+\+J\+S\+O\+N\+\_\+\+T\+P\+L\+\_\+\+D\+E\+C\+L\+A\+R\+A\+T\+I\+ON std\+::string nlohmann\+::to\+\_\+string (\begin{DoxyParamCaption}\item[{const N\+L\+O\+H\+M\+A\+N\+N\+\_\+\+B\+A\+S\+I\+C\+\_\+\+J\+S\+O\+N\+\_\+\+T\+PL \&}]{j }\end{DoxyParamCaption})}
+
+
+
+user-\/defined to\+\_\+string function for J\+S\+ON values 
+
+This function implements a user-\/defined to\+\_\+string for J\+S\+ON objects.
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em j} & a J\+S\+ON object \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+a std\+::string object 
+\end{DoxyReturn}
+
+
+Definition at line 22560 of file json.\+hpp.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{22561 \{}
+\DoxyCodeLine{22562     \textcolor{keywordflow}{return} j.dump();}
+\DoxyCodeLine{22563 \}}
+
+\end{DoxyCode}

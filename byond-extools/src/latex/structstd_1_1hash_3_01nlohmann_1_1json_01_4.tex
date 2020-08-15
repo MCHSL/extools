@@ -1,0 +1,57 @@
+\hypertarget{structstd_1_1hash_3_01nlohmann_1_1json_01_4}{}\doxysection{std\+::hash$<$ nlohmann\+::json $>$ Struct Reference}
+\label{structstd_1_1hash_3_01nlohmann_1_1json_01_4}\index{std::hash$<$ nlohmann::json $>$@{std::hash$<$ nlohmann::json $>$}}
+
+
+hash value for J\+S\+ON objects  
+
+
+
+
+{\ttfamily \#include $<$json.\+hpp$>$}
+
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+std\+::size\+\_\+t \mbox{\hyperlink{structstd_1_1hash_3_01nlohmann_1_1json_01_4_aec1567d1fa47dbe5b77954dce3a55b64}{operator()}} (const \mbox{\hyperlink{namespacenlohmann_a2bfd99e845a2e5cd90aeaf1b1431f474}{nlohmann\+::json}} \&j) const
+\begin{DoxyCompactList}\small\item\em return a hash value for a J\+S\+ON object \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+hash value for J\+S\+ON objects 
+
+Definition at line 22576 of file json.\+hpp.
+
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{structstd_1_1hash_3_01nlohmann_1_1json_01_4_aec1567d1fa47dbe5b77954dce3a55b64}\label{structstd_1_1hash_3_01nlohmann_1_1json_01_4_aec1567d1fa47dbe5b77954dce3a55b64}} 
+\index{std::hash$<$ nlohmann::json $>$@{std::hash$<$ nlohmann::json $>$}!operator()@{operator()}}
+\index{operator()@{operator()}!std::hash$<$ nlohmann::json $>$@{std::hash$<$ nlohmann::json $>$}}
+\doxysubsubsection{\texorpdfstring{operator()()}{operator()()}}
+{\footnotesize\ttfamily std\+::size\+\_\+t std\+::hash$<$ \mbox{\hyperlink{namespacenlohmann_a2bfd99e845a2e5cd90aeaf1b1431f474}{nlohmann\+::json}} $>$\+::operator() (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{namespacenlohmann_a2bfd99e845a2e5cd90aeaf1b1431f474}{nlohmann\+::json}} \&}]{j }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+return a hash value for a J\+S\+ON object 
+
+\begin{DoxySince}{Since}
+version 1.\+0.\+0 
+\end{DoxySince}
+
+
+Definition at line 22583 of file json.\+hpp.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{22584     \{}
+\DoxyCodeLine{22585         \textcolor{comment}{// a naive hashing via the string representation}}
+\DoxyCodeLine{22586         \textcolor{keyword}{const} \textcolor{keyword}{auto}\& h = hash<nlohmann::json::string\_t>();}
+\DoxyCodeLine{22587         \textcolor{keywordflow}{return} h(j.\mbox{\hyperlink{classnlohmann_1_1basic__json_acfc564f36da667b7d9109879d34dc36c}{dump}}());}
+\DoxyCodeLine{22588     \}}
+
+\end{DoxyCode}
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+third\+\_\+party/json.\+hpp\end{DoxyCompactItemize}

@@ -1,0 +1,99 @@
+\hypertarget{classDebugServer}{}\doxysection{Debug\+Server Class Reference}
+\label{classDebugServer}\index{DebugServer@{DebugServer}}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classDebugServer_afba8c15a80f1b72190f6dcdee32c33a9}\label{classDebugServer_afba8c15a80f1b72190f6dcdee32c33a9}} 
+void {\bfseries set\+\_\+breakpoint} (int proc\+\_\+id, int offset, bool singleshot=false)
+\item 
+\mbox{\Hypertarget{classDebugServer_ab362cf174511107d4400f7672ffbfebc}\label{classDebugServer_ab362cf174511107d4400f7672ffbfebc}} 
+std\+::optional$<$ \mbox{\hyperlink{structBreakpoint}{Breakpoint}} $>$ {\bfseries get\+\_\+breakpoint} (int proc\+\_\+id, int offset)
+\item 
+\mbox{\Hypertarget{classDebugServer_a7ffb38c3d241a0fa3a62a54332236c41}\label{classDebugServer_a7ffb38c3d241a0fa3a62a54332236c41}} 
+void {\bfseries remove\+\_\+breakpoint} (int proc\+\_\+id, int offset)
+\item 
+\mbox{\Hypertarget{classDebugServer_afbac14fdc39382850adf584ce469e886}\label{classDebugServer_afbac14fdc39382850adf584ce469e886}} 
+void {\bfseries restore\+\_\+breakpoint} ()
+\item 
+\mbox{\Hypertarget{classDebugServer_ab0c794924540e56f07a2074b590ad545}\label{classDebugServer_ab0c794924540e56f07a2074b590ad545}} 
+bool {\bfseries connect} (const char $\ast$port)
+\item 
+\mbox{\Hypertarget{classDebugServer_a7de6e30d3b89f66d0b959077e8e07e80}\label{classDebugServer_a7de6e30d3b89f66d0b959077e8e07e80}} 
+bool {\bfseries listen} (const char $\ast$port)
+\item 
+\mbox{\Hypertarget{classDebugServer_ae52dd80111aaefad4fd70c22a3baf620}\label{classDebugServer_ae52dd80111aaefad4fd70c22a3baf620}} 
+int {\bfseries handle\+\_\+one\+\_\+message} ()
+\item 
+\mbox{\Hypertarget{classDebugServer_a90c87b985bab82c1bce603e70885c3a1}\label{classDebugServer_a90c87b985bab82c1bce603e70885c3a1}} 
+bool {\bfseries loop\+\_\+until\+\_\+configured} ()
+\item 
+\mbox{\Hypertarget{classDebugServer_ad426e39e7edbd14f9116ef3e2ef693bb}\label{classDebugServer_ad426e39e7edbd14f9116ef3e2ef693bb}} 
+void {\bfseries debug\+\_\+loop} ()
+\item 
+\mbox{\Hypertarget{classDebugServer_ae320e59fc6ca339ba4c1d65264e80057}\label{classDebugServer_ae320e59fc6ca339ba4c1d65264e80057}} 
+Next\+Action {\bfseries wait\+\_\+for\+\_\+action} ()
+\item 
+\mbox{\Hypertarget{classDebugServer_a1c616809ab5b98794de36868b6d281df}\label{classDebugServer_a1c616809ab5b98794de36868b6d281df}} 
+void {\bfseries on\+\_\+error} (\mbox{\hyperlink{structExecutionContext}{Execution\+Context}} $\ast$ctx, char $\ast$error)
+\item 
+\mbox{\Hypertarget{classDebugServer_a583bf80430f2a5d083084a9e8b7c9a8c}\label{classDebugServer_a583bf80430f2a5d083084a9e8b7c9a8c}} 
+void {\bfseries on\+\_\+breakpoint} (\mbox{\hyperlink{structExecutionContext}{Execution\+Context}} $\ast$ctx)
+\item 
+\mbox{\Hypertarget{classDebugServer_abbf2aebbc0824a42e908f336b7f258cb}\label{classDebugServer_abbf2aebbc0824a42e908f336b7f258cb}} 
+void {\bfseries on\+\_\+step} (\mbox{\hyperlink{structExecutionContext}{Execution\+Context}} $\ast$ctx)
+\item 
+\mbox{\Hypertarget{classDebugServer_abdea788cc5a9df1547d0e93ac054f7c5}\label{classDebugServer_abdea788cc5a9df1547d0e93ac054f7c5}} 
+void {\bfseries on\+\_\+break} (\mbox{\hyperlink{structExecutionContext}{Execution\+Context}} $\ast$ctx)
+\item 
+\mbox{\Hypertarget{classDebugServer_af9b74938e98bb063152b9386e4ffc2b1}\label{classDebugServer_af9b74938e98bb063152b9386e4ffc2b1}} 
+void {\bfseries on\+\_\+data\+\_\+breakpoint} (\mbox{\hyperlink{structExecutionContext}{Execution\+Context}} $\ast$ctx, unsigned int type, unsigned int value, std\+::string var\+\_\+name)
+\item 
+\mbox{\Hypertarget{classDebugServer_a3962369519f098ac69d734fecbb5d661}\label{classDebugServer_a3962369519f098ac69d734fecbb5d661}} 
+void {\bfseries send\+\_\+simple} (std\+::string message\+\_\+type)
+\item 
+\mbox{\Hypertarget{classDebugServer_ae7e8b3d3f074dedfb6c4f34999a2b06a}\label{classDebugServer_ae7e8b3d3f074dedfb6c4f34999a2b06a}} 
+void {\bfseries send} (std\+::string message\+\_\+type, \mbox{\hyperlink{namespacenlohmann_a2bfd99e845a2e5cd90aeaf1b1431f474}{nlohmann\+::json}} content)
+\item 
+\mbox{\Hypertarget{classDebugServer_a9bc416bc360e11f2be01f1b2e2d6c02e}\label{classDebugServer_a9bc416bc360e11f2be01f1b2e2d6c02e}} 
+void {\bfseries send\+\_\+call\+\_\+stack} (\mbox{\hyperlink{structExecutionContext}{Execution\+Context}} $\ast$ctx)
+\end{DoxyCompactItemize}
+\doxysubsection*{Data Fields}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classDebugServer_a73b29033a8b60e5d6605ab302dfdc55e}\label{classDebugServer_a73b29033a8b60e5d6605ab302dfdc55e}} 
+Next\+Action {\bfseries next\+\_\+action} = Next\+Action\+::\+W\+A\+IT
+\item 
+\mbox{\Hypertarget{classDebugServer_a89ee4aa9d2fb409d8f49517f4a11eb05}\label{classDebugServer_a89ee4aa9d2fb409d8f49517f4a11eb05}} 
+Step\+Mode {\bfseries step\+\_\+mode} = Step\+Mode\+::\+N\+O\+NE
+\item 
+\mbox{\Hypertarget{classDebugServer_a1f1e07b662e44311b9a5cbe19da98bed}\label{classDebugServer_a1f1e07b662e44311b9a5cbe19da98bed}} 
+bool {\bfseries break\+\_\+on\+\_\+runtimes} = false
+\item 
+\mbox{\Hypertarget{classDebugServer_af038afd32458223729563a60f74dc076}\label{classDebugServer_af038afd32458223729563a60f74dc076}} 
+\mbox{\hyperlink{structExecutionContext}{Execution\+Context}} $\ast$ {\bfseries step\+\_\+over\+\_\+context} = nullptr
+\item 
+\mbox{\Hypertarget{classDebugServer_ac6d81478db105b07123d1debea8534cb}\label{classDebugServer_ac6d81478db105b07123d1debea8534cb}} 
+\mbox{\hyperlink{structExecutionContext}{Execution\+Context}} $\ast$ {\bfseries step\+\_\+over\+\_\+parent\+\_\+context} = nullptr
+\item 
+\mbox{\Hypertarget{classDebugServer_a4fe3eef0ea3b3ca95b4f0ccd1cc046fd}\label{classDebugServer_a4fe3eef0ea3b3ca95b4f0ccd1cc046fd}} 
+std\+::optional$<$ \mbox{\hyperlink{structBreakpoint}{Breakpoint}} $>$ {\bfseries breakpoint\+\_\+to\+\_\+restore} = \{\}
+\item 
+\mbox{\Hypertarget{classDebugServer_a498ba203444a9ec2f644d8f5ea2dd37d}\label{classDebugServer_a498ba203444a9ec2f644d8f5ea2dd37d}} 
+std\+::unordered\+\_\+map$<$ int, std\+::unordered\+\_\+map$<$ int, \mbox{\hyperlink{structBreakpoint}{Breakpoint}} $>$ $>$ {\bfseries breakpoints}
+\item 
+\mbox{\Hypertarget{classDebugServer_a9eed8e326e8af32f533846cc919eecd8}\label{classDebugServer_a9eed8e326e8af32f533846cc919eecd8}} 
+std\+::unordered\+\_\+map$<$ unsigned int, std\+::unordered\+\_\+multimap$<$ unsigned int, unsigned int $>$ $>$ {\bfseries data\+\_\+breakpoints\+\_\+read}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+
+
+Definition at line 65 of file debug\+\_\+server.\+h.
+
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+debug\+\_\+server/debug\+\_\+server.\+h\item 
+debug\+\_\+server/debug\+\_\+server.\+cpp\end{DoxyCompactItemize}

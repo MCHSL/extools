@@ -1,0 +1,56 @@
+\hypertarget{structnlohmann_1_1detail_1_1is__sax}{}\doxysection{nlohmann\+::detail\+::is\+\_\+sax$<$ S\+AX, Basic\+Json\+Type $>$ Struct Template Reference}
+\label{structnlohmann_1_1detail_1_1is__sax}\index{nlohmann::detail::is\_sax$<$ SAX, BasicJsonType $>$@{nlohmann::detail::is\_sax$<$ SAX, BasicJsonType $>$}}
+\doxysubsection*{Static Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+static constexpr bool {\bfseries value}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename S\+AX, typename Basic\+Json\+Type$>$\newline
+struct nlohmann\+::detail\+::is\+\_\+sax$<$ S\+A\+X, Basic\+Json\+Type $>$}
+
+
+
+Definition at line 5064 of file json.\+hpp.
+
+
+
+\doxysubsection{Field Documentation}
+\mbox{\Hypertarget{structnlohmann_1_1detail_1_1is__sax_a8ab7e51087000e948b4a2492257484dc}\label{structnlohmann_1_1detail_1_1is__sax_a8ab7e51087000e948b4a2492257484dc}} 
+\index{nlohmann::detail::is\_sax$<$ SAX, BasicJsonType $>$@{nlohmann::detail::is\_sax$<$ SAX, BasicJsonType $>$}!value@{value}}
+\index{value@{value}!nlohmann::detail::is\_sax$<$ SAX, BasicJsonType $>$@{nlohmann::detail::is\_sax$<$ SAX, BasicJsonType $>$}}
+\doxysubsubsection{\texorpdfstring{value}{value}}
+{\footnotesize\ttfamily template$<$typename S\+AX , typename Basic\+Json\+Type $>$ \\
+constexpr bool \mbox{\hyperlink{structnlohmann_1_1detail_1_1is__sax}{nlohmann\+::detail\+::is\+\_\+sax}}$<$ S\+AX, Basic\+Json\+Type $>$\+::value\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+{\bfseries Initial value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{=}
+\DoxyCodeLine{        is\_detected\_exact<bool, null\_function\_t, SAX>::value \&\&}
+\DoxyCodeLine{        is\_detected\_exact<bool, boolean\_function\_t, SAX>::value \&\&}
+\DoxyCodeLine{        is\_detected\_exact<bool, number\_integer\_function\_t, SAX,}
+\DoxyCodeLine{        number\_integer\_t>::value \&\&}
+\DoxyCodeLine{        is\_detected\_exact<bool, number\_unsigned\_function\_t, SAX,}
+\DoxyCodeLine{        number\_unsigned\_t>::value \&\&}
+\DoxyCodeLine{        is\_detected\_exact<bool, number\_float\_function\_t, SAX, number\_float\_t,}
+\DoxyCodeLine{        string\_t>::value \&\&}
+\DoxyCodeLine{        is\_detected\_exact<bool, string\_function\_t, SAX, string\_t>::value \&\&}
+\DoxyCodeLine{        is\_detected\_exact<bool, start\_object\_function\_t, SAX>::value \&\&}
+\DoxyCodeLine{        is\_detected\_exact<bool, key\_function\_t, SAX, string\_t>::value \&\&}
+\DoxyCodeLine{        is\_detected\_exact<bool, end\_object\_function\_t, SAX>::value \&\&}
+\DoxyCodeLine{        is\_detected\_exact<bool, start\_array\_function\_t, SAX>::value \&\&}
+\DoxyCodeLine{        is\_detected\_exact<bool, end\_array\_function\_t, SAX>::value \&\&}
+\DoxyCodeLine{        is\_detected\_exact<bool, parse\_error\_function\_t, SAX, exception\_t>::value}
+
+\end{DoxyCode}
+
+
+Definition at line 5077 of file json.\+hpp.
+
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+third\+\_\+party/json.\+hpp\end{DoxyCompactItemize}

@@ -1,0 +1,60 @@
+\hypertarget{structnlohmann_1_1detail_1_1is__constructible__object__type__impl_3_01BasicJsonType_00_01Construb7f96efbcfd2606ccb5c84a830a60036}{}\doxysection{nlohmann\+::detail\+::is\+\_\+constructible\+\_\+object\+\_\+type\+\_\+impl$<$ Basic\+Json\+Type, Constructible\+Object\+Type, enable\+\_\+if\+\_\+t$<$ is\+\_\+detected$<$ mapped\+\_\+type\+\_\+t, Constructible\+Object\+Type $>$\+::value and is\+\_\+detected$<$ key\+\_\+type\+\_\+t, Constructible\+Object\+Type $>$\+::value $>$ $>$ Struct Template Reference}
+\label{structnlohmann_1_1detail_1_1is__constructible__object__type__impl_3_01BasicJsonType_00_01Construb7f96efbcfd2606ccb5c84a830a60036}\index{nlohmann::detail::is\_constructible\_object\_type\_impl$<$ BasicJsonType, ConstructibleObjectType, enable\_if\_t$<$ is\_detected$<$ mapped\_type\_t, ConstructibleObjectType $>$::value and is\_detected$<$ key\_type\_t, ConstructibleObjectType $>$::value $>$ $>$@{nlohmann::detail::is\_constructible\_object\_type\_impl$<$ BasicJsonType, ConstructibleObjectType, enable\_if\_t$<$ is\_detected$<$ mapped\_type\_t, ConstructibleObjectType $>$::value and is\_detected$<$ key\_type\_t, ConstructibleObjectType $>$::value $>$ $>$}}
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structnlohmann_1_1detail_1_1is__constructible__object__type__impl_3_01BasicJsonType_00_01Construb7f96efbcfd2606ccb5c84a830a60036_a6f458a63276ef62d60f4b93de03aa020}\label{structnlohmann_1_1detail_1_1is__constructible__object__type__impl_3_01BasicJsonType_00_01Construb7f96efbcfd2606ccb5c84a830a60036_a6f458a63276ef62d60f4b93de03aa020}} 
+using {\bfseries object\+\_\+t} = typename Basic\+Json\+Type\+::object\+\_\+t
+\end{DoxyCompactItemize}
+\doxysubsection*{Static Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+static constexpr bool {\bfseries value}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Basic\+Json\+Type, typename Constructible\+Object\+Type$>$\newline
+struct nlohmann\+::detail\+::is\+\_\+constructible\+\_\+object\+\_\+type\+\_\+impl$<$ Basic\+Json\+Type, Constructible\+Object\+Type, enable\+\_\+if\+\_\+t$<$ is\+\_\+detected$<$ mapped\+\_\+type\+\_\+t, Constructible\+Object\+Type $>$\+::value and is\+\_\+detected$<$ key\+\_\+type\+\_\+t, Constructible\+Object\+Type $>$\+::value $>$ $>$}
+
+
+
+Definition at line 2624 of file json.\+hpp.
+
+
+
+\doxysubsection{Field Documentation}
+\mbox{\Hypertarget{structnlohmann_1_1detail_1_1is__constructible__object__type__impl_3_01BasicJsonType_00_01Construb7f96efbcfd2606ccb5c84a830a60036_a7c1801a302b938e3176435b6451962e4}\label{structnlohmann_1_1detail_1_1is__constructible__object__type__impl_3_01BasicJsonType_00_01Construb7f96efbcfd2606ccb5c84a830a60036_a7c1801a302b938e3176435b6451962e4}} 
+\index{nlohmann::detail::is\_constructible\_object\_type\_impl$<$ BasicJsonType, ConstructibleObjectType, enable\_if\_t$<$ is\_detected$<$ mapped\_type\_t, ConstructibleObjectType $>$::value and is\_detected$<$ key\_type\_t, ConstructibleObjectType $>$::value $>$ $>$@{nlohmann::detail::is\_constructible\_object\_type\_impl$<$ BasicJsonType, ConstructibleObjectType, enable\_if\_t$<$ is\_detected$<$ mapped\_type\_t, ConstructibleObjectType $>$::value and is\_detected$<$ key\_type\_t, ConstructibleObjectType $>$::value $>$ $>$}!value@{value}}
+\index{value@{value}!nlohmann::detail::is\_constructible\_object\_type\_impl$<$ BasicJsonType, ConstructibleObjectType, enable\_if\_t$<$ is\_detected$<$ mapped\_type\_t, ConstructibleObjectType $>$::value and is\_detected$<$ key\_type\_t, ConstructibleObjectType $>$::value $>$ $>$@{nlohmann::detail::is\_constructible\_object\_type\_impl$<$ BasicJsonType, ConstructibleObjectType, enable\_if\_t$<$ is\_detected$<$ mapped\_type\_t, ConstructibleObjectType $>$::value and is\_detected$<$ key\_type\_t, ConstructibleObjectType $>$::value $>$ $>$}}
+\doxysubsubsection{\texorpdfstring{value}{value}}
+{\footnotesize\ttfamily template$<$typename Basic\+Json\+Type , typename Constructible\+Object\+Type $>$ \\
+constexpr bool \mbox{\hyperlink{structnlohmann_1_1detail_1_1is__constructible__object__type__impl}{nlohmann\+::detail\+::is\+\_\+constructible\+\_\+object\+\_\+type\+\_\+impl}}$<$ Basic\+Json\+Type, Constructible\+Object\+Type, enable\+\_\+if\+\_\+t$<$ is\+\_\+detected$<$ mapped\+\_\+type\+\_\+t, Constructible\+Object\+Type $>$\+::value and is\+\_\+detected$<$ key\+\_\+type\+\_\+t, Constructible\+Object\+Type $>$\+::value $>$ $>$\+::value\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+{\bfseries Initial value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{=}
+\DoxyCodeLine{        (std::is\_default\_constructible<ConstructibleObjectType>::value and}
+\DoxyCodeLine{         (std::is\_move\_assignable<ConstructibleObjectType>::value or}
+\DoxyCodeLine{          std::is\_copy\_assignable<ConstructibleObjectType>::value) and}
+\DoxyCodeLine{         (std::is\_constructible<\textcolor{keyword}{typename} ConstructibleObjectType::key\_type,}
+\DoxyCodeLine{          \textcolor{keyword}{typename} object\_t::key\_type>::value and}
+\DoxyCodeLine{          std::is\_same <}
+\DoxyCodeLine{          \textcolor{keyword}{typename} object\_t::mapped\_type,}
+\DoxyCodeLine{          \textcolor{keyword}{typename} ConstructibleObjectType::mapped\_type >::value)) or}
+\DoxyCodeLine{        (has\_from\_json<BasicJsonType,}
+\DoxyCodeLine{         \textcolor{keyword}{typename} ConstructibleObjectType::mapped\_type>::value or}
+\DoxyCodeLine{         has\_non\_default\_from\_json <}
+\DoxyCodeLine{         BasicJsonType,}
+\DoxyCodeLine{         \textcolor{keyword}{typename} ConstructibleObjectType::mapped\_type >::value)}
+
+\end{DoxyCode}
+
+
+Definition at line 2631 of file json.\+hpp.
+
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+third\+\_\+party/json.\+hpp\end{DoxyCompactItemize}

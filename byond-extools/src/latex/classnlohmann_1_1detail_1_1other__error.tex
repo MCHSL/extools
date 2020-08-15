@@ -1,0 +1,72 @@
+\hypertarget{classnlohmann_1_1detail_1_1other__error}{}\doxysection{nlohmann\+::detail\+::other\+\_\+error Class Reference}
+\label{classnlohmann_1_1detail_1_1other__error}\index{nlohmann::detail::other\_error@{nlohmann::detail::other\_error}}
+
+
+exception indicating other library errors  
+
+
+
+
+{\ttfamily \#include $<$json.\+hpp$>$}
+
+Inheritance diagram for nlohmann\+::detail\+::other\+\_\+error\+:\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[height=3.000000cm]{classnlohmann_1_1detail_1_1other__error}
+\end{center}
+\end{figure}
+\doxysubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classnlohmann_1_1detail_1_1other__error_a87e8ab894e8c85c0d97a0919782d3683}\label{classnlohmann_1_1detail_1_1other__error_a87e8ab894e8c85c0d97a0919782d3683}} 
+static \mbox{\hyperlink{classnlohmann_1_1detail_1_1other__error}{other\+\_\+error}} {\bfseries create} (int id\+\_\+, const std\+::string \&what\+\_\+arg)
+\end{DoxyCompactItemize}
+\doxysubsection*{Additional Inherited Members}
+
+
+\doxysubsection{Detailed Description}
+exception indicating other library errors 
+
+This exception is thrown in case of errors that cannot be classified with the other exception types.
+
+Exceptions have ids 5xx.
+
+\tabulinesep=1mm
+\begin{longtabu}spread 0pt [c]{*{3}{|X[-1]}|}
+\hline
+\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ name / id }&\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ example message }&\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ description  }\\\cline{1-3}
+\endfirsthead
+\hline
+\endfoot
+\hline
+\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ name / id }&\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ example message }&\PBS\centering \cellcolor{\tableheadbgcolor}\textbf{ description  }\\\cline{1-3}
+\endhead
+json.\+exception.\+other\+\_\+error.\+501 &unsuccessful\+: \{\char`\"{}op\char`\"{}\+:\char`\"{}test\char`\"{},\char`\"{}path\char`\"{}\+:\char`\"{}/baz\char`\"{}, \char`\"{}value\char`\"{}\+:\char`\"{}bar\char`\"{}\} &A J\+S\+ON Patch operation \textquotesingle{}test\textquotesingle{} failed. The unsuccessful operation is also printed.  \\\cline{1-3}
+\end{longtabu}
+
+
+\begin{DoxySeeAlso}{See also}
+-\/ \mbox{\hyperlink{classnlohmann_1_1detail_1_1exception}{exception}} for the base class of the library exceptions 
+
+-\/ \mbox{\hyperlink{classnlohmann_1_1detail_1_1parse__error}{parse\+\_\+error}} for exceptions indicating a parse error 
+
+-\/ \mbox{\hyperlink{classnlohmann_1_1detail_1_1invalid__iterator}{invalid\+\_\+iterator}} for exceptions indicating errors with iterators 
+
+-\/ \mbox{\hyperlink{classnlohmann_1_1detail_1_1type__error}{type\+\_\+error}} for exceptions indicating executing a member function with a wrong type 
+
+-\/ \mbox{\hyperlink{classnlohmann_1_1detail_1_1out__of__range}{out\+\_\+of\+\_\+range}} for exceptions indicating access out of the defined range
+\end{DoxySeeAlso}
+@liveexample\{The following code shows how an {\ttfamily \mbox{\hyperlink{classnlohmann_1_1detail_1_1other__error}{other\+\_\+error}}} exception can be caught.,\mbox{\hyperlink{classnlohmann_1_1detail_1_1other__error}{other\+\_\+error}}\}
+
+\begin{DoxySince}{Since}
+version 3.\+0.\+0 
+\end{DoxySince}
+
+
+Definition at line 2160 of file json.\+hpp.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+third\+\_\+party/json.\+hpp\end{DoxyCompactItemize}

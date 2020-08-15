@@ -1,0 +1,54 @@
+\hypertarget{classurmem}{}\doxysection{urmem Class Reference}
+\label{classurmem}\index{urmem@{urmem}}
+\doxysubsection*{Data Structures}
+\begin{DoxyCompactItemize}
+\item 
+class \mbox{\hyperlink{classurmem_1_1hook}{hook}}
+\item 
+class \mbox{\hyperlink{classurmem_1_1patch}{patch}}
+\item 
+class \mbox{\hyperlink{classurmem_1_1pointer}{pointer}}
+\item 
+class \mbox{\hyperlink{classurmem_1_1sig__scanner}{sig\+\_\+scanner}}
+\item 
+class \mbox{\hyperlink{classurmem_1_1unprotect__scope}{unprotect\+\_\+scope}}
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classurmem_a09161aa3546deb531d80bf852f3e5b2f}\label{classurmem_a09161aa3546deb531d80bf852f3e5b2f}} 
+using {\bfseries address\+\_\+t} = unsigned long
+\item 
+\mbox{\Hypertarget{classurmem_a863b7ab68015e02fd5205870455be3ce}\label{classurmem_a863b7ab68015e02fd5205870455be3ce}} 
+using {\bfseries byte\+\_\+t} = unsigned char
+\item 
+\mbox{\Hypertarget{classurmem_a765b338738b1752e4fd001580dec5056}\label{classurmem_a765b338738b1752e4fd001580dec5056}} 
+using {\bfseries bytearray\+\_\+t} = std\+::vector$<$ byte\+\_\+t $>$
+\item 
+\mbox{\Hypertarget{classurmem_a975bff6910ebeba3206c70e95feedf6e}\label{classurmem_a975bff6910ebeba3206c70e95feedf6e}} 
+using {\bfseries calling\+\_\+convention} = urmem\+\_\+invoker\+::calling\+\_\+convention
+\end{DoxyCompactItemize}
+\doxysubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classurmem_a75715c14a6480a64690d0bcc85ba1f77}\label{classurmem_a75715c14a6480a64690d0bcc85ba1f77}} 
+{\footnotesize template$<$calling\+\_\+convention C\+Conv = calling\+\_\+convention\+::cdeclcall, typename Ret  = void, typename ... Args$>$ }\\static Ret {\bfseries call\+\_\+function} (address\+\_\+t address, Args ... args)
+\item 
+\mbox{\Hypertarget{classurmem_a9c3793f2b86acbcd25f9d56b63e29929}\label{classurmem_a9c3793f2b86acbcd25f9d56b63e29929}} 
+{\footnotesize template$<$typename T $>$ }\\static address\+\_\+t {\bfseries get\+\_\+func\+\_\+addr} (T func)
+\item 
+\mbox{\Hypertarget{classurmem_a3665764b4c5b44480e66576af055e4db}\label{classurmem_a3665764b4c5b44480e66576af055e4db}} 
+static void {\bfseries unprotect\+\_\+memory} (address\+\_\+t addr, std\+::size\+\_\+t length)
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+
+
+Definition at line 82 of file urmem.\+hpp.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+third\+\_\+party/urmem.\+hpp\end{DoxyCompactItemize}

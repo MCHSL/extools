@@ -1,0 +1,96 @@
+\hypertarget{classDatumSocket}{}\doxysection{Datum\+Socket Class Reference}
+\label{classDatumSocket}\index{DatumSocket@{DatumSocket}}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classDatumSocket_ae917e6dd55a100939403db430405c5e8}\label{classDatumSocket_ae917e6dd55a100939403db430405c5e8}} 
+{\bfseries Datum\+Socket} (const \mbox{\hyperlink{classDatumSocket}{Datum\+Socket}} \&other)
+\item 
+\mbox{\Hypertarget{classDatumSocket_a7b91e136134583c2e516b72414dd1975}\label{classDatumSocket_a7b91e136134583c2e516b72414dd1975}} 
+bool {\bfseries connect} (std\+::string addr, std\+::string port)
+\item 
+\mbox{\Hypertarget{classDatumSocket_a2120f56b2ce41b34ecd68a68252a9817}\label{classDatumSocket_a2120f56b2ce41b34ecd68a68252a9817}} 
+bool {\bfseries listen} (std\+::string addr, std\+::string port)
+\item 
+\mbox{\Hypertarget{classDatumSocket_a8c53fa0ad9badc9c26ecc85d12f307b6}\label{classDatumSocket_a8c53fa0ad9badc9c26ecc85d12f307b6}} 
+void {\bfseries assign\+\_\+stream} (\mbox{\hyperlink{classTcpStream}{Tcp\+Stream}} \&\&ts)
+\item 
+\mbox{\Hypertarget{classDatumSocket_adfe6473ce980b10cd4effd5c9735fe45}\label{classDatumSocket_adfe6473ce980b10cd4effd5c9735fe45}} 
+bool {\bfseries send} (std\+::string data)
+\item 
+\mbox{\Hypertarget{classDatumSocket_a866b96827d3ed07cea8b1a6421c7d7d3}\label{classDatumSocket_a866b96827d3ed07cea8b1a6421c7d7d3}} 
+std\+::string {\bfseries recv} (int len)
+\item 
+\mbox{\Hypertarget{classDatumSocket_aee2f1d87781b465960231534c5fdd8ca}\label{classDatumSocket_aee2f1d87781b465960231534c5fdd8ca}} 
+void {\bfseries close} ()
+\item 
+\mbox{\Hypertarget{classDatumSocket_a38740863c75ea9921c75e1ce2547ee21}\label{classDatumSocket_a38740863c75ea9921c75e1ce2547ee21}} 
+bool {\bfseries has\+\_\+data} ()
+\item 
+\mbox{\Hypertarget{classDatumSocket_aceb001a0ba7fa09c0f8a6c00945f4902}\label{classDatumSocket_aceb001a0ba7fa09c0f8a6c00945f4902}} 
+void {\bfseries set\+\_\+data\+\_\+awaiter} (\mbox{\hyperlink{classCore_1_1ResumableProc}{Core\+::\+Resumable\+Proc}} proc)
+\item 
+\mbox{\Hypertarget{classDatumSocket_a04bee7d98e3a310005dc0c2eb31f6bad}\label{classDatumSocket_a04bee7d98e3a310005dc0c2eb31f6bad}} 
+void {\bfseries set\+\_\+accept\+\_\+awaiter} (\mbox{\hyperlink{classCore_1_1ResumableProc}{Core\+::\+Resumable\+Proc}} proc)
+\item 
+\mbox{\Hypertarget{classDatumSocket_afe04a04207417bb9d42c947de8e8c3f1}\label{classDatumSocket_afe04a04207417bb9d42c947de8e8c3f1}} 
+bool {\bfseries can\+\_\+accept\+\_\+now} ()
+\item 
+\mbox{\Hypertarget{classDatumSocket_a40eff36cb6c7091746db207895e9497c}\label{classDatumSocket_a40eff36cb6c7091746db207895e9497c}} 
+\mbox{\hyperlink{classTcpStream}{Tcp\+Stream}} {\bfseries accept} ()
+\end{DoxyCompactItemize}
+\doxysubsection*{Protected Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classDatumSocket_abddaefc0f37c631dfa5ca1128fa3af17}\label{classDatumSocket_abddaefc0f37c631dfa5ca1128fa3af17}} 
+void {\bfseries recv\+\_\+loop} ()
+\item 
+\mbox{\Hypertarget{classDatumSocket_ae2db761e581800742726f114da12469d}\label{classDatumSocket_ae2db761e581800742726f114da12469d}} 
+void {\bfseries accept\+\_\+loop} ()
+\end{DoxyCompactItemize}
+\doxysubsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classDatumSocket_a0e16abb568713876d4cca3e3bebe0255}\label{classDatumSocket_a0e16abb568713876d4cca3e3bebe0255}} 
+\mbox{\hyperlink{classTcpListener}{Tcp\+Listener}} {\bfseries listener}
+\item 
+\mbox{\Hypertarget{classDatumSocket_a4e6221309a58e36f58bd9a3f1006f7b9}\label{classDatumSocket_a4e6221309a58e36f58bd9a3f1006f7b9}} 
+std\+::queue$<$ \mbox{\hyperlink{classTcpStream}{Tcp\+Stream}} $>$ {\bfseries accepts}
+\item 
+\mbox{\Hypertarget{classDatumSocket_a1a98e1180b213de4d6b1046da750c0c8}\label{classDatumSocket_a1a98e1180b213de4d6b1046da750c0c8}} 
+std\+::mutex {\bfseries accept\+\_\+lock}
+\item 
+\mbox{\Hypertarget{classDatumSocket_a8491c715a7e06ee4b0efec0dd3ba28a6}\label{classDatumSocket_a8491c715a7e06ee4b0efec0dd3ba28a6}} 
+std\+::optional$<$ \mbox{\hyperlink{classCore_1_1ResumableProc}{Core\+::\+Resumable\+Proc}} $>$ {\bfseries accept\+\_\+awaiter} = \{\}
+\item 
+\mbox{\Hypertarget{classDatumSocket_a1e9d66f5223f9e1c474a6ac4bd77df8d}\label{classDatumSocket_a1e9d66f5223f9e1c474a6ac4bd77df8d}} 
+\mbox{\hyperlink{classTcpStream}{Tcp\+Stream}} {\bfseries stream}
+\item 
+\mbox{\Hypertarget{classDatumSocket_ad44051d716d6b29c773fa74b3b97a34c}\label{classDatumSocket_ad44051d716d6b29c773fa74b3b97a34c}} 
+std\+::string {\bfseries buffer}
+\item 
+\mbox{\Hypertarget{classDatumSocket_a46812d39f315c666c269be763b776879}\label{classDatumSocket_a46812d39f315c666c269be763b776879}} 
+std\+::mutex {\bfseries buffer\+\_\+lock}
+\item 
+\mbox{\Hypertarget{classDatumSocket_a3ecdcf0c0b2123b1b8ae9c2516a77bd3}\label{classDatumSocket_a3ecdcf0c0b2123b1b8ae9c2516a77bd3}} 
+std\+::optional$<$ \mbox{\hyperlink{classCore_1_1ResumableProc}{Core\+::\+Resumable\+Proc}} $>$ {\bfseries data\+\_\+awaiter} = \{\}
+\item 
+\mbox{\Hypertarget{classDatumSocket_a22913b5b4674b616151e8765ff63c0a9}\label{classDatumSocket_a22913b5b4674b616151e8765ff63c0a9}} 
+bool {\bfseries open} = false
+\item 
+\mbox{\Hypertarget{classDatumSocket_adfa092ef38125a89c3c946b4ed488b80}\label{classDatumSocket_adfa092ef38125a89c3c946b4ed488b80}} 
+Socket\+Mode {\bfseries mode} = Socket\+Mode\+::\+N\+O\+NE
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+
+
+Definition at line 15 of file datum\+\_\+socket.\+h.
+
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+datum\+\_\+socket/datum\+\_\+socket.\+h\item 
+datum\+\_\+socket/datum\+\_\+socket.\+cpp\end{DoxyCompactItemize}

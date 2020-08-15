@@ -1,0 +1,43 @@
+\hypertarget{structnlohmann_1_1detail_1_1is__compatible__array__type__impl_3_01BasicJsonType_00_01CompatibleA2ae7cc020294dfcc2b3bca5a9db30ddf}{}\doxysection{nlohmann\+::detail\+::is\+\_\+compatible\+\_\+array\+\_\+type\+\_\+impl$<$ Basic\+Json\+Type, Compatible\+Array\+Type, enable\+\_\+if\+\_\+t$<$ is\+\_\+detected$<$ value\+\_\+type\+\_\+t, Compatible\+Array\+Type $>$\+::value and is\+\_\+detected$<$ iterator\+\_\+t, Compatible\+Array\+Type $>$\+::value and not is\+\_\+iterator\+\_\+traits$<$ iterator\+\_\+traits$<$ Compatible\+Array\+Type $>$ $>$\+::value $>$ $>$ Struct Template Reference}
+\label{structnlohmann_1_1detail_1_1is__compatible__array__type__impl_3_01BasicJsonType_00_01CompatibleA2ae7cc020294dfcc2b3bca5a9db30ddf}\index{nlohmann::detail::is\_compatible\_array\_type\_impl$<$ BasicJsonType, CompatibleArrayType, enable\_if\_t$<$ is\_detected$<$ value\_type\_t, CompatibleArrayType $>$::value and is\_detected$<$ iterator\_t, CompatibleArrayType $>$::value and not is\_iterator\_traits$<$ iterator\_traits$<$ CompatibleArrayType $>$ $>$::value $>$ $>$@{nlohmann::detail::is\_compatible\_array\_type\_impl$<$ BasicJsonType, CompatibleArrayType, enable\_if\_t$<$ is\_detected$<$ value\_type\_t, CompatibleArrayType $>$::value and is\_detected$<$ iterator\_t, CompatibleArrayType $>$::value and not is\_iterator\_traits$<$ iterator\_traits$<$ CompatibleArrayType $>$ $>$::value $>$ $>$}}
+\doxysubsection*{Static Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+static constexpr bool {\bfseries value}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Basic\+Json\+Type, typename Compatible\+Array\+Type$>$\newline
+struct nlohmann\+::detail\+::is\+\_\+compatible\+\_\+array\+\_\+type\+\_\+impl$<$ Basic\+Json\+Type, Compatible\+Array\+Type, enable\+\_\+if\+\_\+t$<$ is\+\_\+detected$<$ value\+\_\+type\+\_\+t, Compatible\+Array\+Type $>$\+::value and is\+\_\+detected$<$ iterator\+\_\+t, Compatible\+Array\+Type $>$\+::value and not is\+\_\+iterator\+\_\+traits$<$ iterator\+\_\+traits$<$ Compatible\+Array\+Type $>$ $>$\+::value $>$ $>$}
+
+
+
+Definition at line 2693 of file json.\+hpp.
+
+
+
+\doxysubsection{Field Documentation}
+\mbox{\Hypertarget{structnlohmann_1_1detail_1_1is__compatible__array__type__impl_3_01BasicJsonType_00_01CompatibleA2ae7cc020294dfcc2b3bca5a9db30ddf_aa9bdf31f85ac3ee17180a008f1cb81f7}\label{structnlohmann_1_1detail_1_1is__compatible__array__type__impl_3_01BasicJsonType_00_01CompatibleA2ae7cc020294dfcc2b3bca5a9db30ddf_aa9bdf31f85ac3ee17180a008f1cb81f7}} 
+\index{nlohmann::detail::is\_compatible\_array\_type\_impl$<$ BasicJsonType, CompatibleArrayType, enable\_if\_t$<$ is\_detected$<$ value\_type\_t, CompatibleArrayType $>$::value and is\_detected$<$ iterator\_t, CompatibleArrayType $>$::value and not is\_iterator\_traits$<$ iterator\_traits$<$ CompatibleArrayType $>$ $>$::value $>$ $>$@{nlohmann::detail::is\_compatible\_array\_type\_impl$<$ BasicJsonType, CompatibleArrayType, enable\_if\_t$<$ is\_detected$<$ value\_type\_t, CompatibleArrayType $>$::value and is\_detected$<$ iterator\_t, CompatibleArrayType $>$::value and not is\_iterator\_traits$<$ iterator\_traits$<$ CompatibleArrayType $>$ $>$::value $>$ $>$}!value@{value}}
+\index{value@{value}!nlohmann::detail::is\_compatible\_array\_type\_impl$<$ BasicJsonType, CompatibleArrayType, enable\_if\_t$<$ is\_detected$<$ value\_type\_t, CompatibleArrayType $>$::value and is\_detected$<$ iterator\_t, CompatibleArrayType $>$::value and not is\_iterator\_traits$<$ iterator\_traits$<$ CompatibleArrayType $>$ $>$::value $>$ $>$@{nlohmann::detail::is\_compatible\_array\_type\_impl$<$ BasicJsonType, CompatibleArrayType, enable\_if\_t$<$ is\_detected$<$ value\_type\_t, CompatibleArrayType $>$::value and is\_detected$<$ iterator\_t, CompatibleArrayType $>$::value and not is\_iterator\_traits$<$ iterator\_traits$<$ CompatibleArrayType $>$ $>$::value $>$ $>$}}
+\doxysubsubsection{\texorpdfstring{value}{value}}
+{\footnotesize\ttfamily template$<$typename Basic\+Json\+Type , typename Compatible\+Array\+Type $>$ \\
+constexpr bool \mbox{\hyperlink{structnlohmann_1_1detail_1_1is__compatible__array__type__impl}{nlohmann\+::detail\+::is\+\_\+compatible\+\_\+array\+\_\+type\+\_\+impl}}$<$ Basic\+Json\+Type, Compatible\+Array\+Type, enable\+\_\+if\+\_\+t$<$ is\+\_\+detected$<$ value\+\_\+type\+\_\+t, Compatible\+Array\+Type $>$\+::value and is\+\_\+detected$<$ iterator\+\_\+t, Compatible\+Array\+Type $>$\+::value and not \mbox{\hyperlink{structnlohmann_1_1detail_1_1is__iterator__traits}{is\+\_\+iterator\+\_\+traits}}$<$ \mbox{\hyperlink{structnlohmann_1_1detail_1_1iterator__traits}{iterator\+\_\+traits}}$<$ Compatible\+Array\+Type $>$ $>$\+::value $>$ $>$\+::value\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+{\bfseries Initial value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{=}
+\DoxyCodeLine{        std::is\_constructible<BasicJsonType,}
+\DoxyCodeLine{        \textcolor{keyword}{typename} CompatibleArrayType::value\_type>::value}
+
+\end{DoxyCode}
+
+
+Definition at line 2703 of file json.\+hpp.
+
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+third\+\_\+party/json.\+hpp\end{DoxyCompactItemize}

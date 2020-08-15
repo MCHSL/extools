@@ -1,0 +1,117 @@
+\hypertarget{classInstruction}{}\doxysection{Instruction Class Reference}
+\label{classInstruction}\index{Instruction@{Instruction}}
+Inheritance diagram for Instruction\+:\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[height=2.000000cm]{classInstruction}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classInstruction_ad09ba8e331303210e9e1e5afb97668a6}\label{classInstruction_ad09ba8e331303210e9e1e5afb97668a6}} 
+{\bfseries Instruction} (Bytecode op)
+\item 
+\mbox{\Hypertarget{classInstruction_a696ba8968218a443486f244e86f330c5}\label{classInstruction_a696ba8968218a443486f244e86f330c5}} 
+{\bfseries Instruction} (unsigned int unknown\+\_\+op)
+\item 
+\mbox{\Hypertarget{classInstruction_ab2057271de6b06dac95b1f3d49c408ed}\label{classInstruction_ab2057271de6b06dac95b1f3d49c408ed}} 
+virtual void {\bfseries Disassemble} (\mbox{\hyperlink{classContext}{Context}} $\ast$context, \mbox{\hyperlink{classDisassembler}{Disassembler}} $\ast$dism)
+\item 
+\mbox{\Hypertarget{classInstruction_a5218a7ace6a10de5aecda4f866b2831d}\label{classInstruction_a5218a7ace6a10de5aecda4f866b2831d}} 
+virtual unsigned int {\bfseries arguments} () const
+\item 
+\mbox{\Hypertarget{classInstruction_ad0a7ecb4a90bec1f4a706f23a4e2a957}\label{classInstruction_ad0a7ecb4a90bec1f4a706f23a4e2a957}} 
+std\+::uint8\+\_\+t \& {\bfseries size} ()
+\item 
+\mbox{\Hypertarget{classInstruction_a44b69287e9e642f9f5db12f7e871ae82}\label{classInstruction_a44b69287e9e642f9f5db12f7e871ae82}} 
+std\+::vector$<$ std\+::uint32\+\_\+t $>$ \& {\bfseries bytes} ()
+\item 
+\mbox{\Hypertarget{classInstruction_a4b1a24d290f1b490c50203ed29ee746f}\label{classInstruction_a4b1a24d290f1b490c50203ed29ee746f}} 
+void {\bfseries add\+\_\+byte} (std\+::uint32\+\_\+t byte)
+\item 
+\mbox{\Hypertarget{classInstruction_a04868707c12461860cdcd249ed71ef05}\label{classInstruction_a04868707c12461860cdcd249ed71ef05}} 
+std\+::string {\bfseries bytes\+\_\+str} ()
+\item 
+\mbox{\Hypertarget{classInstruction_a5f4556bed371febc867324f7785c05c2}\label{classInstruction_a5f4556bed371febc867324f7785c05c2}} 
+\mbox{\hyperlink{classOpcode}{Opcode}} \& {\bfseries opcode} ()
+\item 
+\mbox{\Hypertarget{classInstruction_a5dcdcb65e82a93ec2d88064e68df46fe}\label{classInstruction_a5dcdcb65e82a93ec2d88064e68df46fe}} 
+std\+::string {\bfseries comment} ()
+\item 
+\mbox{\Hypertarget{classInstruction_a1fd1cb06420f93e21ef62bd083fd1db0}\label{classInstruction_a1fd1cb06420f93e21ef62bd083fd1db0}} 
+void {\bfseries set\+\_\+comment} (std\+::string comment)
+\item 
+\mbox{\Hypertarget{classInstruction_af6ae6b8cbd2e70ade13b505b2f42ace3}\label{classInstruction_af6ae6b8cbd2e70ade13b505b2f42ace3}} 
+void {\bfseries add\+\_\+comment} (std\+::string comment)
+\item 
+\mbox{\Hypertarget{classInstruction_ab70867d8275ac61570f98f1459bf9a6d}\label{classInstruction_ab70867d8275ac61570f98f1459bf9a6d}} 
+std\+::uint16\+\_\+t {\bfseries offset} () const
+\item 
+\mbox{\Hypertarget{classInstruction_a115d7c8042f7141b55cddbf1abbb7923}\label{classInstruction_a115d7c8042f7141b55cddbf1abbb7923}} 
+void {\bfseries set\+\_\+offset} (std\+::uint16\+\_\+t offset)
+\item 
+\mbox{\Hypertarget{classInstruction_a0fe5582cbff3c20f9530cbf174b6332a}\label{classInstruction_a0fe5582cbff3c20f9530cbf174b6332a}} 
+bool {\bfseries operator==} (const Bytecode rhs)
+\item 
+\mbox{\Hypertarget{classInstruction_ac7679dbba387f76b0b82a2cda2976abd}\label{classInstruction_ac7679dbba387f76b0b82a2cda2976abd}} 
+bool {\bfseries operator==} (const unsigned int rhs)
+\item 
+\mbox{\Hypertarget{classInstruction_a1c32aaa568ddf68d39f5bd83c3dfcac1}\label{classInstruction_a1c32aaa568ddf68d39f5bd83c3dfcac1}} 
+std\+::vector$<$ unsigned short $>$ \& {\bfseries jump\+\_\+locations} ()
+\item 
+\mbox{\Hypertarget{classInstruction_a9adf2cae27e8d369cbdc9963a93f9e1b}\label{classInstruction_a9adf2cae27e8d369cbdc9963a93f9e1b}} 
+void {\bfseries add\+\_\+jump} (unsigned short off)
+\item 
+\mbox{\Hypertarget{classInstruction_a36f6973840d51e103b81902950d0e6ae}\label{classInstruction_a36f6973840d51e103b81902950d0e6ae}} 
+std\+::vector$<$ std\+::string $>$ {\bfseries extra\+\_\+info} ()
+\item 
+\mbox{\Hypertarget{classInstruction_a289614c1dc5753f17d66a4fc971241e2}\label{classInstruction_a289614c1dc5753f17d66a4fc971241e2}} 
+void {\bfseries add\+\_\+info} (std\+::string s)
+\end{DoxyCompactItemize}
+\doxysubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classInstruction_ac5e247f0706cadb83a38a6e57bced263}\label{classInstruction_ac5e247f0706cadb83a38a6e57bced263}} 
+static \mbox{\hyperlink{classInstruction}{Instruction}} {\bfseries create} (Bytecode op)
+\item 
+\mbox{\Hypertarget{classInstruction_afae1397975975c52ae110061c9ce0315}\label{classInstruction_afae1397975975c52ae110061c9ce0315}} 
+static \mbox{\hyperlink{classInstruction}{Instruction}} {\bfseries create} (unsigned int unknown\+\_\+op)
+\end{DoxyCompactItemize}
+\doxysubsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classInstruction_afb47ab0a9ffdff2bf0c4ec068cb1a3d5}\label{classInstruction_afb47ab0a9ffdff2bf0c4ec068cb1a3d5}} 
+std\+::uint8\+\_\+t {\bfseries size\+\_\+}
+\item 
+\mbox{\Hypertarget{classInstruction_aedbfe4e2b61d98a7b3aeba24f61b9460}\label{classInstruction_aedbfe4e2b61d98a7b3aeba24f61b9460}} 
+std\+::vector$<$ std\+::uint32\+\_\+t $>$ {\bfseries bytes\+\_\+}
+\item 
+\mbox{\Hypertarget{classInstruction_a121e9676987dbdb6ec304b088f9b6139}\label{classInstruction_a121e9676987dbdb6ec304b088f9b6139}} 
+\mbox{\hyperlink{classOpcode}{Opcode}} {\bfseries opcode\+\_\+}
+\item 
+\mbox{\Hypertarget{classInstruction_a06f4a27c90126d840ff6a010effffd51}\label{classInstruction_a06f4a27c90126d840ff6a010effffd51}} 
+std\+::string {\bfseries comment\+\_\+}
+\item 
+\mbox{\Hypertarget{classInstruction_a38e504e08a6e0bfaaccf1ca169849ad0}\label{classInstruction_a38e504e08a6e0bfaaccf1ca169849ad0}} 
+std\+::uint32\+\_\+t {\bfseries offset\+\_\+}
+\item 
+\mbox{\Hypertarget{classInstruction_a6dd8bcfa60b6747f368135f53568b961}\label{classInstruction_a6dd8bcfa60b6747f368135f53568b961}} 
+std\+::vector$<$ std\+::string $>$ {\bfseries extra\+\_\+info\+\_\+}
+\item 
+\mbox{\Hypertarget{classInstruction_aae278aa8b68ed600510c7bd210e45c8b}\label{classInstruction_aae278aa8b68ed600510c7bd210e45c8b}} 
+std\+::vector$<$ unsigned short $>$ {\bfseries jump\+\_\+locations\+\_\+}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+
+
+Definition at line 13 of file instruction.\+h.
+
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+dmdism/instruction.\+h\item 
+dmdism/instruction.\+cpp\end{DoxyCompactItemize}

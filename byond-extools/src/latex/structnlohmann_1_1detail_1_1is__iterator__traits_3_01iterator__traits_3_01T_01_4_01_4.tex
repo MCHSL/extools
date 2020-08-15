@@ -1,0 +1,46 @@
+\hypertarget{structnlohmann_1_1detail_1_1is__iterator__traits_3_01iterator__traits_3_01T_01_4_01_4}{}\doxysection{nlohmann\+::detail\+::is\+\_\+iterator\+\_\+traits$<$ iterator\+\_\+traits$<$ T $>$ $>$ Struct Template Reference}
+\label{structnlohmann_1_1detail_1_1is__iterator__traits_3_01iterator__traits_3_01T_01_4_01_4}\index{nlohmann::detail::is\_iterator\_traits$<$ iterator\_traits$<$ T $>$ $>$@{nlohmann::detail::is\_iterator\_traits$<$ iterator\_traits$<$ T $>$ $>$}}
+\doxysubsection*{Static Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+static constexpr auto {\bfseries value}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename T$>$\newline
+struct nlohmann\+::detail\+::is\+\_\+iterator\+\_\+traits$<$ iterator\+\_\+traits$<$ T $>$ $>$}
+
+
+
+Definition at line 2572 of file json.\+hpp.
+
+
+
+\doxysubsection{Field Documentation}
+\mbox{\Hypertarget{structnlohmann_1_1detail_1_1is__iterator__traits_3_01iterator__traits_3_01T_01_4_01_4_ac2711760b352b8921accc6609957dc90}\label{structnlohmann_1_1detail_1_1is__iterator__traits_3_01iterator__traits_3_01T_01_4_01_4_ac2711760b352b8921accc6609957dc90}} 
+\index{nlohmann::detail::is\_iterator\_traits$<$ iterator\_traits$<$ T $>$ $>$@{nlohmann::detail::is\_iterator\_traits$<$ iterator\_traits$<$ T $>$ $>$}!value@{value}}
+\index{value@{value}!nlohmann::detail::is\_iterator\_traits$<$ iterator\_traits$<$ T $>$ $>$@{nlohmann::detail::is\_iterator\_traits$<$ iterator\_traits$<$ T $>$ $>$}}
+\doxysubsubsection{\texorpdfstring{value}{value}}
+{\footnotesize\ttfamily template$<$typename T $>$ \\
+constexpr auto \mbox{\hyperlink{structnlohmann_1_1detail_1_1is__iterator__traits}{nlohmann\+::detail\+::is\+\_\+iterator\+\_\+traits}}$<$ \mbox{\hyperlink{structnlohmann_1_1detail_1_1iterator__traits}{iterator\+\_\+traits}}$<$ T $>$ $>$\+::value\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+{\bfseries Initial value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{=}
+\DoxyCodeLine{        is\_detected<value\_type\_t, traits>::value \&\&}
+\DoxyCodeLine{        is\_detected<difference\_type\_t, traits>::value \&\&}
+\DoxyCodeLine{        is\_detected<pointer\_t, traits>::value \&\&}
+\DoxyCodeLine{        is\_detected<iterator\_category\_t, traits>::value \&\&}
+\DoxyCodeLine{        is\_detected<reference\_t, traits>::value}
+
+\end{DoxyCode}
+
+
+Definition at line 2578 of file json.\+hpp.
+
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+third\+\_\+party/json.\+hpp\end{DoxyCompactItemize}

@@ -1,0 +1,231 @@
+\hypertarget{classnlohmann_1_1detail_1_1parser}{}\doxysection{nlohmann\+::detail\+::parser$<$ Basic\+Json\+Type $>$ Class Template Reference}
+\label{classnlohmann_1_1detail_1_1parser}\index{nlohmann::detail::parser$<$ BasicJsonType $>$@{nlohmann::detail::parser$<$ BasicJsonType $>$}}
+
+
+syntax analysis  
+
+
+
+
+{\ttfamily \#include $<$json.\+hpp$>$}
+
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+enum \mbox{\hyperlink{classnlohmann_1_1detail_1_1parser_a37ac88c864dda495f72cb62776b0bebe}{parse\+\_\+event\+\_\+t}} \+: uint8\+\_\+t \{ \newline
+\mbox{\hyperlink{classnlohmann_1_1detail_1_1parser_a37ac88c864dda495f72cb62776b0bebeae73f17027cb0acbb537f29d0a6944b26}{parse\+\_\+event\+\_\+t\+::object\+\_\+start}}, 
+\mbox{\hyperlink{classnlohmann_1_1detail_1_1parser_a37ac88c864dda495f72cb62776b0bebeaf63e2a2468a37aa4f394fcc3bcb8249c}{parse\+\_\+event\+\_\+t\+::object\+\_\+end}}, 
+\mbox{\hyperlink{classnlohmann_1_1detail_1_1parser_a37ac88c864dda495f72cb62776b0bebeaa4388a3d92419edbb1c6efd4d52461f3}{parse\+\_\+event\+\_\+t\+::array\+\_\+start}}, 
+\mbox{\hyperlink{classnlohmann_1_1detail_1_1parser_a37ac88c864dda495f72cb62776b0bebea49642fb732aa2e112188fba1f9d3ef7f}{parse\+\_\+event\+\_\+t\+::array\+\_\+end}}, 
+\newline
+\mbox{\hyperlink{classnlohmann_1_1detail_1_1parser_a37ac88c864dda495f72cb62776b0bebea3c6e0b8a9c15224a8228b9a98ca1531d}{parse\+\_\+event\+\_\+t\+::key}}, 
+\mbox{\hyperlink{classnlohmann_1_1detail_1_1parser_a37ac88c864dda495f72cb62776b0bebea2063c1608d6e0baf80249c42e2be5804}{parse\+\_\+event\+\_\+t\+::value}}
+ \}
+\item 
+\mbox{\Hypertarget{classnlohmann_1_1detail_1_1parser_ad250ad4f2b4af4a497e727c963162ff1}\label{classnlohmann_1_1detail_1_1parser_ad250ad4f2b4af4a497e727c963162ff1}} 
+using {\bfseries parser\+\_\+callback\+\_\+t} = std\+::function$<$ bool(int depth, \mbox{\hyperlink{classnlohmann_1_1detail_1_1parser_a37ac88c864dda495f72cb62776b0bebe}{parse\+\_\+event\+\_\+t}} event, Basic\+Json\+Type \&parsed)$>$
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classnlohmann_1_1detail_1_1parser_a1a2bd258b7e99f86b7e6a3c41373ba55}\label{classnlohmann_1_1detail_1_1parser_a1a2bd258b7e99f86b7e6a3c41373ba55}} 
+\mbox{\hyperlink{classnlohmann_1_1detail_1_1parser_a1a2bd258b7e99f86b7e6a3c41373ba55}{parser}} (\mbox{\hyperlink{namespacenlohmann_1_1detail_ae132f8cd5bb24c5e9b40ad0eafedf1c2}{detail\+::input\+\_\+adapter\+\_\+t}} \&\&adapter, const parser\+\_\+callback\+\_\+t cb=nullptr, const bool allow\+\_\+exceptions\+\_\+=true)
+\begin{DoxyCompactList}\small\item\em a parser reading from an input adapter \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classnlohmann_1_1detail_1_1parser_a14338d8f3174601c0b2b7ef28752ab17}{parse}} (const bool strict, Basic\+Json\+Type \&result)
+\begin{DoxyCompactList}\small\item\em public parser interface \end{DoxyCompactList}\item 
+bool \mbox{\hyperlink{classnlohmann_1_1detail_1_1parser_a20997b42262856935b60fc91bf05bf3f}{accept}} (const bool strict=true)
+\begin{DoxyCompactList}\small\item\em public accept interface \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classnlohmann_1_1detail_1_1parser_a14e34931965064b26e118eb72cbd5e25}\label{classnlohmann_1_1detail_1_1parser_a14e34931965064b26e118eb72cbd5e25}} 
+{\footnotesize template$<$typename S\+AX $>$ }\\bool {\bfseries sax\+\_\+parse} (S\+AX $\ast$sax, const bool strict=true)
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Basic\+Json\+Type$>$\newline
+class nlohmann\+::detail\+::parser$<$ Basic\+Json\+Type $>$}
+
+syntax analysis 
+
+This class implements a recursive decent parser. 
+
+Definition at line 8671 of file json.\+hpp.
+
+
+
+\doxysubsection{Member Enumeration Documentation}
+\mbox{\Hypertarget{classnlohmann_1_1detail_1_1parser_a37ac88c864dda495f72cb62776b0bebe}\label{classnlohmann_1_1detail_1_1parser_a37ac88c864dda495f72cb62776b0bebe}} 
+\index{nlohmann::detail::parser$<$ BasicJsonType $>$@{nlohmann::detail::parser$<$ BasicJsonType $>$}!parse\_event\_t@{parse\_event\_t}}
+\index{parse\_event\_t@{parse\_event\_t}!nlohmann::detail::parser$<$ BasicJsonType $>$@{nlohmann::detail::parser$<$ BasicJsonType $>$}}
+\doxysubsubsection{\texorpdfstring{parse\_event\_t}{parse\_event\_t}}
+{\footnotesize\ttfamily template$<$typename Basic\+Json\+Type $>$ \\
+enum \mbox{\hyperlink{classnlohmann_1_1detail_1_1parser_a37ac88c864dda495f72cb62776b0bebe}{nlohmann\+::detail\+::parser\+::parse\+\_\+event\+\_\+t}} \+: uint8\+\_\+t\hspace{0.3cm}{\ttfamily [strong]}}
+
+\begin{DoxyEnumFields}{Enumerator}
+\raisebox{\heightof{T}}[0pt][0pt]{\index{object\_start@{object\_start}!nlohmann::detail::parser$<$ BasicJsonType $>$@{nlohmann::detail::parser$<$ BasicJsonType $>$}}\index{nlohmann::detail::parser$<$ BasicJsonType $>$@{nlohmann::detail::parser$<$ BasicJsonType $>$}!object\_start@{object\_start}}}\mbox{\Hypertarget{classnlohmann_1_1detail_1_1parser_a37ac88c864dda495f72cb62776b0bebeae73f17027cb0acbb537f29d0a6944b26}\label{classnlohmann_1_1detail_1_1parser_a37ac88c864dda495f72cb62776b0bebeae73f17027cb0acbb537f29d0a6944b26}} 
+object\+\_\+start&the parser read {\ttfamily \{} and started to process a J\+S\+ON object \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{object\_end@{object\_end}!nlohmann::detail::parser$<$ BasicJsonType $>$@{nlohmann::detail::parser$<$ BasicJsonType $>$}}\index{nlohmann::detail::parser$<$ BasicJsonType $>$@{nlohmann::detail::parser$<$ BasicJsonType $>$}!object\_end@{object\_end}}}\mbox{\Hypertarget{classnlohmann_1_1detail_1_1parser_a37ac88c864dda495f72cb62776b0bebeaf63e2a2468a37aa4f394fcc3bcb8249c}\label{classnlohmann_1_1detail_1_1parser_a37ac88c864dda495f72cb62776b0bebeaf63e2a2468a37aa4f394fcc3bcb8249c}} 
+object\+\_\+end&the parser read {\ttfamily \}} and finished processing a J\+S\+ON object \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{array\_start@{array\_start}!nlohmann::detail::parser$<$ BasicJsonType $>$@{nlohmann::detail::parser$<$ BasicJsonType $>$}}\index{nlohmann::detail::parser$<$ BasicJsonType $>$@{nlohmann::detail::parser$<$ BasicJsonType $>$}!array\_start@{array\_start}}}\mbox{\Hypertarget{classnlohmann_1_1detail_1_1parser_a37ac88c864dda495f72cb62776b0bebeaa4388a3d92419edbb1c6efd4d52461f3}\label{classnlohmann_1_1detail_1_1parser_a37ac88c864dda495f72cb62776b0bebeaa4388a3d92419edbb1c6efd4d52461f3}} 
+array\+\_\+start&the parser read {\ttfamily \mbox{[}} and started to process a J\+S\+ON array \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{array\_end@{array\_end}!nlohmann::detail::parser$<$ BasicJsonType $>$@{nlohmann::detail::parser$<$ BasicJsonType $>$}}\index{nlohmann::detail::parser$<$ BasicJsonType $>$@{nlohmann::detail::parser$<$ BasicJsonType $>$}!array\_end@{array\_end}}}\mbox{\Hypertarget{classnlohmann_1_1detail_1_1parser_a37ac88c864dda495f72cb62776b0bebea49642fb732aa2e112188fba1f9d3ef7f}\label{classnlohmann_1_1detail_1_1parser_a37ac88c864dda495f72cb62776b0bebea49642fb732aa2e112188fba1f9d3ef7f}} 
+array\+\_\+end&the parser read {\ttfamily \mbox{]}} and finished processing a J\+S\+ON array \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{key@{key}!nlohmann::detail::parser$<$ BasicJsonType $>$@{nlohmann::detail::parser$<$ BasicJsonType $>$}}\index{nlohmann::detail::parser$<$ BasicJsonType $>$@{nlohmann::detail::parser$<$ BasicJsonType $>$}!key@{key}}}\mbox{\Hypertarget{classnlohmann_1_1detail_1_1parser_a37ac88c864dda495f72cb62776b0bebea3c6e0b8a9c15224a8228b9a98ca1531d}\label{classnlohmann_1_1detail_1_1parser_a37ac88c864dda495f72cb62776b0bebea3c6e0b8a9c15224a8228b9a98ca1531d}} 
+key&the parser read a key of a value in an object \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{value@{value}!nlohmann::detail::parser$<$ BasicJsonType $>$@{nlohmann::detail::parser$<$ BasicJsonType $>$}}\index{nlohmann::detail::parser$<$ BasicJsonType $>$@{nlohmann::detail::parser$<$ BasicJsonType $>$}!value@{value}}}\mbox{\Hypertarget{classnlohmann_1_1detail_1_1parser_a37ac88c864dda495f72cb62776b0bebea2063c1608d6e0baf80249c42e2be5804}\label{classnlohmann_1_1detail_1_1parser_a37ac88c864dda495f72cb62776b0bebea2063c1608d6e0baf80249c42e2be5804}} 
+value&the parser finished reading a J\+S\+ON value \\
+\hline
+
+\end{DoxyEnumFields}
+
+
+Definition at line 8681 of file json.\+hpp.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{8682     \{}
+\DoxyCodeLine{8684         object\_start,}
+\DoxyCodeLine{8686         object\_end,}
+\DoxyCodeLine{8688         array\_start,}
+\DoxyCodeLine{8690         array\_end,}
+\DoxyCodeLine{8692         key,}
+\DoxyCodeLine{8694         value}
+\DoxyCodeLine{8695     \};}
+
+\end{DoxyCode}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classnlohmann_1_1detail_1_1parser_a20997b42262856935b60fc91bf05bf3f}\label{classnlohmann_1_1detail_1_1parser_a20997b42262856935b60fc91bf05bf3f}} 
+\index{nlohmann::detail::parser$<$ BasicJsonType $>$@{nlohmann::detail::parser$<$ BasicJsonType $>$}!accept@{accept}}
+\index{accept@{accept}!nlohmann::detail::parser$<$ BasicJsonType $>$@{nlohmann::detail::parser$<$ BasicJsonType $>$}}
+\doxysubsubsection{\texorpdfstring{accept()}{accept()}}
+{\footnotesize\ttfamily template$<$typename Basic\+Json\+Type $>$ \\
+bool \mbox{\hyperlink{classnlohmann_1_1detail_1_1parser}{nlohmann\+::detail\+::parser}}$<$ Basic\+Json\+Type $>$\+::accept (\begin{DoxyParamCaption}\item[{const bool}]{strict = {\ttfamily true} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+public accept interface 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em strict} & whether to expect the last token to be E\+OF \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+whether the input is a proper J\+S\+ON text 
+\end{DoxyReturn}
+
+
+Definition at line 8781 of file json.\+hpp.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{8782     \{}
+\DoxyCodeLine{8783         json\_sax\_acceptor<BasicJsonType> sax\_acceptor;}
+\DoxyCodeLine{8784         \textcolor{keywordflow}{return} sax\_parse(\&sax\_acceptor, strict);}
+\DoxyCodeLine{8785     \}}
+
+\end{DoxyCode}
+\mbox{\Hypertarget{classnlohmann_1_1detail_1_1parser_a14338d8f3174601c0b2b7ef28752ab17}\label{classnlohmann_1_1detail_1_1parser_a14338d8f3174601c0b2b7ef28752ab17}} 
+\index{nlohmann::detail::parser$<$ BasicJsonType $>$@{nlohmann::detail::parser$<$ BasicJsonType $>$}!parse@{parse}}
+\index{parse@{parse}!nlohmann::detail::parser$<$ BasicJsonType $>$@{nlohmann::detail::parser$<$ BasicJsonType $>$}}
+\doxysubsubsection{\texorpdfstring{parse()}{parse()}}
+{\footnotesize\ttfamily template$<$typename Basic\+Json\+Type $>$ \\
+void \mbox{\hyperlink{classnlohmann_1_1detail_1_1parser}{nlohmann\+::detail\+::parser}}$<$ Basic\+Json\+Type $>$\+::parse (\begin{DoxyParamCaption}\item[{const bool}]{strict,  }\item[{Basic\+Json\+Type \&}]{result }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+public parser interface 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em strict} & whether to expect the last token to be E\+OF \\
+\hline
+\mbox{\texttt{ in,out}}  & {\em result} & parsed J\+S\+ON value\\
+\hline
+\end{DoxyParams}
+
+\begin{DoxyExceptions}{Exceptions}
+{\em parse\+\_\+error.\+101} & in case of an unexpected token \\
+\hline
+{\em parse\+\_\+error.\+102} & if to\+\_\+unicode fails or surrogate error \\
+\hline
+{\em parse\+\_\+error.\+103} & if to\+\_\+unicode fails \\
+\hline
+\end{DoxyExceptions}
+
+
+Definition at line 8720 of file json.\+hpp.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{8721     \{}
+\DoxyCodeLine{8722         \textcolor{keywordflow}{if} (callback)}
+\DoxyCodeLine{8723         \{}
+\DoxyCodeLine{8724             json\_sax\_dom\_callback\_parser<BasicJsonType> sdp(result, callback, allow\_exceptions);}
+\DoxyCodeLine{8725             sax\_parse\_internal(\&sdp);}
+\DoxyCodeLine{8726             result.assert\_invariant();}
+\DoxyCodeLine{8727 }
+\DoxyCodeLine{8728             \textcolor{comment}{// in strict mode, input must be completely read}}
+\DoxyCodeLine{8729             \textcolor{keywordflow}{if} (strict and (get\_token() != token\_type::end\_of\_input))}
+\DoxyCodeLine{8730             \{}
+\DoxyCodeLine{8731                 sdp.parse\_error(m\_lexer.\mbox{\hyperlink{classnlohmann_1_1detail_1_1lexer_abf5143501435f9f79898c1ff238c2622}{get\_position}}(),}
+\DoxyCodeLine{8732                                 m\_lexer.\mbox{\hyperlink{classnlohmann_1_1detail_1_1lexer_a4aef7e72e539be04e139c34872421f2a}{get\_token\_string}}(),}
+\DoxyCodeLine{8733                                 \mbox{\hyperlink{classnlohmann_1_1detail_1_1parse__error_a137ea4d27de45d8a844fd13451d40f3d}{parse\_error::create}}(101, m\_lexer.\mbox{\hyperlink{classnlohmann_1_1detail_1_1lexer_abf5143501435f9f79898c1ff238c2622}{get\_position}}(),}
+\DoxyCodeLine{8734                                                     exception\_message(token\_type::end\_of\_input, \textcolor{stringliteral}{"value"})));}
+\DoxyCodeLine{8735             \}}
+\DoxyCodeLine{8736 }
+\DoxyCodeLine{8737             \textcolor{comment}{// in case of an error, return discarded value}}
+\DoxyCodeLine{8738             \textcolor{keywordflow}{if} (sdp.is\_errored())}
+\DoxyCodeLine{8739             \{}
+\DoxyCodeLine{8740                 result = \mbox{\hyperlink{namespacenlohmann_1_1detail_a1ed8fc6239da25abcaf681d30ace4985a94708897ec9db8647dfe695714c98e46}{value\_t::discarded}};}
+\DoxyCodeLine{8741                 \textcolor{keywordflow}{return};}
+\DoxyCodeLine{8742             \}}
+\DoxyCodeLine{8743 }
+\DoxyCodeLine{8744             \textcolor{comment}{// set top-\/level value to null if it was discarded by the callback}}
+\DoxyCodeLine{8745             \textcolor{comment}{// function}}
+\DoxyCodeLine{8746             \textcolor{keywordflow}{if} (result.is\_discarded())}
+\DoxyCodeLine{8747             \{}
+\DoxyCodeLine{8748                 result = \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{8749             \}}
+\DoxyCodeLine{8750         \}}
+\DoxyCodeLine{8751         \textcolor{keywordflow}{else}}
+\DoxyCodeLine{8752         \{}
+\DoxyCodeLine{8753             json\_sax\_dom\_parser<BasicJsonType> sdp(result, allow\_exceptions);}
+\DoxyCodeLine{8754             sax\_parse\_internal(\&sdp);}
+\DoxyCodeLine{8755             result.assert\_invariant();}
+\DoxyCodeLine{8756 }
+\DoxyCodeLine{8757             \textcolor{comment}{// in strict mode, input must be completely read}}
+\DoxyCodeLine{8758             \textcolor{keywordflow}{if} (strict and (get\_token() != token\_type::end\_of\_input))}
+\DoxyCodeLine{8759             \{}
+\DoxyCodeLine{8760                 sdp.parse\_error(m\_lexer.\mbox{\hyperlink{classnlohmann_1_1detail_1_1lexer_abf5143501435f9f79898c1ff238c2622}{get\_position}}(),}
+\DoxyCodeLine{8761                                 m\_lexer.\mbox{\hyperlink{classnlohmann_1_1detail_1_1lexer_a4aef7e72e539be04e139c34872421f2a}{get\_token\_string}}(),}
+\DoxyCodeLine{8762                                 \mbox{\hyperlink{classnlohmann_1_1detail_1_1parse__error_a137ea4d27de45d8a844fd13451d40f3d}{parse\_error::create}}(101, m\_lexer.\mbox{\hyperlink{classnlohmann_1_1detail_1_1lexer_abf5143501435f9f79898c1ff238c2622}{get\_position}}(),}
+\DoxyCodeLine{8763                                                     exception\_message(token\_type::end\_of\_input, \textcolor{stringliteral}{"value"})));}
+\DoxyCodeLine{8764             \}}
+\DoxyCodeLine{8765 }
+\DoxyCodeLine{8766             \textcolor{comment}{// in case of an error, return discarded value}}
+\DoxyCodeLine{8767             \textcolor{keywordflow}{if} (sdp.is\_errored())}
+\DoxyCodeLine{8768             \{}
+\DoxyCodeLine{8769                 result = \mbox{\hyperlink{namespacenlohmann_1_1detail_a1ed8fc6239da25abcaf681d30ace4985a94708897ec9db8647dfe695714c98e46}{value\_t::discarded}};}
+\DoxyCodeLine{8770                 \textcolor{keywordflow}{return};}
+\DoxyCodeLine{8771             \}}
+\DoxyCodeLine{8772         \}}
+\DoxyCodeLine{8773     \}}
+
+\end{DoxyCode}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+third\+\_\+party/json.\+hpp\end{DoxyCompactItemize}

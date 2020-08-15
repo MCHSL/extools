@@ -1,0 +1,49 @@
+\hypertarget{structnlohmann_1_1detail_1_1has__from__json_3_01BasicJsonType_00_01T_00_01enable__if__t_3_01not_5e786a91cad76ed1c14f425887b41640}{}\doxysection{nlohmann\+::detail\+::has\+\_\+from\+\_\+json$<$ Basic\+Json\+Type, T, enable\+\_\+if\+\_\+t$<$ not is\+\_\+basic\+\_\+json$<$ T $>$\+::value $>$ $>$ Struct Template Reference}
+\label{structnlohmann_1_1detail_1_1has__from__json_3_01BasicJsonType_00_01T_00_01enable__if__t_3_01not_5e786a91cad76ed1c14f425887b41640}\index{nlohmann::detail::has\_from\_json$<$ BasicJsonType, T, enable\_if\_t$<$ not is\_basic\_json$<$ T $>$::value $>$ $>$@{nlohmann::detail::has\_from\_json$<$ BasicJsonType, T, enable\_if\_t$<$ not is\_basic\_json$<$ T $>$::value $>$ $>$}}
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structnlohmann_1_1detail_1_1has__from__json_3_01BasicJsonType_00_01T_00_01enable__if__t_3_01not_5e786a91cad76ed1c14f425887b41640_ab17cea1be422b8985fc19942809560ed}\label{structnlohmann_1_1detail_1_1has__from__json_3_01BasicJsonType_00_01T_00_01enable__if__t_3_01not_5e786a91cad76ed1c14f425887b41640_ab17cea1be422b8985fc19942809560ed}} 
+using {\bfseries serializer} = typename Basic\+Json\+Type\+::template json\+\_\+serializer$<$ T, void $>$
+\end{DoxyCompactItemize}
+\doxysubsection*{Static Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+static constexpr bool {\bfseries value}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Basic\+Json\+Type, typename T$>$\newline
+struct nlohmann\+::detail\+::has\+\_\+from\+\_\+json$<$ Basic\+Json\+Type, T, enable\+\_\+if\+\_\+t$<$ not is\+\_\+basic\+\_\+json$<$ T $>$\+::value $>$ $>$}
+
+
+
+Definition at line 2523 of file json.\+hpp.
+
+
+
+\doxysubsection{Field Documentation}
+\mbox{\Hypertarget{structnlohmann_1_1detail_1_1has__from__json_3_01BasicJsonType_00_01T_00_01enable__if__t_3_01not_5e786a91cad76ed1c14f425887b41640_afb638d592883301228bcad21d83bf4aa}\label{structnlohmann_1_1detail_1_1has__from__json_3_01BasicJsonType_00_01T_00_01enable__if__t_3_01not_5e786a91cad76ed1c14f425887b41640_afb638d592883301228bcad21d83bf4aa}} 
+\index{nlohmann::detail::has\_from\_json$<$ BasicJsonType, T, enable\_if\_t$<$ not is\_basic\_json$<$ T $>$::value $>$ $>$@{nlohmann::detail::has\_from\_json$<$ BasicJsonType, T, enable\_if\_t$<$ not is\_basic\_json$<$ T $>$::value $>$ $>$}!value@{value}}
+\index{value@{value}!nlohmann::detail::has\_from\_json$<$ BasicJsonType, T, enable\_if\_t$<$ not is\_basic\_json$<$ T $>$::value $>$ $>$@{nlohmann::detail::has\_from\_json$<$ BasicJsonType, T, enable\_if\_t$<$ not is\_basic\_json$<$ T $>$::value $>$ $>$}}
+\doxysubsubsection{\texorpdfstring{value}{value}}
+{\footnotesize\ttfamily template$<$typename Basic\+Json\+Type , typename T $>$ \\
+constexpr bool \mbox{\hyperlink{structnlohmann_1_1detail_1_1has__from__json}{nlohmann\+::detail\+::has\+\_\+from\+\_\+json}}$<$ Basic\+Json\+Type, T, enable\+\_\+if\+\_\+t$<$ not \mbox{\hyperlink{structnlohmann_1_1detail_1_1is__basic__json}{is\+\_\+basic\+\_\+json}}$<$ T $>$\+::value $>$ $>$\+::value\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+{\bfseries Initial value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{=}
+\DoxyCodeLine{        is\_detected\_exact<void, from\_json\_function, serializer,}
+\DoxyCodeLine{        \textcolor{keyword}{const} BasicJsonType\&, T\&>::value}
+
+\end{DoxyCode}
+
+
+Definition at line 2528 of file json.\+hpp.
+
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+third\+\_\+party/json.\+hpp\end{DoxyCompactItemize}

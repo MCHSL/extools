@@ -1,0 +1,51 @@
+\hypertarget{classurmem_1_1hook}{}\doxysection{urmem\+::hook Class Reference}
+\label{classurmem_1_1hook}\index{urmem::hook@{urmem::hook}}
+\doxysubsection*{Data Structures}
+\begin{DoxyCompactItemize}
+\item 
+class \mbox{\hyperlink{classurmem_1_1hook_1_1raii}{raii}}
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classurmem_1_1hook_a460aab0d5cf0fbf42de367908da69ebb}\label{classurmem_1_1hook_a460aab0d5cf0fbf42de367908da69ebb}} 
+enum {\bfseries type} \{ {\bfseries jmp}, 
+{\bfseries call}
+ \}
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classurmem_1_1hook_a5420babbdca9bf2e6fb5ad0c720bbe22}\label{classurmem_1_1hook_a5420babbdca9bf2e6fb5ad0c720bbe22}} 
+{\bfseries hook} (address\+\_\+t inject\+\_\+addr, address\+\_\+t handle\+\_\+addr, hook\+::type h\+\_\+type=hook\+::type\+::jmp, std\+::size\+\_\+t length=5)
+\item 
+\mbox{\Hypertarget{classurmem_1_1hook_ae459ecbaaa51d4666cd2fa73091d73e6}\label{classurmem_1_1hook_ae459ecbaaa51d4666cd2fa73091d73e6}} 
+void {\bfseries install} (address\+\_\+t inject\+\_\+addr, address\+\_\+t handle\+\_\+addr, hook\+::type h\+\_\+type=hook\+::type\+::jmp, std\+::size\+\_\+t length=5)
+\item 
+\mbox{\Hypertarget{classurmem_1_1hook_ab19ad3c883361aad32bf8bcea587cdc7}\label{classurmem_1_1hook_ab19ad3c883361aad32bf8bcea587cdc7}} 
+void {\bfseries enable} ()
+\item 
+\mbox{\Hypertarget{classurmem_1_1hook_a7cc04920b4acdc8228b22922c0a3a498}\label{classurmem_1_1hook_a7cc04920b4acdc8228b22922c0a3a498}} 
+void {\bfseries disable} ()
+\item 
+\mbox{\Hypertarget{classurmem_1_1hook_aaae59b46d19a6ec638d3ede08f108118}\label{classurmem_1_1hook_aaae59b46d19a6ec638d3ede08f108118}} 
+bool {\bfseries is\+\_\+enabled} () const
+\item 
+\mbox{\Hypertarget{classurmem_1_1hook_a994553d52d123d2b1171aecdf2c66db3}\label{classurmem_1_1hook_a994553d52d123d2b1171aecdf2c66db3}} 
+address\+\_\+t {\bfseries get\+\_\+original\+\_\+addr} () const
+\item 
+\mbox{\Hypertarget{classurmem_1_1hook_ac7bacb96ddc0149465ea0489a1366b34}\label{classurmem_1_1hook_ac7bacb96ddc0149465ea0489a1366b34}} 
+{\footnotesize template$<$calling\+\_\+convention C\+Conv = calling\+\_\+convention\+::cdeclcall, typename Ret  = void, typename ... Args$>$ }\\Ret {\bfseries call} (Args ... args)
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+
+
+Definition at line 299 of file urmem.\+hpp.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+third\+\_\+party/urmem.\+hpp\end{DoxyCompactItemize}

@@ -1,0 +1,72 @@
+\hypertarget{classDisassembly}{}\doxysection{Disassembly Class Reference}
+\label{classDisassembly}\index{Disassembly@{Disassembly}}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classDisassembly_a328917c364c2e02dad7ad541e80b2b39}\label{classDisassembly_a328917c364c2e02dad7ad541e80b2b39}} 
+{\bfseries Disassembly} (std\+::vector$<$ \mbox{\hyperlink{classInstruction}{Instruction}} $>$ \&\&i)
+\item 
+\mbox{\Hypertarget{classDisassembly_ad5e002cf94ce3cca155cee062e9d0569}\label{classDisassembly_ad5e002cf94ce3cca155cee062e9d0569}} 
+std\+::vector$<$ std\+::uint32\+\_\+t $>$ {\bfseries assemble} ()
+\item 
+\mbox{\Hypertarget{classDisassembly_a650cee358f0a565bb125ebbd6ab57c4a}\label{classDisassembly_a650cee358f0a565bb125ebbd6ab57c4a}} 
+\mbox{\hyperlink{classInstruction}{Instruction}} \& {\bfseries at} (std\+::size\+\_\+t i)
+\item 
+\mbox{\Hypertarget{classDisassembly_ad567574db85e15aa93b4589b9147187a}\label{classDisassembly_ad567574db85e15aa93b4589b9147187a}} 
+\mbox{\hyperlink{classInstruction}{Instruction}} \& {\bfseries at\+\_\+offset} (std\+::size\+\_\+t offset)
+\item 
+\mbox{\Hypertarget{classDisassembly_a15e03f143f29c9c01cfef5b456fc0ab2}\label{classDisassembly_a15e03f143f29c9c01cfef5b456fc0ab2}} 
+\mbox{\hyperlink{classInstruction}{Instruction}} $\ast$ {\bfseries next\+\_\+from\+\_\+offset} (std\+::uint16\+\_\+t offset)
+\item 
+\mbox{\Hypertarget{classDisassembly_afc1656081da2301b05ecd54437cba930}\label{classDisassembly_afc1656081da2301b05ecd54437cba930}} 
+std\+::uint32\+\_\+t {\bfseries op\+\_\+at} (std\+::size\+\_\+t i)
+\item 
+\mbox{\Hypertarget{classDisassembly_a02d004c903457e6ba3db0dc9ed0d56aa}\label{classDisassembly_a02d004c903457e6ba3db0dc9ed0d56aa}} 
+std\+::vector$<$ \mbox{\hyperlink{classInstruction}{Instruction}} $>$\+::iterator {\bfseries begin} () noexcept
+\item 
+\mbox{\Hypertarget{classDisassembly_a65cf1b694590ca5fe5067a30773f1416}\label{classDisassembly_a65cf1b694590ca5fe5067a30773f1416}} 
+std\+::vector$<$ \mbox{\hyperlink{classInstruction}{Instruction}} $>$\+::iterator {\bfseries end} () noexcept
+\item 
+\mbox{\Hypertarget{classDisassembly_a907c0405d503e4c8f22c31f67e6917dd}\label{classDisassembly_a907c0405d503e4c8f22c31f67e6917dd}} 
+void {\bfseries insert\+\_\+at} (std\+::size\+\_\+t at, \mbox{\hyperlink{classInstruction}{Instruction}} instr)
+\item 
+\mbox{\Hypertarget{classDisassembly_a27b212b2b11553861ea4c6bdaa76d232}\label{classDisassembly_a27b212b2b11553861ea4c6bdaa76d232}} 
+void {\bfseries add\+\_\+byte\+\_\+to\+\_\+last} (std\+::uint32\+\_\+t byte)
+\item 
+\mbox{\Hypertarget{classDisassembly_a2a541c2cd578b0811e22f666ca36142f}\label{classDisassembly_a2a541c2cd578b0811e22f666ca36142f}} 
+void {\bfseries recalculate\+\_\+offsets} ()
+\item 
+\mbox{\Hypertarget{classDisassembly_a67aa1eb725891a0fe40128b4c02e92cf}\label{classDisassembly_a67aa1eb725891a0fe40128b4c02e92cf}} 
+std\+::size\+\_\+t {\bfseries size} ()
+\item 
+\mbox{\Hypertarget{classDisassembly_ad7a4a8ee4ae7d8db6abdd201d85ede54}\label{classDisassembly_ad7a4a8ee4ae7d8db6abdd201d85ede54}} 
+std\+::size\+\_\+t {\bfseries bytecount} ()
+\end{DoxyCompactItemize}
+\doxysubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classDisassembly_a27a21adcdee949762468a6bfec6b4729}\label{classDisassembly_a27a21adcdee949762468a6bfec6b4729}} 
+static \mbox{\hyperlink{classDisassembly}{Disassembly}} {\bfseries from\+\_\+proc} (\mbox{\hyperlink{classCore_1_1Proc}{Core\+::\+Proc}} \&proc)
+\end{DoxyCompactItemize}
+\doxysubsection*{Data Fields}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classDisassembly_a92825a8f53914ccbfbbe996c0543ac1b}\label{classDisassembly_a92825a8f53914ccbfbbe996c0543ac1b}} 
+std\+::vector$<$ \mbox{\hyperlink{classInstruction}{Instruction}} $>$ {\bfseries instructions}
+\item 
+\mbox{\Hypertarget{classDisassembly_aec376a7c68ec3c6ebdfcb81873b5521d}\label{classDisassembly_aec376a7c68ec3c6ebdfcb81873b5521d}} 
+\mbox{\hyperlink{classCore_1_1Proc}{Core\+::\+Proc}} $\ast$ {\bfseries proc}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+
+
+Definition at line 7 of file disassembly.\+h.
+
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+dmdism/disassembly.\+h\item 
+dmdism/disassembly.\+cpp\end{DoxyCompactItemize}

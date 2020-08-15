@@ -1,0 +1,108 @@
+\hypertarget{classCore_1_1Proc}{}\doxysection{Core\+::Proc Class Reference}
+\label{classCore_1_1Proc}\index{Core::Proc@{Core::Proc}}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classCore_1_1Proc_a7cbd2a08a5d45df369b05f46e446d07e}\label{classCore_1_1Proc_a7cbd2a08a5d45df369b05f46e446d07e}} 
+{\bfseries Proc} (\mbox{\hyperlink{classCore_1_1Proc}{Proc}} \&\&rhs) noexcept=default
+\item 
+\mbox{\Hypertarget{classCore_1_1Proc_a8b8d195cfff5b540f43d4ce6c74eb143}\label{classCore_1_1Proc_a8b8d195cfff5b540f43d4ce6c74eb143}} 
+\mbox{\hyperlink{classCore_1_1Proc}{Proc}} \& {\bfseries operator=} (\mbox{\hyperlink{classCore_1_1Proc}{Proc}} \&\&rhs) noexcept=default
+\item 
+\mbox{\Hypertarget{classCore_1_1Proc_a022788abfc9f08de502f6ca710ca4751}\label{classCore_1_1Proc_a022788abfc9f08de502f6ca710ca4751}} 
+void {\bfseries set\+\_\+bytecode} (std\+::vector$<$ std\+::uint32\+\_\+t $>$ \&\&new\+\_\+bytecode)
+\item 
+\mbox{\Hypertarget{classCore_1_1Proc_a3537381e3662aa81511f42c795916943}\label{classCore_1_1Proc_a3537381e3662aa81511f42c795916943}} 
+std\+::uint32\+\_\+t $\ast$ {\bfseries get\+\_\+bytecode} ()
+\item 
+\mbox{\Hypertarget{classCore_1_1Proc_a194b8195bcea6acbe72ee82120658851}\label{classCore_1_1Proc_a194b8195bcea6acbe72ee82120658851}} 
+std\+::uint16\+\_\+t {\bfseries get\+\_\+bytecode\+\_\+length} ()
+\item 
+\mbox{\Hypertarget{classCore_1_1Proc_adf1fef2032b73d307b7b9d87f51671d5}\label{classCore_1_1Proc_adf1fef2032b73d307b7b9d87f51671d5}} 
+void {\bfseries reset\+\_\+bytecode} ()
+\item 
+\mbox{\Hypertarget{classCore_1_1Proc_aeca55435de0d82dbe4509400c5d2cf07}\label{classCore_1_1Proc_aeca55435de0d82dbe4509400c5d2cf07}} 
+std\+::uint16\+\_\+t {\bfseries get\+\_\+local\+\_\+varcount} ()
+\item 
+\mbox{\Hypertarget{classCore_1_1Proc_a7868ff9edcccd7401d6e3285716edf3f}\label{classCore_1_1Proc_a7868ff9edcccd7401d6e3285716edf3f}} 
+\mbox{\hyperlink{classDisassembly}{Disassembly}} {\bfseries disassemble} ()
+\item 
+\mbox{\Hypertarget{classCore_1_1Proc_a259e5efd53e6ec276f998b98bb9c636e}\label{classCore_1_1Proc_a259e5efd53e6ec276f998b98bb9c636e}} 
+void {\bfseries assemble} (\mbox{\hyperlink{classDisassembly}{Disassembly}} disasm)
+\item 
+\mbox{\Hypertarget{classCore_1_1Proc_a28715884769fd6694d0ccc1be734ed10}\label{classCore_1_1Proc_a28715884769fd6694d0ccc1be734ed10}} 
+\mbox{\hyperlink{structProfileInfo}{Profile\+Info}} $\ast$ {\bfseries profile} () const
+\item 
+\mbox{\Hypertarget{classCore_1_1Proc_a0215c89389a34e35d73fdceeb3362917}\label{classCore_1_1Proc_a0215c89389a34e35d73fdceeb3362917}} 
+void {\bfseries extended\+\_\+profile} ()
+\item 
+\mbox{\Hypertarget{classCore_1_1Proc_a2b980784e9c428d6043cf7928d3f032b}\label{classCore_1_1Proc_a2b980784e9c428d6043cf7928d3f032b}} 
+void {\bfseries hook} (Proc\+Hook hook\+\_\+func)
+\item 
+\mbox{\Hypertarget{classCore_1_1Proc_a5285de4286e2dfeb9c00f372db653f58}\label{classCore_1_1Proc_a5285de4286e2dfeb9c00f372db653f58}} 
+\mbox{\hyperlink{structValue}{Value}} {\bfseries call} (std\+::vector$<$ \mbox{\hyperlink{structValue}{Value}} $>$ arguments, \mbox{\hyperlink{structValue}{Value}} usr=Value\+::\+Null())
+\item 
+\mbox{\Hypertarget{classCore_1_1Proc_aa52e063ba176262a6d2e52096a5eb58f}\label{classCore_1_1Proc_aa52e063ba176262a6d2e52096a5eb58f}} 
+bool {\bfseries operator$<$} (const \mbox{\hyperlink{classCore_1_1Proc}{Proc}} \&rhs) const
+\item 
+\mbox{\Hypertarget{classCore_1_1Proc_af1b59eaad1d0da0f37da6f2ba63eb0ef}\label{classCore_1_1Proc_af1b59eaad1d0da0f37da6f2ba63eb0ef}} 
+bool {\bfseries operator==} (const \mbox{\hyperlink{classCore_1_1Proc}{Proc}} \&rhs) const
+\end{DoxyCompactItemize}
+\doxysubsection*{Data Fields}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classCore_1_1Proc_a95a872510fd6cc84078ea2fb410fb693}\label{classCore_1_1Proc_a95a872510fd6cc84078ea2fb410fb693}} 
+std\+::string {\bfseries raw\+\_\+path}
+\item 
+\mbox{\Hypertarget{classCore_1_1Proc_a3c3a01c8c05aecfe3c333bb0839c22a0}\label{classCore_1_1Proc_a3c3a01c8c05aecfe3c333bb0839c22a0}} 
+std\+::string {\bfseries name}
+\item 
+\mbox{\Hypertarget{classCore_1_1Proc_a643cd7f4f8707b85833467483f3d9b35}\label{classCore_1_1Proc_a643cd7f4f8707b85833467483f3d9b35}} 
+std\+::string {\bfseries simple\+\_\+name}
+\item 
+\mbox{\Hypertarget{classCore_1_1Proc_a95f9ad6fe0c78cf6bc5bd84652d94b88}\label{classCore_1_1Proc_a95f9ad6fe0c78cf6bc5bd84652d94b88}} 
+std\+::uint32\+\_\+t {\bfseries id} = 0
+\item 
+\mbox{\Hypertarget{classCore_1_1Proc_a0e74e93b094f85814063023a72571071}\label{classCore_1_1Proc_a0e74e93b094f85814063023a72571071}} 
+unsigned int {\bfseries override\+\_\+id} = 0
+\item 
+\mbox{\Hypertarget{classCore_1_1Proc_ae82be2371c1e47df1864dec4e511117b}\label{classCore_1_1Proc_ae82be2371c1e47df1864dec4e511117b}} 
+\mbox{\hyperlink{structProcArrayEntry}{Proc\+Array\+Entry}} $\ast$ {\bfseries proc\+\_\+table\+\_\+entry} = nullptr
+\item 
+\mbox{\Hypertarget{classCore_1_1Proc_aef3ad1b85c369fa5501334d4ec40089c}\label{classCore_1_1Proc_aef3ad1b85c369fa5501334d4ec40089c}} 
+\mbox{\hyperlink{structProcSetupEntry}{Proc\+Setup\+Entry}} $\ast$ {\bfseries setup\+\_\+entry\+\_\+bytecode} = nullptr
+\item 
+\mbox{\Hypertarget{classCore_1_1Proc_a7cea256a2b55a28f50980b8b4310a6ea}\label{classCore_1_1Proc_a7cea256a2b55a28f50980b8b4310a6ea}} 
+\mbox{\hyperlink{structProcSetupEntry}{Proc\+Setup\+Entry}} $\ast$ {\bfseries setup\+\_\+entry\+\_\+varcount} = nullptr
+\item 
+\mbox{\Hypertarget{classCore_1_1Proc_a54389addeb400f7f685115920506a430}\label{classCore_1_1Proc_a54389addeb400f7f685115920506a430}} 
+std\+::uint16\+\_\+t {\bfseries bytecode\+\_\+idx} = 0
+\item 
+\mbox{\Hypertarget{classCore_1_1Proc_ae1ea1eb904abccfe327a47e2341a415a}\label{classCore_1_1Proc_ae1ea1eb904abccfe327a47e2341a415a}} 
+std\+::uint16\+\_\+t {\bfseries varcount\+\_\+idx} = 0
+\item 
+\mbox{\Hypertarget{classCore_1_1Proc_ad94ae56776ae4c7ba107fe73f2a6b2e3}\label{classCore_1_1Proc_ad94ae56776ae4c7ba107fe73f2a6b2e3}} 
+std\+::uint32\+\_\+t $\ast$ {\bfseries original\+\_\+bytecode\+\_\+ptr} = nullptr
+\item 
+\mbox{\Hypertarget{classCore_1_1Proc_a4ac77031c7dac15bddfbe22cce80a537}\label{classCore_1_1Proc_a4ac77031c7dac15bddfbe22cce80a537}} 
+std\+::vector$<$ std\+::uint32\+\_\+t $>$ {\bfseries bytecode}
+\end{DoxyCompactItemize}
+\doxysubsection*{Friends}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classCore_1_1Proc_aa37f7be51a4c9de5662d54d891f5adba}\label{classCore_1_1Proc_aa37f7be51a4c9de5662d54d891f5adba}} 
+bool {\bfseries populate\+\_\+proc\+\_\+list} ()
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+
+
+Definition at line 14 of file proc\+\_\+management.\+h.
+
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+core/proc\+\_\+management.\+h\item 
+core/proc\+\_\+management.\+cpp\end{DoxyCompactItemize}
