@@ -89,6 +89,8 @@ typedef bool(*OutputPtr)(unsigned char target_type, unsigned int target_value, u
 typedef ProcSetupEntry* (*GetProcSetupEntryPtr)(unsigned int index);
 typedef trvh(*TextToPathPtr)(unsigned int path);
 typedef bool(*IsTypePtr)(trvh datum, trvh type);
+typedef trvh*( __stdcall *GetStepPtr)(trvh* result, trvh atom, unsigned int direction);
+typedef const char*(*FormatStringPtr)(const char* string, trvh* entries, unsigned int entry_count);
 
 extern CrashProcPtr CrashProc;
 extern StartTimingPtr StartTiming;
@@ -143,3 +145,5 @@ extern OutputPtr Output;
 extern GetProcSetupEntryPtr GetProcSetupEntry;
 extern TextToPathPtr TextToPath;
 extern IsTypePtr IsType;
+extern GetStepPtr GetStep;
+extern FormatStringPtr FormatString;

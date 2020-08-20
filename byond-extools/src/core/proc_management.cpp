@@ -84,7 +84,7 @@ void Core::Proc::jit() const
 	void* result = compile_one(*this);
 	if(result)
 	{
-		Core::Alert(name + " has been compiled!");
+		//Core::Alert(name + " has been compiled!");
 		jit_hooks[id] = result;
 		add_jitted_proc(id, result);
 	}
@@ -144,6 +144,16 @@ Core::Proc* Core::try_get_proc(std::string name, unsigned int override_id)
 Core::Proc& Core::get_proc(unsigned int id)
 {
 	return procs_by_id.at(id);
+}
+
+Core::Proc* Core::try_get_proc(unsigned int id)
+{
+	const auto it = std::find(procs_by_id.begin(), procs_by_id.end(), id);
+	if(it != procs_by_id.end())
+	{
+		return &*it;
+	}
+	return nullptr;
 }
 
 Core::Proc& Core::get_proc(ExecutionContext* ctx)

@@ -44,6 +44,10 @@ static std::string get_parent_type(const std::string& typepath)
 	}
 	const TType* type = GetTypeById(path.value);
 	const unsigned int parent_type = type->parentTypeIdx;
+	if(parent_type == 0xFFFF)
+	{
+		return "";
+	}
 	return Core::GetStringFromId(GetTypeById(parent_type)->path);
 }
 
@@ -61,6 +65,10 @@ static Core::Proc* find_parent_proc(const unsigned int proc_id)
 	while (proc_path.find('/') != std::string::npos)
 	{
 		proc_path = get_parent_type(proc_path);
+		if(proc_path.empty())
+		{
+			return nullptr;
+		}
 		Core::Proc* p = Core::try_get_proc(proc_path + "/" + proc_name);
 		if (p)
 		{
@@ -107,13 +115,16 @@ static void add_unjitted_proc(unsigned int proc_id)
 	const auto ret = unjitted_procs.emplace(proc_id);
 	if (ret.second)
 	{
-		const Core::Proc& proc = Core::get_proc(proc_id);
+		const auto* proc = Core::try_get_proc(proc_id);
 		//Core::Alert(proc.name);
-		proc.jit();
+		if(proc)
+		{
+			proc->jit();
+		}
 	}
 }
 
-trvh create_new_list(Value* elements, unsigned int num_elements)
+static trvh create_new_list(Value* elements, unsigned int num_elements)
 {
 	List l;
 	for (size_t i = 0; i < num_elements; i++)
@@ -122,6 +133,22 @@ trvh create_new_list(Value* elements, unsigned int num_elements)
 	}
 	IncRefCount(0x0F, l.id);
 	return l;
+}
+
+static trvh get_step_impl(trvh atom, int dir)
+{
+	trvh result;
+	GetStep(&result, atom, dir);
+	return result;
+}
+
+static trvh format_string_impl(const unsigned int string, trvh* entries, const unsigned int num_entries)
+{
+	const char* const string_data = GetStringTableEntry(string)->stringData;
+	const char* resultant_string = FormatString(string_data, entries, num_entries);
+	const Value result = Value(resultant_string);
+	IncRefCount(result.type, result.value);
+	return result;
 }
 
 static DMListIterator* create_iterator(ProcStackFrame* psf, int list_id)
@@ -384,6 +411,11 @@ public:
 				dmc.setInlineComment("list set");
 				set_list_element();
 				break;
+			case ISINLIST:
+				jit_out << "Assembling is in list" << std::endl;
+				dmc.setInlineComment("is in list");
+				is_in_list();
+				break;
 			case ITERLOAD:
 				jit_out << "Assembling iterator load" << std::endl;
 				dmc.setInlineComment("load iterator");
@@ -429,12 +461,21 @@ public:
 
 
 
+				// String operations
+			case FORMAT:
+				jit_out << "Assembling format" << std::endl;
+				format_string(instr_bytes[1], instr_bytes[2]);
+				break;
+
 				// Misc
 			case ISTYPE:
 				jit_out << "Assembling istype" << std::endl;
 				istype();
 				break;
-
+			case GET_STEP:
+				jit_out << "Assembling get step" << std::endl;
+				get_step();
+				break;
 				// Debugging stuff
 			case DBG_FILE:
 			case DBG_LINENO:
@@ -490,6 +531,20 @@ protected:
 		call->setArg(5, outputee.Value);
 	}
 
+	void format_string(unsigned int strid, unsigned int num_entries) const
+	{
+		const auto entries = alloc_arguments_from_stack(num_entries);
+		auto result = dmc.newVariable();
+		InvokeNode* call;
+		dmc.invoke(&call, (uint64_t)format_string_impl, FuncSignatureT<Type::I64, unsigned int, trvh*, unsigned int>());
+		call->setArg(0, imm(strid));
+		call->setArg(1, entries);
+		call->setArg(2, imm(num_entries));
+		call->setRet(0, result.Type);
+		call->setRet(1, result.Value);
+		dmc.pushStackRaw(result);
+	}
+
 	void get_list_element() const
 	{
 		const auto [container, key] = dmc.popStack<2>();
@@ -523,6 +578,7 @@ protected:
 
 	void create_list(const unsigned int num_elements) const
 	{
+		Core::Alert(num_elements);
 		auto args = dmc.getFuncCallArgHolder(num_elements);
 		for (size_t i = 0; i < num_elements; i++)
 		{
@@ -537,9 +593,9 @@ protected:
 		dmc.lea(args_ptr, args);
 		Variable result = dmc.newVariable();
 		InvokeNode* cl;
-		dmc.invoke(&cl, reinterpret_cast<uint32_t>(create_new_list), FuncSignatureT<asmjit::Type::I64, Value*, unsigned int>());
+		dmc.invoke(&cl, (uint64_t)create_new_list, FuncSignatureT<asmjit::Type::I64, Value*, unsigned int>());
 		cl->setArg(0, args_ptr);
-		cl->setArg(1, Imm(num_elements));
+		cl->setArg(1, imm(num_elements));
 		cl->setRet(0, result.Type);
 		cl->setRet(1, result.Value);
 		dmc.pushStackRaw(result); //Seems like pushStack needs to happen after newStack?
@@ -560,12 +616,12 @@ protected:
 			const auto key = dmc.popStack();
 			InvokeNode* set_at;
 			dmc.invoke(&set_at, (uint64_t)SetAssocElement, FuncSignatureT<void, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int>());
-			create->setArg(0, result.Type);
-			create->setArg(1, result.Value);
-			create->setArg(2, key.Value);
-			create->setArg(3, key.Value);
-			create->setArg(4, value.Value);
-			create->setArg(5, value.Value);
+			set_at->setArg(0, result.Type);
+			set_at->setArg(1, result.Value);
+			set_at->setArg(2, key.Value);
+			set_at->setArg(3, key.Value);
+			set_at->setArg(4, value.Value);
+			set_at->setArg(5, value.Value);
 		}
 		dmc.pushStackRaw(result);
 	}
@@ -610,7 +666,28 @@ protected:
 		const auto value = dmc.newUInt32("current_iter_value");
 		dmc.mov(value, x86::dword_ptr(elements, reg, shift(sizeof(Value)), offsetof(Value, value)));
 		dmc.setLocal(setvar.bytes().at(2), Variable{ type, value });
-}
+	}
+
+	void is_in_list() const
+	{
+		const auto [list, element] = dmc.popStack<2>();
+		const auto result = dmc.newUInt32();
+		InvokeNode* isinlist;
+		dmc.invoke(&isinlist, (uint64_t)IsInContainer, FuncSignatureT<bool, uint32_t, uint32_t, uint32_t, uint32_t>());
+		isinlist->setArg(0, element.Type);
+		isinlist->setArg(1, element.Value);
+		isinlist->setArg(2, list.Type);
+		isinlist->setArg(3, list.Value);
+		isinlist->setRet(0, result);
+
+
+		const auto done = dmc.newLabel();
+		dmc.test(result, result);
+		dmc.jz(done);
+		dmc.mov(result, imm(0x3F800000));
+		dmc.bind(done);
+		dmc.pushStack(imm(NUMBER), result);
+	}
 
 	void read_from_field(const Instruction& instr) const
 	{
@@ -1023,7 +1100,7 @@ protected:
 		dmc.bind(falsey);
 		if (cond == JMP_AND)
 		{
-			dmc.pushStackDirect(Variable{ imm(0).as<x86::Gp>(), imm(0).as<x86::Gp>() });
+			dmc.pushStack(imm(0), imm(0));
 			dmc.jmp(target);
 		}
 		else
@@ -1033,7 +1110,7 @@ protected:
 		dmc.bind(truthy);
 		if (cond == JMP_OR)
 		{
-			dmc.pushStackDirect(Variable{ imm(NUMBER).as<x86::Gp>(), imm(0x3F800000).as<x86::Gp>() });
+			dmc.pushStack(imm(NUMBER), imm(0x3F800000));
 			dmc.jmp(target);
 		}
 		dmc.bind(done);
@@ -1045,7 +1122,8 @@ protected:
 		if (!parent_proc)
 		{
 			Core::Alert("Failed to locate parent proc");
-			__debugbreak();
+			//__debugbreak();
+			return;
 		}
 		auto result = dmc.newVariable();
 
@@ -1233,6 +1311,25 @@ protected:
 		dmc.pushStack(imm(NUMBER), result);
 	}
 
+	void get_step() const
+	{
+		const auto [atom, dir] = dmc.popStack<2>();
+		const auto int_dir = dmc.newUInt32("integer_direction");
+		const auto conv = dmc.newXmm("direction_converter");
+		auto result = dmc.newVariable();
+		
+		dmc.movd(conv, dir.Value);
+		dmc.cvtss2si(int_dir, conv);
+		InvokeNode* call;
+		dmc.invoke(&call, (uint64_t)get_step_impl, FuncSignatureT<Type::I64, unsigned int, unsigned int, unsigned int>());
+		call->setArg(0, atom.Type);
+		call->setArg(1, atom.Value);
+		call->setArg(2, int_dir);
+		call->setRet(0, result.Type);
+		call->setRet(1, result.Value);
+		dmc.pushStackRaw(result);
+	}
+
 	void bitwise_not() const
 	{
 		const auto num = dmc.popStack();
@@ -1400,7 +1497,7 @@ public:
 	{
 		this->err = err;
 		jit_out << message << std::endl;
-		__debugbreak();
+		//__debugbreak();
 	}
 
 	asmjit::Error err = kErrorOk;
@@ -1451,7 +1548,7 @@ bool compile(const Core::Proc& proc)
 	{
 		v.label = dmc.newLabel();
 	}
-
+	jit_out << "BEGIN " << proc.name << std::endl;
 	const ProcNode* node = dmc.addProc(result.local_count, result.argument_count, result.needs_sleep);
 	const auto dmt = DMTranslator(dmc, result);
 
@@ -1462,12 +1559,18 @@ bool compile(const Core::Proc& proc)
 			if (!dmt.compile_block(v))
 			{
 				fflush(fuck);
+				dmc.endBlock();
+				dmc.endProc();
+				dmc.finalize();
 				return false;
 			}
 		}
 		catch(const char* err)
 		{
 			jit_out << err << std::endl;
+			dmc.endBlock();
+			dmc.endProc();
+			dmc.finalize();
 			return false;
 		}
 

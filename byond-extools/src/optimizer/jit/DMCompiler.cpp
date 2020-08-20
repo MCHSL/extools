@@ -78,6 +78,7 @@ ProcNode* DMCompiler::addProc(uint32_t locals_count, uint32_t args_count, bool z
 	mov(previous, x86::dword_ptr(_currentProc->_jit_context, offsetof(JitContext, stack_frame)));
 	x86::Gp stack_top = newUIntPtr("stack_top");
 	mov(stack_top, x86::dword_ptr(_currentProc->_jit_context, offsetof(JitContext, stack_top)));
+	add(stack_top, 8);
 	mov(x86::dword_ptr(_currentProc->_jit_context, offsetof(JitContext, stack_frame)), stack_top);
 	mov(_currentProc->_stack_frame, stack_top);
 	x86::Gp new_frame = getStackFramePtr();
@@ -104,6 +105,9 @@ ProcNode* DMCompiler::addProc(uint32_t locals_count, uint32_t args_count, bool z
 	setArg(2, args_ptr);
 	x86::Gp copier = newUInt32("copier");
 	//todo: have the loop read the actual arg count and not the procnode one
+	const auto no_args = newLabel();
+	test(args_ptr, args_ptr);
+	jz(no_args);
 	for (uint32_t i = 0; i < args_count; i++) // Copy args to stack frame
 	{
 		setInlineComment((std::string("mov arg ") + std::to_string(i)).c_str());
@@ -112,6 +116,7 @@ ProcNode* DMCompiler::addProc(uint32_t locals_count, uint32_t args_count, bool z
 		mov(copier, x86::dword_ptr(args_ptr, i * sizeof(Value) + offsetof(Value, value)));
 		mov(x86::dword_ptr(new_frame, sizeof(ProcStackFrame) + i * sizeof(Value) + offsetof(Value, value)), copier);
 	}
+	bind(no_args);
 
 	// Set src type and value
 	x86::Gp copy_thingy = newUInt32("src type");
@@ -287,8 +292,8 @@ Variable DMCompiler::getArg(uint32_t index)
 	auto stack_frame = getStackFramePtr();
 	auto type = newUInt32("arg type");
 	auto value = newUInt32("arg value");
-	mov(type, x86::ptr(stack_frame, sizeof(ProcStackFrame) + sizeof(Value) * index, sizeof(uint32_t)));
-	mov(value, x86::ptr(stack_frame, sizeof(ProcStackFrame) + sizeof(Value) * index + offsetof(Value, value), sizeof(uint32_t)));
+	mov(type, x86::dword_ptr(stack_frame, sizeof(ProcStackFrame) + sizeof(Value) * index));
+	mov(value, x86::dword_ptr(stack_frame, sizeof(ProcStackFrame) + sizeof(Value) * index + offsetof(Value, value)));
 
 	return { type, value };
 }
@@ -607,13 +612,15 @@ void DMCompiler::doReturn(bool immediate)
 	del_iter->setArg(0, iterator);
 
 	xor_(iterator, iterator);
-
+	
 	// The only thing our proc should leave on the stack is the return value
 	auto retval = popStack();
 	
 	setInlineComment("doReturn");
 
 	x86::Gp frame = getStackFramePtr();
+
+	mov(x86::dword_ptr(proc._jit_context, offsetof(JitContext, stack_top)), frame);
 
 	x86::Gp stack_top = newUInt32("stack_top");
 	mov(stack_top, x86::dword_ptr(_currentProc->_jit_context, offsetof(JitContext, stack_top)));
@@ -622,15 +629,12 @@ void DMCompiler::doReturn(bool immediate)
 	x86::Gp prev_stack_frame = newUIntPtr("prev_stack_frame");
 	mov(prev_stack_frame, x86::ptr(frame, offsetof(ProcStackFrame, previous), sizeof(uint32_t)));
 	mov(x86::dword_ptr(proc._jit_context, offsetof(JitContext, stack_frame)), prev_stack_frame);
-
-	sub(stack_top, _currentProc->_locals_count * sizeof(Value) + _currentProc->_args_count * sizeof(Value) + sizeof(ProcStackFrame));
 		
 	// Move return value to stack
 	mov(x86::ptr(stack_top, offsetof(Value, type), sizeof(uint32_t)), retval.Type.as<x86::Gp>());
 	mov(x86::ptr(stack_top, offsetof(Value, value), sizeof(uint32_t)), retval.Value.as<x86::Gp>());
+	add(x86::dword_ptr(proc._jit_context, offsetof(JitContext, stack_top)), sizeof(Value));
 
-	add(stack_top, sizeof(Value));
-	mov(x86::dword_ptr(proc._jit_context, offsetof(JitContext, stack_top)), stack_top);
 	
 	// return Procresult::Success
 	_return(ProcResult::Success);
@@ -646,6 +650,8 @@ void DMCompiler::_return(ProcResult code)
 void DMCompiler::doYield()
 {
 	pushStackRaw(getDot());
+	jit_out << "pop" << std::endl;
+	stack_size--;
 	prepareNextContinuationIndex();
 	commitStack();
 	commitLocals();
@@ -656,6 +662,8 @@ void DMCompiler::doYield()
 void DMCompiler::doSleep()
 {
 	pushStackRaw(getDot());
+	jit_out << "pop" << std::endl;
+	stack_size--;
 	prepareNextContinuationIndex();
 	commitStack();
 	commitLocals();

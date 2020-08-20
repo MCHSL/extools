@@ -98,9 +98,15 @@ public:
 	void setFlag();
 	void unsetFlag();
 
+	unsigned int stack_size = 0;
+
 	template<std::size_t PopCount>
 	std::array<Variable, PopCount> popStack()
 	{
+		for(int i=0; i<PopCount; i++)
+		{
+			jit_out << "pop" << std::endl;
+		}
 		if (PopCount > stack_size)
 		{
 			Core::Alert("Trying to pop too many values from the stack!");
@@ -123,7 +129,6 @@ public:
 
 		stack_size -= PopCount;
 		sub(x86::dword_ptr(_currentProc->_jit_context, offsetof(JitContext, stack_top)), PopCount * sizeof(Value));
-		
 
 		return res;
 	}
@@ -131,6 +136,7 @@ public:
 	template<std::size_t _> // This is stupid but is necessary to be able to compile. Otherwise we get an error saying ProcNode is not defined.
 	void pushStack(Variable& var)
 	{
+		jit_out << "push" << std::endl;
 		const auto stack_top = newUInt32("stack_top");
 		mov(stack_top, x86::dword_ptr(_currentProc->_jit_context, offsetof(JitContext, stack_top)));
 		add(x86::dword_ptr(_currentProc->_jit_context, offsetof(JitContext, stack_top)), sizeof(Value));
@@ -139,7 +145,8 @@ public:
 		mov(x86::dword_ptr(stack_top, offsetof(Value, value)), var.Value);
 
 		//TODO: calculate this at the end
-		max_stack_size = std::max(++stack_size, max_stack_size);
+		stack_size++;
+		max_stack_size = std::max(stack_size, max_stack_size);
 		_currentProc->_reserve_stack_call->setArg(1, imm(max_stack_size + _currentProc->_args_count + _currentProc->_locals_count + sizeof(ProcStackFrame) / sizeof(Value)));
 
 		var.Type = x86::dword_ptr(stack_top, offsetof(Value, type)).as<x86::Gp>();
@@ -203,7 +210,6 @@ private:
 	BlockNode* _currentBlock;
 	x86::Mem _funcCallArgHolder;
 
-	unsigned int stack_size = 0;
 	unsigned int max_stack_size = 0;
 
 	void _return(ProcResult code);

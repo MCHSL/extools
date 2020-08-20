@@ -52,3 +52,5 @@ OutputPtr Output;
 GetProcSetupEntryPtr GetProcSetupEntry;
 TextToPathPtr TextToPath;
 IsTypePtr IsType;
+GetStepPtr GetStep;
+FormatStringPtr FormatString;
