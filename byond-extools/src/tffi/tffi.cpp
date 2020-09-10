@@ -48,8 +48,6 @@ void ffi_thread(byond_ffi_func* proc, int promise_id, int n_args, std::vector<st
 		a.push_back(args[i].c_str());
 	}
 	const char* res = proc(n_args, a.data());
-	SetVariable( DataType::DATUM, promise_id, result_string_id, { DataType::STRING, (int)Core::GetStringId(res) });
-	SetVariable( DataType::DATUM, promise_id, completed_string_id, { DataType::NUMBER, 1 });
 	float internal_id = GetVariable( DataType::DATUM, promise_id , internal_id_string_id).valuef;
 	std::unique_lock<std::mutex> lk(unsuspend_ready_mutex);
 	unsuspend_ready_cv.wait(lk, [internal_id] { return suspended_procs.find(internal_id) != suspended_procs.end();  });
@@ -66,6 +64,8 @@ inline void do_it(byond_ffi_func* proc, std::string promise_datum_ref, int n_arg
 	{
 		a.push_back(args[i]);
 	}
+	SetVariable( DataType::DATUM, promise_id, result_string_id, { DataType::STRING, (int)Core::GetStringId(res) });
+	SetVariable( DataType::DATUM, promise_id, completed_string_id, { DataType::NUMBER, 1 });
 	std::thread t(ffi_thread, proc, promise_id, n_args - 3, a);
 	t.detach();
 }
