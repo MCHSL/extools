@@ -279,8 +279,8 @@ struct ProcArrayEntry
 	int procCategory;
 	int procFlags;
 	int unknown1;
-	unsigned short bytecode_idx; // ProcSetupEntry index
-	unsigned short local_var_count_idx; // ProcSetupEntry index
+	int bytecode_idx; // ProcSetupEntry index
+	int local_var_count_idx; // ProcSetupEntry index
 	int unknown2;
 };
 
