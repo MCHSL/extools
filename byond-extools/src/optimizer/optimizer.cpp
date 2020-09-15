@@ -126,7 +126,7 @@ void optimize_inline(Core::Proc& recipient, Disassembly& recipient_code)
 			}
 			optimize_proc(donor);
 			Disassembly d = donor.disassemble();
-			inline_into(recipient_code, d, i, recipient.get_local_varcount());
+			inline_into(recipient_code, d, i, recipient.get_local_count());
 			i = 0;
 		}
 	}

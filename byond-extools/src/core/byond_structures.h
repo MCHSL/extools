@@ -303,7 +303,7 @@ struct ProcArrayEntry
 	int unknown1;
 	int bytecode_idx; // ProcSetupEntry index
 	int local_var_count_idx; // ProcSetupEntry index
-	int unknown2;
+	int params_idx;
 };
 
 struct SuspendedProc
@@ -366,15 +366,48 @@ struct ExecutionContext
 	char unknown8[51];
 };
 
-struct ProcSetupEntry
+struct BytecodeEntry
+{
+	std::uint16_t bytecode_length;
+	std::uint32_t* bytecode;
+	std::uint32_t unknown;
+};
+
+struct LocalVarsEntry
+{
+	std::uint16_t count;
+	std::uint32_t* var_name_indices;
+	std::uint32_t unknown;
+};
+
+struct ParamsData
+{
+	uint32_t unk_0;
+	uint32_t unk_1;
+	uint32_t name_index;
+	uint32_t unk_2;
+};
+
+struct ParamsEntry
+{
+	std::uint16_t params_count_mul_4;
+	ParamsData* params;
+	std::uint32_t unknown;
+
+	std::uint32_t count()
+	{
+		return params_count_mul_4 / 4;
+	}
+};
+
+struct MiscEntry
 {
 	union
 	{
-		std::uint16_t local_var_count;
-		std::uint16_t bytecode_length;
+		ParamsEntry parameters;
+		LocalVarsEntry local_vars;
+		BytecodeEntry bytecode;
 	};
-	std::uint32_t* bytecode;
-	std::int32_t unknown;
 };
 
 struct ProfileEntry

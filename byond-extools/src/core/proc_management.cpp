@@ -25,18 +25,18 @@ void Core::Proc::set_bytecode(std::vector<std::uint32_t>&& new_bytecode)
 {
 	if (!original_bytecode_ptr)
 	{
-		original_bytecode_ptr = setup_entry_bytecode->bytecode;
+		original_bytecode_ptr = bytecode_entry->bytecode;
 	}
 
 	bytecode = std::move(new_bytecode);
-	setup_entry_bytecode->bytecode = bytecode.data();
+	bytecode_entry->bytecode = bytecode.data();
 }
 
 void Core::Proc::reset_bytecode()
 {
 	if (original_bytecode_ptr)
 	{
-		setup_entry_bytecode->bytecode = original_bytecode_ptr;
+		bytecode_entry->bytecode = original_bytecode_ptr;
 		original_bytecode_ptr = nullptr;
 		bytecode.clear();
 	}
@@ -44,20 +44,38 @@ void Core::Proc::reset_bytecode()
 
 std::uint32_t* Core::Proc::get_bytecode()
 {
-	return setup_entry_bytecode->bytecode;
+	return bytecode_entry->bytecode;
 }
 
 std::uint16_t Core::Proc::get_bytecode_length()
 {
-	return setup_entry_bytecode->bytecode_length;
+	return bytecode_entry->bytecode_length;
 }
 
-std::uint16_t Core::Proc::get_local_varcount() //TODO: this is broken
+std::uint32_t Core::Proc::get_local_count()
 {
-	//Core::Alert(std::to_string(setup_entry_varcount->local_var_count));
-	//Core::Alert(std::to_string((int)proc_setup_table[varcount_idx]));
-	//Core::Alert(std::to_string(setup_entry_bytecode->local_var_count));
-	return setup_entry_varcount->local_var_count;
+	return locals_entry->count;
+}
+
+std::string Core::Proc::get_local_name(std::uint32_t index)
+{
+	if (index >= locals_entry->count)
+		return nullptr;
+
+	return GetStringFromId(name_table[locals_entry->var_name_indices[index]]);
+}
+
+std::uint32_t Core::Proc::get_param_count()
+{
+	return params_entry->count();
+}
+
+std::string Core::Proc::get_param_name(std::uint32_t index)
+{
+	if (index >= params_entry->count())
+		return nullptr;
+
+	return GetStringFromId(name_table[params_entry->params[index].name_index]);
 }
 
 ProfileInfo* Core::Proc::profile() const
@@ -96,7 +114,7 @@ void Core::Proc::assemble(Disassembly disasm)
 	std::vector<std::uint32_t> bc = disasm.assemble();
 	auto size = bc.size();
 	set_bytecode(std::move(bc));
-	setup_entry_bytecode->bytecode_length = size;
+	bytecode_entry->bytecode_length = size;
 	//proc_table_entry->local_var_count_idx = Core::get_proc("/proc/twelve_locals").proc_table_entry->local_var_count_idx;
 }
 
@@ -157,8 +175,9 @@ bool Core::populate_proc_list()
 		strip_proc_path(p.name);
 		p.simple_name = p.name.substr(p.name.rfind("/") + 1);
 		p.proc_table_entry = entry;
-		p.setup_entry_bytecode = proc_setup_table[entry->bytecode_idx];
-		p.setup_entry_varcount = proc_setup_table[entry->local_var_count_idx];
+		p.bytecode_entry = &misc_entry_table[entry->bytecode_idx]->bytecode;
+		p.locals_entry = &misc_entry_table[entry->local_var_count_idx]->local_vars;
+		p.params_entry = &misc_entry_table[entry->params_idx]->parameters;
 		p.bytecode_idx = entry->bytecode_idx;
 		p.varcount_idx = entry->local_var_count_idx;
 		auto& procs_by_name_entry = procs_by_name[p.name];

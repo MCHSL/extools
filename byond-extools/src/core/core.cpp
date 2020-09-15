@@ -9,7 +9,7 @@
 
 ExecutionContext** Core::current_execution_context_ptr;
 ExecutionContext** Core::parent_context_ptr_hack;
-ProcSetupEntry** Core::proc_setup_table;
+MiscEntry** Core::misc_entry_table;
 
 RawDatum*** Core::datum_pointer_table;
 unsigned int* Core::datum_pointer_table_length;
