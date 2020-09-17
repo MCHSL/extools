@@ -150,6 +150,7 @@ enum Bytecode
 	COS = 0xC3,
 
 	CRASH = 0xC7,
+	NEW_ASSOC_LIST = 0xC8,
 
 	CALL_GLOBAL_ARGLIST = 0xCD,
 
@@ -269,6 +270,7 @@ const std::unordered_map<Bytecode, std::string> mnemonics = {
 	{JZ, "JZ"},
 	{RET, "RET"},
 	{NEWLIST, "NEWLIST"},
+	{NEW_ASSOC_LIST, "NEW_ASSOC_LIST"},
 	{SLEEP, "SLEEP"},
 	{SPAWN, "SPAWN"},
 	{CALL, "CALL"},
