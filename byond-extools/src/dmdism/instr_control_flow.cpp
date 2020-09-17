@@ -12,35 +12,21 @@
 void Instr_CALL::Disassemble(Context* context, Disassembler* dism)
 {
 	comment_ = "";
-	if (dism->disassemble_var(*this))
+	if (!dism->disassemble_var(*this))
 	{
-		return;
+		add_comment("CACHE.");
 	}
-
-	std::uint32_t procid = context->eat(this);
-	std::string name = byond_tostring(procid);
-	std::replace(name.begin(), name.end(), ' ', '_');
-	comment_ += name;
-	std::uint32_t num_args = context->eat(this);
-
-	dism->add_call_args(*this, num_args);
+	dism->disassemble_proc(*this);
 }
 
 void Instr_CALLNR::Disassemble(Context* context, Disassembler* dism)
 {
 	comment_ = "";
-	if (dism->disassemble_var(*this))
+	if (!dism->disassemble_var(*this))
 	{
-		return;
+		add_comment("CACHE.");
 	}
-
-	std::uint32_t procid = context->eat(this);
-	std::string name = byond_tostring(procid);
-	std::replace(name.begin(), name.end(), ' ', '_');
-	comment_ += name;
-	std::uint32_t num_args = context->eat(this);
-
-	dism->add_call_args(*this, num_args);
+	dism->disassemble_proc(*this);
 }
 
 void Instr_CALLGLOB::Disassemble(Context* context, Disassembler* dism)

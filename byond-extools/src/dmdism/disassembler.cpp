@@ -54,26 +54,6 @@ Instruction Disassembler::disassemble_next()
 	return *instr;
 }
 
-bool Disassembler::disassemble_var_alt(Instruction& instr)
-{
-	std::uint32_t accessor = context_->eat(&instr);
-	switch (accessor)
-	{
-	case LOCAL:
-	case GLOBAL:
-	case ARG:
-	{
-		std::uint32_t id = context_->eat(&instr);
-		std::string modifier_name = modifier_names.at(static_cast<AccessModifier>(accessor));
-
-		instr.opcode().add_info(" " + modifier_name + std::to_string(id));
-		instr.add_comment(modifier_name + std::to_string(id));
-		break;
-	}
-	}
-	return false;
-}
-
 bool Disassembler::disassemble_var(Instruction& instr)
 {
 	switch (context_->peek())
@@ -82,29 +62,14 @@ bool Disassembler::disassemble_var(Instruction& instr)
 	{
 		std::uint32_t val = context_->eat(&instr);
 		instr.opcode().add_info(" SUBVAR");
-		if (disassemble_var(instr))
+		if (!disassemble_var(instr))
 		{
 			return true;
 		}
-
-		val = context_->eat(&instr);
-		if (val == SUBVAR)
+		instr.add_comment(".");
+		if (!disassemble_var(instr))
 		{
-			if (disassemble_var(instr))
-			{
-				return true;
-			}
-		}
-		else if (val == PROC_)
-		{
-			instr.add_comment("." + Core::get_proc(context_->eat(&instr)).simple_name);
-			add_call_args(instr, context_->eat(&instr));
 			return true;
-		}
-		else
-		{
-			instr.opcode().add_info(" " + std::to_string(val));
-			instr.add_comment("." + byond_tostring(val));
 		}
 
 		break;
@@ -155,33 +120,47 @@ bool Disassembler::disassemble_var(Instruction& instr)
 		context_->eat(&instr);
 		instr.add_comment("ARGS");
 		break;
-	case PROC_NO_RET: //WAKE ME UP INSIDE
+	case PROC_NO_RET:
 	case PROC_:
-	{
-		context_->eat(&instr);
-		instr.add_comment("CACHE." + Core::get_proc(context_->eat(&instr)).simple_name);
-		add_call_args(instr, context_->eat(&instr));
-		return true;
-	}
-	case SRC_PROC: //CAN'T WAKE UP
+	case SRC_PROC:
 	case SRC_PROC_SPEC:
-	{
-		context_->eat(&instr);
-		/*std::uint32_t val = context_->eat();
-		//Core::Alert(std::to_string(val));
-		std::string name = GetStringTableEntry(val)->stringData;
-		std::replace(name.begin(), name.end(), ' ', '_');*/
-		instr.add_comment("CACHE.");
-		break;
-	}
+		return false;
 	default:
 	{
 		std::uint32_t val = context_->eat(&instr);
-		instr.add_comment("CACHE."+byond_tostring(val));
+		instr.add_comment(byond_tostring(val));
 		break;
 	}
 	}
-	return false;
+	return true;
+}
+
+bool Disassembler::disassemble_proc(Instruction& instr)
+{
+	switch (context_->peek())
+	{
+		case PROC_NO_RET:
+		case PROC_:
+		{
+			context_->eat(&instr);
+			instr.add_comment(Core::get_proc(context_->eat(&instr)).simple_name);
+			add_call_args(instr, context_->eat(&instr));
+			return true;
+		}
+		case SRC_PROC:
+		case SRC_PROC_SPEC:
+		{
+			context_->eat(&instr);
+			std::string name = byond_tostring(context_->eat(&instr));
+			std::replace(name.begin(), name.end(), ' ', '_');
+			instr.add_comment(name);
+			add_call_args(instr, context_->eat(&instr));
+			return true;
+		}
+		default:
+			instr.add_comment("<!>");
+			return false;
+	}
 }
 
 void Disassembler::add_call_args(Instruction& instr, unsigned int num_args)
