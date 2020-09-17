@@ -186,16 +186,5 @@ bool Disassembler::disassemble_var(Instruction& instr)
 
 void Disassembler::add_call_args(Instruction& instr, unsigned int num_args)
 {
-	num_args = std::min((int)num_args, 16);
-	instr.add_comment("(");
-	for (unsigned int i = 0; i < num_args; i++)
-	{
-		instr.add_comment("STACK" + std::to_string(i) + ", ");
-	}
-
-	if (num_args) {
-		instr.set_comment(instr.comment().substr(0, instr.comment().size() - 2));
-	}
-
-	instr.add_comment(")");
+	instr.add_comment(" [num_args: " + std::to_string(num_args) + "]");
 }
