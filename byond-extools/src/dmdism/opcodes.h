@@ -122,6 +122,9 @@ enum Bytecode
 	GET_STEP = 0x90,
 
 	LOCATE_TYPE = 0x97,
+	SHELL = 0x98,
+
+	FILE2TEXT = 0x9A,
 
 	ISNULL = 0x9E,
 	ISNUM = 0x9F,
@@ -141,6 +144,7 @@ enum Bytecode
 	JMP_OR = 0xB2,
 	JMP_AND = 0xB3,
 
+	FDEL = 0xB4,
 	CALLNAME = 0xB5,
 
 	PROMPTCHECK = 0xBA,
@@ -180,6 +184,7 @@ enum Bytecode
 	MATRIX_NEW = 0x12A,
 	REPLACETEXT = 0x130,
 	REPLACETEXTEX = 0x131,
+	SPLITTEXT = 0x136,
 	JSON_ENCODE = 0x138,
 	JSON_DECODE = 0x139,
 	REGEX_NEW = 0x13A,
@@ -345,6 +350,7 @@ const std::unordered_map<Bytecode, std::string> mnemonics = {
 	{MATRIX_NEW, "MATRIX_NEW"},
 	{REPLACETEXT, "REPLACETEXT"},
 	{REPLACETEXTEX, "REPLACETEXTEX"},
+	{SPLITTEXT, "SPLITTEXT"},
 	{JSON_ENCODE, "JSON_ENCODE"},
 	{JSON_DECODE, "JSON_DECODE"},
 	{REGEX_NEW, "REGEX_NEW"},
@@ -354,6 +360,7 @@ const std::unordered_map<Bytecode, std::string> mnemonics = {
 	{ISNUM, "ISNUM" },
 	{JMP_OR, "JMP_OR" },
 	{JMP_AND, "JMP_AND"},
+	{FDEL, "FDEL"},
 	{PROB, "PROB"},
 	{RAND, "RAND"},
 	{RAND_RANGE, "RAND_RANGE"},
@@ -369,6 +376,8 @@ const std::unordered_map<Bytecode, std::string> mnemonics = {
 	{MIN_LIST, "MIN_LIST"},
 	{MAX_LIST, "MAX_LIST"},
 	{LOCATE_TYPE, "LOCATE_TYPE"},
+	{SHELL, "SHELL"},
+	{FILE2TEXT, "FILE2TEXT"},
 	{BINARY_AND, "BINARY_AND"},
 	{BINARY_OR, "BINARY_OR"},
 	{BINARY_XOR, "BINARY_XOR"},
