@@ -3,14 +3,12 @@
 #include <unordered_map>
 #include "../core/byond_constants.h"
 
-enum class Bytecode : uint32_t
-{
-    UNK = 0xFFFFFFFF,
-#define I(NUMBER, NAME, DIS) \
-    NAME = NUMBER,
-#include "opcodes_table.inl"
-#undef I
-};
+// Opaque declaration and additional constants for the most important values,
+// to save on recompiling lots of .cpp files every time the table is modified.
+enum class Bytecode : uint32_t;
+const Bytecode BYTECODE_END = (Bytecode) 0x0;
+const Bytecode BYTECODE_RET = (Bytecode) 0x12;
+const Bytecode BYTECODE_UNK = (Bytecode) 0xFFFFFFFF;
 
 enum class AccessModifier : std::uint32_t
 {

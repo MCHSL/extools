@@ -1,4 +1,5 @@
 #include "opcodes.h"
+#include "opcodes_enum.h"
 #include "instruction.h"
 #include "disassembler.h"
 #include "context.h"

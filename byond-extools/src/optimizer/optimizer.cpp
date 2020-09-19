@@ -1,6 +1,7 @@
 #define NOMINMAX
 #include "optimizer.h"
 #include "../dmdism/disassembly.h"
+#include "../dmdism/opcodes_enum.h"
 #include <fstream>
 #include <algorithm>
 

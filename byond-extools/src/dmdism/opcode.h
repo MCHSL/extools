@@ -6,7 +6,7 @@
 class Opcode
 {
 public:
-	Opcode() : Opcode(Bytecode::UNK) {}
+	Opcode() : Opcode(BYTECODE_UNK) {}
 	Opcode(Bytecode opcode) : opcode_(opcode) {}
 
 	Bytecode opcode() const { return opcode_; }

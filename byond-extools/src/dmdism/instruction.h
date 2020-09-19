@@ -13,7 +13,7 @@ class Disassembler;
 class Instruction
 {
 public:
-	Instruction() : Instruction(Bytecode::UNK) {}
+	Instruction() : Instruction(BYTECODE_UNK) {}
 	Instruction(Bytecode op);
 	Instruction(unsigned int unknown_op);
 
