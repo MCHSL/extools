@@ -93,3 +93,20 @@ void dis_custom_switch(Instruction* instruction, Context* context, Disassembler*
 	instruction->add_jump(default_jump);
 	instruction->add_comment(std::to_string(default_jump));
 }
+
+void dis_custom_pick_switch(Instruction* instruction, Context* context, Disassembler* dism)
+{
+	std::uint32_t case_count = context->eat(instruction);
+	instruction->add_comment(std::to_string(case_count) + " cases, default jump to ");
+	instruction->add_info("Cases");
+	for (int i = 0; i < case_count; i++)
+	{
+		std::uint32_t threshold = context->take();
+		std::uint32_t jmp = context->take();
+		instruction->add_jump(jmp);
+		instruction->add_info("if <= " + std::to_string(threshold) + " -> " + std::to_string(jmp));
+	}
+	std::uint16_t default_jump = context->take();
+	instruction->add_jump(default_jump);
+	instruction->add_comment(std::to_string(default_jump));
+}

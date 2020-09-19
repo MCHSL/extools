@@ -11,3 +11,4 @@ void dis_custom_dbg_file(Instruction* instruction, Context* context, Disassemble
 void dis_custom_dbg_lineno(Instruction* instruction, Context* context, Disassembler* dism);
 void dis_custom_isinlist(Instruction* instruction, Context* context, Disassembler* dism);
 void dis_custom_call_global_arglist(Instruction* instruction, Context* context, Disassembler* dism);
+void dis_custom_pick_switch(Instruction* instruction, Context* context, Disassembler* dism);
