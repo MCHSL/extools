@@ -28,6 +28,7 @@ enum class AccessModifier : std::uint32_t
 
 	WORLD = 0xFFE5,
 	NULL_ = 0xFFE6,
+	INITIAL = 0xFFE7,
 };
 
 const std::unordered_map<AccessModifier, std::string> modifier_names = {

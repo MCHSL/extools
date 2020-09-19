@@ -88,6 +88,15 @@ bool Disassembler::disassemble_var(Instruction& instr)
 		instr.add_comment(modifier_name + std::to_string(localno));
 		break;
 	}
+	case AccessModifier::INITIAL:
+	{
+		context_->eat(&instr);
+		instr.add_comment("INITIAL(");
+		std::uint32_t val = context_->eat(&instr);
+		instr.add_comment(byond_tostring(val));
+		instr.add_comment(")");
+		break;
+	}
 	case AccessModifier::CACHE:
 	{
 		context_->eat(&instr);
