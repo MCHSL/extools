@@ -25,8 +25,13 @@ public:
 	bool disassemble_proc(Instruction& instr);
 	void add_call_args(Instruction& instr, unsigned int num_args);
 
+	void debug_file(std::string file) { last_file = file; }
+	void debug_line(uint32_t line) { last_line = line; }
+
 private:
 	std::unique_ptr<Context> context_;
+	std::string last_file;
+	uint32_t last_line = 0;
 
 	Instruction disassemble_next();
 };
