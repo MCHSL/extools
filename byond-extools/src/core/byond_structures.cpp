@@ -128,6 +128,16 @@ ManagedValue Value::invoke(std::string name, std::vector<Value> args, Value usr)
 	return CallProcByName(usr.type, usr.value, 2, Core::GetStringId(name), type, value, args.data(), args.size(), 0, 0);
 }
 
+ManagedValue Value::invoke_by_id(int id, std::vector<Value> args, Value usr)
+{
+	std::vector<ManagedValue> margs;
+	for (Value& v : args)
+	{
+		margs.emplace_back(v);
+	}
+	return CallProcByName(usr.type, usr.value, 2, id, type, value, margs.data(), margs.size(), 0, 0);
+}
+
 Value& Value::operator+=(const Value& rhs)
 {
 	if (type == DataType::NUMBER && rhs.type == DataType::NUMBER)
@@ -319,7 +329,29 @@ ManagedValue::ManagedValue(ManagedValue&& other) noexcept
 {
 	type = other.type;
 	value = other.value;
+	//IncRefCount(type, value);
+	other.type = DataType::NULL_D;
+	other.value = 0;
+}
+
+ManagedValue& ManagedValue::operator =(const ManagedValue& other)
+{
+	if (&other == this) return *this;
+	DecRefCount(type, value);
+	type = other.type;
+	value = other.value;
 	IncRefCount(type, value);
+	return *this;
+}
+
+ManagedValue& ManagedValue::operator =(ManagedValue&& other) noexcept
+{
+	if (&other == this) return *this;
+	type = other.type;
+	value = other.value;
+	other.type = DataType::NULL_D;
+	other.value = 0;
+	return *this;
 }
 
 ManagedValue::~ManagedValue()

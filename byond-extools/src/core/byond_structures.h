@@ -9,8 +9,10 @@
 
 #ifdef _WIN32
 #define REGPARM3
+#define REGPARM2
 #else
 #define REGPARM3 __attribute__((regparm(3)))
+#define REGPARM2 __attribute__((regparm(2)))
 #endif
 #define FLAG_PROFILE 0x10000
 
@@ -128,6 +130,7 @@ struct Value
 	ManagedValue get_safe(std::string name);
 	ManagedValue get_by_id(int id);
 	ManagedValue invoke(std::string name, std::vector<Value> args, Value usr = Value::Null());
+	ManagedValue invoke_by_id(int id, std::vector<Value> args, Value usr = Value::Null());
 	std::unordered_map<std::string, Value> get_all_vars();
 	bool has_var(std::string name);
 	void set(std::string name, Value value);
@@ -143,6 +146,8 @@ struct ManagedValue : Value
 	ManagedValue(std::string s);
 	ManagedValue(const ManagedValue& other);
 	ManagedValue(ManagedValue&& other) noexcept;
+	ManagedValue& operator =(const ManagedValue& other);
+	ManagedValue& operator =(ManagedValue&& other) noexcept;
 	~ManagedValue();
 };
 
@@ -182,6 +187,23 @@ struct RawList
 		return map_part != nullptr;
 	}
 
+};
+
+struct DatumVarEntry
+{
+	int fuck;
+	unsigned int id;
+	Value value;
+};
+
+struct RawDatum
+{
+	int type_id;
+	DatumVarEntry *vars;
+	short len_vars; // maybe
+	short fuck;
+	int cunt;
+	int refcount;
 };
 
 struct Container;
