@@ -74,6 +74,7 @@ public:
 	std::optional<Breakpoint> breakpoint_to_restore = {};
 
 	std::unordered_map<int, std::unordered_map<int, Breakpoint>> breakpoints;
+	std::unordered_map<unsigned int, std::unordered_multimap<unsigned int, unsigned int>> data_breakpoints_read;
 
 	void set_breakpoint(int proc_id, int offset, bool singleshot=false);
 	std::optional<Breakpoint> get_breakpoint(int proc_id, int offset);
@@ -92,6 +93,7 @@ public:
 	void on_breakpoint(ExecutionContext* ctx);
 	void on_step(ExecutionContext* ctx);
 	void on_break(ExecutionContext* ctx);
+	void on_data_breakpoint(ExecutionContext* ctx, unsigned int type, unsigned int value, std::string var_name);
 
 	void send_simple(std::string message_type);
 	void send(std::string message_type, nlohmann::json content);

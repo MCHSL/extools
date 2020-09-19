@@ -105,11 +105,12 @@ ManagedValue Value::invoke(std::string name, std::vector<Value> args, Value usr)
 {
 	std::replace(name.begin(), name.end(), '_', ' ');
 	std::vector<ManagedValue> margs;
-	for (Value& v : args)
+	for (Value v : args)
 	{
 		margs.emplace_back(v);
+		IncRefCount(v.type, v.value);
 	}
-	return CallProcByName(usr.type, usr.value, 2, Core::GetStringId(name), type, value, margs.data(), margs.size(), 0, 0);
+	return CallProcByName(usr.type, usr.value, 2, Core::GetStringId(name), type, value, args.data(), args.size(), 0, 0);
 }
 
 ManagedValue Value::invoke_by_id(int id, std::vector<Value> args, Value usr)
@@ -196,7 +197,7 @@ void List::append(Value val)
 
 List::List()
 {
-	id = CreateList(8);
+	id = CreateList(0);
 	list = GetListPointerById(id);
 	IncRefCount(0x0F, id);
 }
@@ -220,6 +221,13 @@ List::List(Value v)
 List::~List()
 {
 	DecRefCount(0x0F, id);
+}
+
+Container::Container()
+{
+	type = DataType::LIST;
+	id = CreateList(0);
+	IncRefCount(0x0F, id);
 }
 
 Container::Container(DataType type, int id) : type(type), id(id)
@@ -269,25 +277,29 @@ std::string BSocket::addr()
 
 ManagedValue::ManagedValue(Value val)
 {
-	//Core::Alert("Incrememnting");
 	type = val.type;
 	value = val.value;
 	IncRefCount(type, value);
 }
 
-ManagedValue::ManagedValue(DataType type, int value) : Value(type, value)
+ManagedValue::ManagedValue(DataType type, int value)
 {
+	type = type;
+	value = value;
 	IncRefCount(type, value);
 }
 
-ManagedValue::ManagedValue(trvh trvh) : Value(trvh)
+ManagedValue::ManagedValue(trvh trvh)
 {
-	//Core::Alert("trvh inc");
+	type = trvh.type;
+	value = trvh.value;
 	IncRefCount(type, value);
 }
 
-ManagedValue::ManagedValue(std::string s) : Value(s)
+ManagedValue::ManagedValue(std::string s)
 {
+	type = DataType::STRING;
+	value = Core::GetStringId(s);
 	IncRefCount(type, value);
 }
 
@@ -298,8 +310,14 @@ ManagedValue::ManagedValue(const ManagedValue& other)
 	IncRefCount(type, value);
 }
 
+ManagedValue::ManagedValue(ManagedValue&& other) noexcept
+{
+	type = other.type;
+	value = other.value;
+	IncRefCount(type, value);
+}
+
 ManagedValue::~ManagedValue()
 {
-	//Core::Alert("decrementing");
 	DecRefCount(type, value);
 }

@@ -1,10 +1,10 @@
 #include "core.h"
 #include "../dmdism/disassembly.h"
 #include "../debug_server/debug_server.h"
-#include "../proxy/proxy_object.h"
 #include "../optimizer/optimizer.h"
 #include "../crash_guard/crash_guard.h"
 #include "../extended_profiling/normal_profiling.h"
+#include "../extended_profiling/memory_profiling.h"
 
 #include <fstream>
 
@@ -115,7 +115,7 @@ trvh toggle_verb_hidden(unsigned int argcount, Value* args, Value src)
 
 trvh test_invoke(unsigned int argcount, Value* args, Value src)
 {
-	return src.invoke("print_ckey", { 1, 2, "three" });
+	return Value(DataType::STRING, args[0]);
 }
 
 void init_testing()
@@ -124,13 +124,13 @@ void init_testing()
 	//Value b = a + 5.0f;
 	//b += 1.0f;
 	//Core::Alert(std::to_string(b));
-	//Core::get_proc("/client/verb/test_invoke").hook(test_invoke);
 	//ManagedValue a = Value::World().get("name");
+	//dump_full_obj_mem_usage();
 	//Core::Alert("end func");
 	//Core::global_direct_set("internal_tick_usage", "AYYLMAO");
 	//Core::Alert(Core::global_direct_get("internal_tick_usage"));
 	//Core::Alert(Core::GetStringFromId(0x86));
-	//Core::get_proc("/client/proc/invoke_hook").hook(test_invoke);
+	//Core::get_proc("/proc/get_string_by_id").hook(test_invoke);
 	//Core::Alert(Core::get_proc("/client/verb/hidden").proc_table_entry->procFlags);
 	//Core::Alert(Core::get_proc("/client/verb/nothidden").proc_table_entry->procFlags);
 	//Core::get_proc("/client/verb/toggle_hidden_verb").hook(toggle_verb_hidden);

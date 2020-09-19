@@ -250,7 +250,7 @@ const std::unordered_map<DataType, std::string> datatype_names = {
 	{ DataType::LIST_VERBS, "LIST_VERBS" },
 	{ DataType::LIST_CONTENTS, "LIST_CONTENTS" },
 	{ DataType::DATUM_TYPEPATH, "DATUM_TYPEPATH" },
-	{ DataType::LIST_CONTENTS_2, "LIST_CONTENTS_2" },
+	{ DataType::LIST_TURF_CONTENTS, "LIST_TURF_CONTENTS" },
 };
 
 const std::unordered_map<Bytecode, std::string> mnemonics = {
