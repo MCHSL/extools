@@ -121,7 +121,7 @@ bool Disassembler::disassemble_var(Instruction& instr)
 		instr.add_comment("ARGS");
 		break;
 	case AccessModifier::PROC_NO_RET:
-	case AccessModifier::PROC_:
+	case AccessModifier::PROC:
 	case AccessModifier::SRC_PROC:
 	case AccessModifier::SRC_PROC_SPEC:
 		return false;
@@ -140,7 +140,7 @@ bool Disassembler::disassemble_proc(Instruction& instr)
 	switch ((AccessModifier) context_->peek())
 	{
 		case AccessModifier::PROC_NO_RET:
-		case AccessModifier::PROC_:
+		case AccessModifier::PROC:
 		{
 			context_->eat(&instr);
 			instr.add_comment(Core::get_proc(context_->eat(&instr)).simple_name);

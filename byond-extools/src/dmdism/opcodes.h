@@ -210,7 +210,7 @@ enum class AccessModifier : std::uint32_t
 
 	SRC_PROC_SPEC = 0xFFDD,
 	SRC_PROC = 0xFFDE,
-	PROC_ = 0xFFDF,
+	PROC = 0xFFDF,
 	PROC_NO_RET = 0xFFE0,
 
 	WORLD = 0xFFE5,
@@ -229,7 +229,7 @@ const std::unordered_map<AccessModifier, std::string> modifier_names = {
 
 	{AccessModifier::SRC_PROC_SPEC, "SRC_PROC_SPEC"},
 	{AccessModifier::SRC_PROC, "SRC_PROC"},
-	{AccessModifier::PROC_, "PROC"},
+	{AccessModifier::PROC, "PROC"},
 	{AccessModifier::PROC_NO_RET, "PROC_NO_RET"},
 
 	{AccessModifier::WORLD, "WORLD"},
