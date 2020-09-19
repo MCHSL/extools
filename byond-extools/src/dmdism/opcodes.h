@@ -285,6 +285,7 @@ const std::unordered_map<Bytecode, std::string> mnemonics = {
 	{CALLGLOB, "CALLGLOB"},
 	{GETVAR, "GETVAR"},
 	{SETVAR, "SETVAR"},
+	{SETVAR_COPY, "SETVAR_COPY"},
 	{GETFLAG, "GETFLAG"},
 	{TEQ, "TEQ"},
 	{TNE, "TNE"},

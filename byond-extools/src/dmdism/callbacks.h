@@ -45,6 +45,7 @@ __forceinline std::unique_ptr<Instruction> get_instr(std::uint32_t op) {
 		ADD_CALLBACK(CALLGLOB)
 		ADD_CALLBACK(GETVAR)
 		ADD_CALLBACK(SETVAR)
+		ADD_CALLBACK(SETVAR_COPY)
 		ADD_CALLBACK(GETFLAG)
 		ADD_CALLBACK(TEQ)
 		ADD_CALLBACK(TNE)
