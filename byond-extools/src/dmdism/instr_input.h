@@ -3,4 +3,4 @@
 #include "instruction.h"
 
 ADD_INSTR(PROMPTCHECK)
-ADD_INSTR_ARG(INPUT_, 3)
+ADD_INSTR_ARG(INPUT, 3)
