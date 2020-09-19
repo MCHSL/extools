@@ -19,10 +19,10 @@
 #define __forceinline
 #endif
 
-#define ADD_CALLBACK(op) case op: return std::make_unique<Instr_##op>(op);
+#define ADD_CALLBACK(op) case Bytecode::op: return std::make_unique<Instr_##op>(Bytecode::op);
 
 __forceinline std::unique_ptr<Instruction> get_instr(std::uint32_t op) {
-	switch (op)
+	switch ((Bytecode) op)
 	{
 		ADD_CALLBACK(END)
 		ADD_CALLBACK(NEW)

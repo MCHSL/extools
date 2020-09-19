@@ -6,7 +6,7 @@
 class Opcode
 {
 public:
-	Opcode() : Opcode(UNK) {}
+	Opcode() : Opcode(Bytecode::UNK) {}
 	Opcode(Bytecode opcode) : opcode_(opcode)
 	{
 		if (mnemonics.find(opcode) == mnemonics.end())
@@ -17,7 +17,7 @@ public:
 		{
 			mnemonic_ = mnemonics.at(opcode);
 		}
-		
+
 	}
 
 	Bytecode opcode() const { return opcode_; }

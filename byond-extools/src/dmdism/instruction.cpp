@@ -21,7 +21,7 @@ Instruction Instruction::create(Bytecode op)
 {
 	Instruction instr;
 	instr.opcode_ = Opcode(op);
-	instr.add_byte(op);
+	instr.add_byte((uint32_t) op);
 	return instr;
 }
 
