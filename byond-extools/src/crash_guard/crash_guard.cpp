@@ -67,12 +67,12 @@ LONG WINAPI all_the_broken_things_that_byond_made(_EXCEPTION_POINTERS* Exception
 	dump << "\nArguments:\n";
 	for (int i = 0; i < ctx->constants->arg_count; i++)
 	{
-		dump << "\t" << ctx->constants->args[i].type << " " << (ctx->constants->args[i].type == 0x2A ? ctx->constants->args[i].valuef : ctx->constants->args[i].value) << "\n";
+		dump << "\t" << ctx->constants->args[i].type << " " << (ctx->constants->args[i].type == DataType::NUMBER ? ctx->constants->args[i].valuef : ctx->constants->args[i].value) << "\n";
 	}
 	dump << "\nLocal variables:\n";
 	for (int i = 0; i < ctx->local_var_count; i++)
 	{
-		dump << "\t" << ctx->local_variables[i].type << " " << (ctx->local_variables[i].type == 0x2A ? ctx->local_variables[i].valuef : ctx->local_variables[i].value) << "\n";
+		dump << "\t" << ctx->local_variables[i].type << " " << (ctx->local_variables[i].type == DataType::NUMBER ? ctx->local_variables[i].valuef : ctx->local_variables[i].value) << "\n";
 	}
 
 
@@ -108,12 +108,12 @@ void dump_oor()
 		dump << "\nArguments:\n";
 		for (int i = 0; i < ctx->constants->arg_count; i++)
 		{
-			dump << "\t" << (int)ctx->constants->args[i].type << " " << (ctx->constants->args[i].type == 0x2A ? ctx->constants->args[i].valuef : ctx->constants->args[i].value) << "\n";
+			dump << "\t" << (int)ctx->constants->args[i].type << " " << (ctx->constants->args[i].type == DataType::NUMBER ? ctx->constants->args[i].valuef : ctx->constants->args[i].value) << "\n";
 		}
 		dump << "\nLocal variables:\n";
 		for (int i = 0; i < ctx->local_var_count; i++)
 		{
-			dump << "\t" << (int)ctx->local_variables[i].type << " " << (ctx->local_variables[i].type == 0x2A ? ctx->local_variables[i].valuef : ctx->local_variables[i].value) << "\n";
+			dump << "\t" << (int)ctx->local_variables[i].type << " " << (ctx->local_variables[i].type == DataType::NUMBER ? ctx->local_variables[i].valuef : ctx->local_variables[i].value) << "\n";
 		}
 		dump.flush();
 	} while (ctx = ctx->parent_context);
