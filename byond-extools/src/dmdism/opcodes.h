@@ -87,6 +87,8 @@ enum Bytecode
 	LOCATE_POS = 0x5A,
 	LOCATE_REF = 0x5B,
 
+	SHUTDOWN = 0x5D,
+
 	PUSHVAL = 0x60,
 	NEW_IMAGE = 0x61,
 	PRE_INC = 0x62,
@@ -317,6 +319,7 @@ const std::unordered_map<Bytecode, std::string> mnemonics = {
 	{ITERNEXT, "ITERNEXT"},
 	{LOCATE_POS, "LOCATE_POS"},
 	{LOCATE_REF, "LOCATE_REF"},
+	{SHUTDOWN, "SHUTDOWN"},
 	{PUSHVAL, "PUSHVAL"},
 	{INC, "INC"},
 	{DEC, "DEC"},

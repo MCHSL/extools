@@ -77,6 +77,7 @@ __forceinline std::unique_ptr<Instruction> get_instr(std::uint32_t op) {
 		ADD_CALLBACK(ITERNEXT)
 		ADD_CALLBACK(LOCATE_POS)
 		ADD_CALLBACK(LOCATE_REF)
+		ADD_CALLBACK(SHUTDOWN)
 		ADD_CALLBACK(PUSHVAL)
 		ADD_CALLBACK(INC)
 		ADD_CALLBACK(DEC)
