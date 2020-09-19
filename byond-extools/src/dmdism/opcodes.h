@@ -197,7 +197,7 @@ enum Bytecode
 	//DBG_BREAK = 0x1337,
 };
 
-enum AccessModifier
+enum class AccessModifier : std::uint32_t
 {
 	SRC = 0xFFCE,
 	ARGS = 0xFFCF,
@@ -218,22 +218,22 @@ enum AccessModifier
 };
 
 const std::unordered_map<AccessModifier, std::string> modifier_names = {
-	{SRC, "SRC"},
-	{DOT, "DOT" },
-	{ARG, "ARG" },
-	{ARGS, "ARGS"},
-	{LOCAL, "LOCAL"},
-	{GLOBAL, "GLOBAL"},
-	{SUBVAR, "SUBVAR"},
-	{CACHE, "CACHE"},
+	{AccessModifier::SRC, "SRC"},
+	{AccessModifier::DOT, "DOT" },
+	{AccessModifier::ARG, "ARG" },
+	{AccessModifier::ARGS, "ARGS"},
+	{AccessModifier::LOCAL, "LOCAL"},
+	{AccessModifier::GLOBAL, "GLOBAL"},
+	{AccessModifier::SUBVAR, "SUBVAR"},
+	{AccessModifier::CACHE, "CACHE"},
 
-	{SRC_PROC_SPEC, "SRC_PROC_SPEC"},
-	{SRC_PROC, "SRC_PROC"},
-	{PROC_, "PROC"},
-	{PROC_NO_RET, "PROC_NO_RET"},
+	{AccessModifier::SRC_PROC_SPEC, "SRC_PROC_SPEC"},
+	{AccessModifier::SRC_PROC, "SRC_PROC"},
+	{AccessModifier::PROC_, "PROC"},
+	{AccessModifier::PROC_NO_RET, "PROC_NO_RET"},
 
-	{WORLD, "WORLD"},
-	{NULL_, "NULL"},
+	{AccessModifier::WORLD, "WORLD"},
+	{AccessModifier::NULL_, "NULL"},
 };
 
 const std::unordered_map<DataType, std::string> datatype_names = {

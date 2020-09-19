@@ -12,7 +12,7 @@ void inline_into(Disassembly& recipient, Disassembly& donor, int which_instructi
 	int arg_count = 0;
 	for (Instruction& i : donor)
 	{
-		if (i == Bytecode::GETVAR && i.bytes().at(1) == AccessModifier::ARG)
+		if (i == Bytecode::GETVAR && i.bytes().at(1) == (std::uint32_t) AccessModifier::ARG)
 		{
 			arg_count = std::max(arg_count, (int)i.bytes().at(2)+1);
 		}
@@ -26,7 +26,7 @@ void inline_into(Disassembly& recipient, Disassembly& donor, int which_instructi
 		for (int i = arg_count-1; i >= 0; i--)
 		{
 			Instruction instr = Instruction::create(SETVAR);
-			instr.add_byte(AccessModifier::LOCAL);
+			instr.add_byte((std::uint32_t) AccessModifier::LOCAL);
 			instr.add_byte(local_count + i + 1);
 			recipient.instructions.push_back(instr);
 		}
@@ -47,13 +47,13 @@ void inline_into(Disassembly& recipient, Disassembly& donor, int which_instructi
 		}
 		if (instr == Bytecode::GETVAR || instr == Bytecode::SETVAR)
 		{
-			if (instr.bytes()[1] == AccessModifier::LOCAL)
+			if (instr.bytes()[1] == (std::uint32_t) AccessModifier::LOCAL)
 			{
 				instr.bytes()[2] += local_count;
 			}
-			else if (instr.bytes().at(1) == AccessModifier::ARG)
+			else if (instr.bytes().at(1) == (std::uint32_t) AccessModifier::ARG)
 			{
-				instr.bytes().at(1) = AccessModifier::LOCAL;
+				instr.bytes().at(1) = (std::uint32_t) AccessModifier::LOCAL;
 				instr.bytes().at(2) += local_count + 1;
 			}
 		}

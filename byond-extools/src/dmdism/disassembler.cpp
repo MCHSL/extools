@@ -56,9 +56,9 @@ Instruction Disassembler::disassemble_next()
 
 bool Disassembler::disassemble_var(Instruction& instr)
 {
-	switch (context_->peek())
+	switch ((AccessModifier) context_->peek())
 	{
-	case SUBVAR:
+	case AccessModifier::SUBVAR:
 	{
 		std::uint32_t val = context_->eat(&instr);
 		instr.opcode().add_info(" SUBVAR");
@@ -75,10 +75,10 @@ bool Disassembler::disassemble_var(Instruction& instr)
 		break;
 	}
 
-	case LOCAL:
-	case GLOBAL:
+	case AccessModifier::LOCAL:
+	case AccessModifier::GLOBAL:
 	//case CACHE:
-	case ARG:
+	case AccessModifier::ARG:
 	{
 		std::uint32_t type = context_->eat(&instr);
 		std::uint32_t localno = context_->eat(&instr);
@@ -93,16 +93,16 @@ bool Disassembler::disassemble_var(Instruction& instr)
 		instr.add_comment(modifier_name + std::to_string(localno));
 		break;
 	}
-	case CACHE:
+	case AccessModifier::CACHE:
 	{
 		context_->eat(&instr);
 		instr.add_comment("CACHE");
 		break;
 	}
-	case WORLD:
-	case NULL_:
-	case DOT:
-	case SRC:
+	case AccessModifier::WORLD:
+	case AccessModifier::NULL_:
+	case AccessModifier::DOT:
+	case AccessModifier::SRC:
 	{
 		std::uint32_t type = context_->eat(&instr);
 
@@ -116,14 +116,14 @@ bool Disassembler::disassemble_var(Instruction& instr)
 		instr.add_comment(modifier_name);
 		break;
 	}
-	case ARGS:
+	case AccessModifier::ARGS:
 		context_->eat(&instr);
 		instr.add_comment("ARGS");
 		break;
-	case PROC_NO_RET:
-	case PROC_:
-	case SRC_PROC:
-	case SRC_PROC_SPEC:
+	case AccessModifier::PROC_NO_RET:
+	case AccessModifier::PROC_:
+	case AccessModifier::SRC_PROC:
+	case AccessModifier::SRC_PROC_SPEC:
 		return false;
 	default:
 	{
@@ -137,18 +137,18 @@ bool Disassembler::disassemble_var(Instruction& instr)
 
 bool Disassembler::disassemble_proc(Instruction& instr)
 {
-	switch (context_->peek())
+	switch ((AccessModifier) context_->peek())
 	{
-		case PROC_NO_RET:
-		case PROC_:
+		case AccessModifier::PROC_NO_RET:
+		case AccessModifier::PROC_:
 		{
 			context_->eat(&instr);
 			instr.add_comment(Core::get_proc(context_->eat(&instr)).simple_name);
 			add_call_args(instr, context_->eat(&instr));
 			return true;
 		}
-		case SRC_PROC:
-		case SRC_PROC_SPEC:
+		case AccessModifier::SRC_PROC:
+		case AccessModifier::SRC_PROC_SPEC:
 		{
 			context_->eat(&instr);
 			std::string name = byond_tostring(context_->eat(&instr));
