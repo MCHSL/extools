@@ -14,7 +14,7 @@ static const char* const get_mnemonic_raw(Bytecode bytecode)
 #define I(NUMBER, NAME, DIS) \
     case Bytecode::NAME: \
         return #NAME;
-#include "instruction_table.inl"
+#include "opcodes_table.inl"
 #undef I
     }
     return "???";
@@ -77,7 +77,7 @@ DisassembleCallback get_disassemble_callback(std::uint32_t opcode)
 #define I(NUMBER, NAME, DIS) \
     case NUMBER: \
         return DIS;
-#include "instruction_table.inl"
+#include "opcodes_table.inl"
 #undef I
     }
     return nullptr;

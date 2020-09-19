@@ -8,7 +8,7 @@ enum class Bytecode : uint32_t
     UNK = 0xFFFFFFFF,
 #define I(NUMBER, NAME, DIS) \
     NAME = NUMBER,
-#include "instruction_table.inl"
+#include "opcodes_table.inl"
 #undef I
 };
 
