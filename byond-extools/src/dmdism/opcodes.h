@@ -326,6 +326,8 @@ const std::unordered_map<Bytecode, std::string> mnemonics = {
 	{ABS, "ABS"},
 	{SQRT, "SQRT"},
 	{POW, "POW"},
+	{TURN, "TURN"},
+	{ADDTEXT, "ADDTEXT"},
 	{COPYTEXT, "COPYTEXT"},
 	{FINDTEXT, "FINDTEXT"},
 	{LISTGET, "LISTGET"},
