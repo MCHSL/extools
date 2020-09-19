@@ -80,3 +80,10 @@ const std::unordered_map<DataType, std::string> datatype_names = {
 };
 
 const char* const get_mnemonic(Bytecode bytecode);
+
+class Instruction;
+class Context;
+class Disassembler;
+typedef void (*DisassembleCallback)(Instruction*, Context*, Disassembler*);
+
+DisassembleCallback get_disassemble_callback(std::uint32_t opcode);

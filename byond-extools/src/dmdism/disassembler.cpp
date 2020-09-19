@@ -6,7 +6,6 @@
 #include "disassembler.h"
 #include "opcodes.h"
 #include "helpers.h"
-#include "callbacks.h"
 #include "context.h"
 
 
@@ -36,22 +35,18 @@ Instruction Disassembler::disassemble_next()
 {
 	auto offset = context_->current_offset();
 	auto root = context_->eat(nullptr);
-	std::unique_ptr<Instruction> instr = get_instr(root);
-	/*auto cb = callbacks.find(static_cast<Bytecode>(root));
-	if (cb != callbacks.end())
+	Instruction instr { (Bytecode) root };
+
+	instr.set_offset(offset);
+	instr.add_byte(root);
+
+	DisassembleCallback callback = get_disassemble_callback(root);
+	if (callback)
 	{
-		instr = cb->second();
+		callback(&instr, context(), this);
 	}
-	else
-	{
-		instr = new Instr_UNK;
-	}*/
 
-	instr->set_offset(offset);
-	instr->add_byte(root);
-	instr->Disassemble(context(), this);
-
-	return *instr;
+	return instr;
 }
 
 bool Disassembler::disassemble_var(Instruction& instr)
