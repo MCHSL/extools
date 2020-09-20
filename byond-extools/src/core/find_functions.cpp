@@ -178,12 +178,12 @@ bool Core::find_functions()
 		default: break;
 	}
 	if(failed) return false;
-	
+
 	datum_pointer_table_length = *(unsigned int**)((char*)DelDatum + 12);
 	datum_pointer_table = *(RawDatum****)((char*)DelDatum + 20);
-	
+
 	current_execution_context_ptr = *(ExecutionContext * **)Pocket::Sigscan::FindPattern(BYONDCORE, "A1 ?? ?? ?? ?? 8D 7D ?? 89 78 ??", 1);
-	misc_entry_table = **(MisCEntry * ***)Pocket::Sigscan::FindPattern(BYONDCORE, "A1 ?? ?? ?? ?? 8B 04 98 85 C0 74 ?? 89 04 24 E8 ?? ?? ?? ?? 8B 15 ?? ?? ?? ??", 1);
+	misc_entry_table = **(MiscEntry * ***)Pocket::Sigscan::FindPattern(BYONDCORE, "A1 ?? ?? ?? ?? 8B 04 98 85 C0 74 ?? 89 04 24 E8 ?? ?? ?? ?? 8B 15 ?? ?? ?? ??", 1);
 	some_flags_including_profile = *(unsigned int**)Pocket::Sigscan::FindPattern(BYONDCORE, "A1 ?? ?? ?? ?? A8 ?? 0F 85 ?? ?? ?? ??", 2);
 #endif
 	return !failed;
