@@ -10,7 +10,8 @@ RuntimePtr oRuntimeLL;
 
 std::string ErrorToString(int id)
 {
-	return exc_code_to_msg.find(id) != exc_code_to_msg.end() ? exc_code_to_msg.at(id) : "";
+	auto ptr = exc_code_to_msg.find(id);
+	return ptr != exc_code_to_msg.end() ? ptr->second : "";
 }
 
 extern "C" __declspec(dllexport) const char* force_crash(int n, const char* args)

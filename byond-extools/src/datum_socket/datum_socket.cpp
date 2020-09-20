@@ -56,7 +56,7 @@ bool DatumSocket::listen(std::string addr, std::string port)
 		Core::Alert("Attempting to listen on a socket already in use!");
 		return false;
 	}
-	
+
 	listener = TcpListener();
 	bool listening = listener.listen(port.c_str(), addr.c_str());
 	if (listening)
@@ -124,7 +124,7 @@ void DatumSocket::close()
 		listener.close();
 		accepts = {};
 	}
-	
+
 	open = false;
 }
 
@@ -179,12 +179,11 @@ trvh retrieve_data(unsigned int args_len, Value* args, Value src)
 
 trvh deregister_socket(unsigned int args_len, Value* args, Value src)
 {
-	if (sockets.find(src.value) == sockets.end())
+	if (auto ptr = sockets.find(src.value); ptr != sockets.end())
 	{
-		return Value::Null();
+		ptr->second->close();
+		sockets.erase(ptr);
 	}
-	sockets.at(src.value)->close();
-	sockets.erase(src.value);
 	return Value::Null();
 }
 

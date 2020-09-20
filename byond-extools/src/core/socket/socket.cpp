@@ -244,8 +244,7 @@ nlohmann::json JsonStream::recv_message()
 	std::vector<char> data(1024);
 	while (true)
 	{
-		size_t zero = recv_buffer.find('\0');
-		if (zero != std::string::npos) {
+		if (size_t zero = recv_buffer.find('\0'); zero != std::string::npos) {
 			nlohmann::json json = nlohmann::json::parse({ recv_buffer.data(), recv_buffer.data() + zero });
 			recv_buffer.erase(0, zero + 1);
 			return json;

@@ -252,10 +252,9 @@ Value* locate_global_by_name(std::string name)
 
 void Core::global_direct_set(std::string name, Value val)
 {
-	if (global_direct_cache.find(name) != global_direct_cache.end())
+	if (auto ptr = global_direct_cache.find(name); ptr != global_direct_cache.end())
 	{
-		*global_direct_cache[name] = val;
-		return;
+		*ptr->second = val;
 	}
 	Value* var = locate_global_by_name(name);
 	*var = val;
@@ -264,9 +263,9 @@ void Core::global_direct_set(std::string name, Value val)
 
 Value Core::global_direct_get(std::string name)
 {
-	if (global_direct_cache.find(name) != global_direct_cache.end())
+	if (auto ptr = global_direct_cache.find(name); ptr != global_direct_cache.end())
 	{
-		return *global_direct_cache[name];
+		return *ptr->second;
 	}
 	Value* var = locate_global_by_name(name);
 	global_direct_cache[name] = var;

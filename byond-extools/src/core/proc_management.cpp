@@ -11,11 +11,13 @@ std::unordered_map<unsigned int, ProcHook> proc_hooks;
 
 void strip_proc_path(std::string& name)
 {
-	size_t proc_pos = name.find("/proc/");
-	proc_pos = (proc_pos == std::string::npos ? name.find("/verb/") : proc_pos);
-	if (proc_pos != std::string::npos)
+	if (auto proc_pos = name.find("/proc/"); proc_pos != std::string::npos)
 	{
 		name.erase(proc_pos, 5);
+	}
+	else if (auto verb_pos = name.find("/verb/"); verb_pos != std::string::npos)
+	{
+		name.erase(verb_pos, 5);
 	}
 }
 
@@ -152,24 +154,16 @@ bool Core::populate_proc_list()
 		p.id = i;
 		p.name = GetStringTableEntry(entry->procPath)->stringData;
 		p.raw_path = p.name;
-		size_t proc_pos = p.name.find("/proc/");
-		proc_pos = (proc_pos == std::string::npos ? p.name.find("/verb/") : proc_pos);
-		if (proc_pos != std::string::npos)
-		{
-			p.name.erase(proc_pos, 5);
-		}
+		strip_proc_path(p.name);
 		p.simple_name = p.name.substr(p.name.rfind("/") + 1);
 		p.proc_table_entry = entry;
 		p.setup_entry_bytecode = proc_setup_table[entry->bytecode_idx];
 		p.setup_entry_varcount = proc_setup_table[entry->local_var_count_idx];
 		p.bytecode_idx = entry->bytecode_idx;
 		p.varcount_idx = entry->local_var_count_idx;
-		if (procs_by_name.find(p.name) == procs_by_name.end())
-		{
-			procs_by_name[p.name] = std::vector<unsigned int>();
-		}
-		p.override_id = procs_by_name.at(p.name).size();
-		procs_by_name[p.name].push_back(p.id);
+		auto& procs_by_name_entry = procs_by_name[p.name];
+		p.override_id = procs_by_name_entry.size();
+		procs_by_name_entry.push_back(p.id);
 		procs_by_id.push_back(std::move(p));
 		i++;
 	}

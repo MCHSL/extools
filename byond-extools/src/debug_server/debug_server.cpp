@@ -325,11 +325,11 @@ void DebugServer::set_breakpoint(int proc_id, int offset, bool singleshot)
 
 std::optional<Breakpoint> DebugServer::get_breakpoint(int proc_id, int offset)
 {
-	if (breakpoints.find(proc_id) != breakpoints.end())
+	if (auto ptr1 = breakpoints.find(proc_id); ptr1 != breakpoints.end())
 	{
-		if (breakpoints[proc_id].find(offset) != breakpoints[proc_id].end())
+		if (auto ptr2 = ptr1->second.find(offset); ptr2 != ptr1->second.end())
 		{
-			return breakpoints[proc_id][offset];
+			return ptr2->second;
 		}
 	}
 	return {};
