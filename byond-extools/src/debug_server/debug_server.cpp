@@ -517,6 +517,16 @@ void DebugServer::send_call_stack(ExecutionContext* ctx)
 			args.push_back(value_to_text(ctx->constants->args[i]));
 		j["args"] = args;
 
+		std::vector<std::string> local_names;
+		for (int i = 0; i < p.get_local_count(); ++i)
+			local_names.push_back(p.get_local_name(i));
+		j["local_names"] = local_names;
+
+		std::vector<std::string> arg_names;
+		for (int i = 0; i < p.get_param_count(); ++i)
+			arg_names.push_back(p.get_param_name(i));
+		j["arg_names"] = arg_names;
+
 		res.push_back(j);
 	} while(ctx = ctx->parent_context);
 	debug_server.send(MESSAGE_CALL_STACK, res);
