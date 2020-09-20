@@ -57,6 +57,13 @@ void dis_var(Instruction* instruction, Context* context, Disassembler* dism)
     dism->disassemble_var(*instruction);
 }
 
+template<int COUNT>
+void dis_arg_var(Instruction* instruction, Context* context, Disassembler* dism)
+{
+    dis_arg<COUNT>(instruction, context, dism);
+    dis_var(instruction, context, dism);
+}
+
 // ADD_INSTR_JUMP(op, argcount) becomes dis_jump<argcount>
 template<int COUNT>
 void dis_jump(Instruction* instruction, Context* context, Disassembler* dism)
