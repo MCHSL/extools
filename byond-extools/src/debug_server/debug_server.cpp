@@ -51,18 +51,21 @@ DataType datatype_name_to_val(std::string name)
 	return DataType::NULL_D;
 }
 
-const int RES_BREAK = 0;
-const int RES_CONTINUE = 1;
-const int RES_CONFIGURATION_DONE = 2;
+enum class DebugServer::HandleMessageResult
+{
+	BREAK = 0,
+	CONTINUE = 1,
+	CONFIGURATION_DONE = 2,
+};
 
-int DebugServer::handle_one_message()
+DebugServer::HandleMessageResult DebugServer::handle_one_message()
 {
 	nlohmann::json data = debugger.recv_message();
 	//Core::Alert("Message!!");
 	if (data.is_null())
 	{
 		//Core::Alert("null message, leaving");
-		return RES_BREAK;
+		return HandleMessageResult::BREAK;
 	}
 	const std::string& type = data.at("type");
 	if (type == MESSAGE_RAW)
@@ -248,17 +251,17 @@ int DebugServer::handle_one_message()
 	}
 	else if (type == MESSAGE_CONFIGURATION_DONE)
 	{
-		return RES_CONFIGURATION_DONE;
+		return HandleMessageResult::CONFIGURATION_DONE;
 	}
-	return RES_CONTINUE;
+	return HandleMessageResult::CONTINUE;
 }
 
 void DebugServer::debug_loop()
 {
 	while (true)
 	{
-		int res = debug_server.handle_one_message();
-		if (res == RES_BREAK)
+		HandleMessageResult res = debug_server.handle_one_message();
+		if (res == HandleMessageResult::BREAK)
 		{
 			return;
 		}
@@ -269,12 +272,12 @@ bool DebugServer::loop_until_configured()
 {
 	while (true)
 	{
-		int res = debug_server.handle_one_message();
-		if (res == RES_CONFIGURATION_DONE)
+		HandleMessageResult res = debug_server.handle_one_message();
+		if (res == HandleMessageResult::CONFIGURATION_DONE)
 		{
 			break;
 		}
-		else if (res != RES_CONTINUE)
+		else if (res != HandleMessageResult::CONTINUE)
 		{
 			return false;
 		}
