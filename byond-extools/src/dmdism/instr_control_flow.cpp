@@ -70,9 +70,9 @@ void dis_custom_switch(Instruction* instruction, Context* context, Disassembler*
 			continue;
 		}
 
-		if (datatype_names.find(static_cast<DataType>(type)) != datatype_names.end())
+		if (auto ptr = datatype_names.find(static_cast<DataType>(type)); ptr != datatype_names.end())
 		{
-			instruction->add_info(datatype_names.at(static_cast<DataType>(type)) + " ");
+			instruction->add_info(ptr->second + " ");
 		}
 		else
 		{

@@ -22,9 +22,9 @@ void dis_custom_pushval(Instruction* instr, Context* context, Disassembler* dism
 		return;
 	}
 
-	if (datatype_names.find(static_cast<DataType>(type)) != datatype_names.end())
+	if (auto ptr = datatype_names.find(static_cast<DataType>(type)); ptr != datatype_names.end())
 	{
-		instr->opcode().add_info(" " + datatype_names.at(static_cast<DataType>(type)));
+		instr->opcode().add_info(" " + ptr->second);
 	}
 	else
 	{

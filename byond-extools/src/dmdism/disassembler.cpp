@@ -79,9 +79,9 @@ bool Disassembler::disassemble_var(Instruction& instr)
 		std::uint32_t localno = context_->eat(&instr);
 
 		std::string modifier_name = "UNKNOWN_MODIFIER";
-		if (modifier_names.find(static_cast<AccessModifier>(type)) != modifier_names.end())
+		if (auto ptr = modifier_names.find(static_cast<AccessModifier>(type)); ptr != modifier_names.end())
 		{
-			modifier_name = modifier_names.at(static_cast<AccessModifier>(type));
+			modifier_name = ptr->second;
 		}
 
 		instr.opcode().add_info(" " + modifier_name + std::to_string(localno));
@@ -111,9 +111,9 @@ bool Disassembler::disassemble_var(Instruction& instr)
 		std::uint32_t type = context_->eat(&instr);
 
 		std::string modifier_name = "UNKNOWN_MODIFIER";
-		if (modifier_names.find(static_cast<AccessModifier>(type)) != modifier_names.end())
+		if (auto ptr = modifier_names.find(static_cast<AccessModifier>(type)); ptr != modifier_names.end())
 		{
-			modifier_name = modifier_names.at(static_cast<AccessModifier>(type));
+			modifier_name = ptr->second;
 		}
 
 		instr.opcode().add_info(" " + modifier_name);
