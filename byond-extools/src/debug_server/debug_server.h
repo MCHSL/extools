@@ -69,8 +69,8 @@ public:
 	NextAction next_action = NextAction::WAIT;
 	StepMode step_mode = StepMode::NONE;
 	bool break_on_runtimes = false;
-	ExecutionContext* step_over_context = nullptr;
-	ExecutionContext* step_over_parent_context = nullptr;
+	std::uint32_t step_over_sequence_number = UINT32_MAX;
+	std::uint32_t step_over_parent_sequence_number = UINT32_MAX;
 	std::optional<Breakpoint> breakpoint_to_restore = {};
 
 	std::unordered_map<int, std::unordered_map<int, Breakpoint>> breakpoints;

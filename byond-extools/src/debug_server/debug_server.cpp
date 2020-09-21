@@ -397,8 +397,8 @@ void DebugServer::on_break(ExecutionContext* ctx)
 		break;
 	case NextAction::STEP_OVER:
 		step_mode = StepMode::PRE_OVER;
-		step_over_context = ctx;
-		step_over_parent_context = ctx->parent_context;
+		step_over_sequence_number = ctx->constants->sequence_number;
+		step_over_parent_sequence_number = ctx->parent_context ? ctx->parent_context->constants->sequence_number : UINT32_MAX;
 		break;
 	case NextAction::RESUME:
 		step_mode = StepMode::NONE;
@@ -570,32 +570,33 @@ void hRuntime(const char* error)
 
 extern "C" void on_singlestep()
 {
-	if (debug_server.breakpoint_to_restore && Core::get_context()->current_opcode != debug_server.breakpoint_to_restore->offset)
+	ExecutionContext* ctx = Core::get_context();
+	if (debug_server.breakpoint_to_restore && ctx->current_opcode != debug_server.breakpoint_to_restore->offset)
 	{
 		debug_server.restore_breakpoint();
 	}
 	if (debug_server.step_mode == StepMode::INTO)
 	{
-		debug_server.on_step(Core::get_context());
+		debug_server.on_step(ctx);
 	}
 	else if (debug_server.step_mode == StepMode::OVER)
 	{
-		if (!debug_server.step_over_context)
+		if (debug_server.step_over_sequence_number == UINT32_MAX)
 		{
 			debug_server.step_mode = StepMode::NONE;
 			return;
 		}
-		ExecutionContext* ctx = Core::get_context();
-		if (debug_server.step_over_context == ctx || debug_server.step_over_parent_context == ctx)
+
+		if (debug_server.step_over_sequence_number == ctx->constants->sequence_number || debug_server.step_over_parent_sequence_number == ctx->constants->sequence_number)
 		{
-			debug_server.step_over_context = nullptr;
-			debug_server.step_over_parent_context = nullptr;
-			debug_server.on_step(Core::get_context());
+			debug_server.step_over_sequence_number = UINT32_MAX;
+			debug_server.step_over_parent_sequence_number = UINT32_MAX;
+			debug_server.on_step(ctx);
 		}
 		if (!ctx->parent_context && (ctx->bytecode[ctx->current_opcode] == (std::uint32_t) BYTECODE_RET || ctx->bytecode[ctx->current_opcode] == (std::uint32_t) BYTECODE_END))
 		{
-			debug_server.step_over_context = nullptr; //there is nothing to return to, we missed our chance
-			debug_server.step_over_parent_context = nullptr;
+			debug_server.step_over_sequence_number = UINT32_MAX; //there is nothing to return to, we missed our chance
+			debug_server.step_over_parent_sequence_number = UINT32_MAX;
 			debug_server.step_mode = StepMode::NONE;
 		}
 	}

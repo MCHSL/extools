@@ -315,7 +315,7 @@ struct ProcConstants
 	Value usr;
 	Value src;
 	ExecutionContext* context;
-	int unknown3;
+	int sequence_number;
 	int unknown4; //some callback thing
 	union
 	{
