@@ -306,18 +306,12 @@ struct ProcArrayEntry
 	int params_idx;
 };
 
-struct SuspendedProc
-{
-	char unknown[0x88];
-	int time_to_resume;
-};
-
 struct ExecutionContext;
 
 struct ProcConstants
 {
 	int proc_id;
-	int unknown2;
+	int flags;
 	Value usr;
 	Value src;
 	ExecutionContext* context;
@@ -330,7 +324,11 @@ struct ProcConstants
 	};
 	int arg_count;
 	Value* args;
+	char unknown6[88];
+	int time_to_resume;
 };
+
+typedef ProcConstants SuspendedProc;
 
 struct ExecutionContext
 {
@@ -343,20 +341,19 @@ struct ExecutionContext
 	char test_flag;
 	char unknown1;
 	Value cached_datum;
-	char unknown2[16];
+	Value unknown2;
+	char unknown3[8];
 	Value dot;
 	Value* local_variables;
 	Value* stack;
 	std::uint16_t local_var_count;
 	std::uint16_t stack_size;
-	std::int32_t unknown; //callback something
+	void* unknown4;
 	Value* current_iterator;
 	std::uint32_t iterator_allocated;
 	std::uint32_t iterator_length;
 	std::uint32_t iterator_index;
-	std::int32_t another_unknown2;
-	char unknown4[3];
-	char iterator_filtered_type;
+	Value iterator_filtered;
 	char unknown5;
 	char iterator_unknown;
 	char unknown6;
