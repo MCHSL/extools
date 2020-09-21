@@ -143,6 +143,12 @@ DebugServer::HandleMessageResult DebugServer::handle_one_message()
 		next_action = NextAction::STEP_OVER;
 		notifier.notify_all();
 	}
+	else if (type == MESSAGE_BREAKPOINT_STEP_OUT)
+	{
+		std::lock_guard<std::mutex> lk(notifier_mutex);
+		next_action = NextAction::STEP_OUT;
+		notifier.notify_all();
+	}
 	else if (type == MESSAGE_BREAKPOINT_PAUSE)
 	{
 		debug_server.step_mode = StepMode::INTO;
@@ -399,6 +405,19 @@ void DebugServer::on_break(ExecutionContext* ctx)
 		step_mode = StepMode::PRE_OVER;
 		step_over_sequence_number = ctx->constants->sequence_number;
 		step_over_parent_sequence_number = ctx->parent_context ? ctx->parent_context->constants->sequence_number : UINT32_MAX;
+		break;
+	case NextAction::STEP_OUT:
+		if (ExecutionContext* parent = ctx->parent_context)
+		{
+			step_mode = StepMode::PRE_OVER;
+			step_over_sequence_number = parent->constants->sequence_number;
+			step_over_parent_sequence_number = parent->parent_context ? parent->parent_context->constants->sequence_number : UINT32_MAX;
+		}
+		else
+		{
+			// Step Out of bottom stack frame = resume
+			step_mode = StepMode::NONE;
+		};
 		break;
 	case NextAction::RESUME:
 		step_mode = StepMode::NONE;

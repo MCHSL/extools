@@ -140,6 +140,9 @@ interface MessageDeclarations {
     "breakpoint step over": {
         request: {},
     },
+    "breakpoint step out": {
+        request: {}
+    },
     "breakpoint resume": {
         request: {},
     },

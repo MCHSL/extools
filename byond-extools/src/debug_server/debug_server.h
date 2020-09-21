@@ -17,6 +17,7 @@ enum class NextAction
 	WAIT,
 	STEP_INTO,
 	STEP_OVER,
+	STEP_OUT,
 	RESUME
 };
 

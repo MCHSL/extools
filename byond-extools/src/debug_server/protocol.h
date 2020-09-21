@@ -9,6 +9,7 @@
 // request only
 #define MESSAGE_BREAKPOINT_STEP_INTO "breakpoint step into"
 #define MESSAGE_BREAKPOINT_STEP_OVER "breakpoint step over"
+#define MESSAGE_BREAKPOINT_STEP_OUT "breakpoint step out"
 #define MESSAGE_BREAKPOINT_RESUME "breakpoint resume"
 #define MESSAGE_BREAKPOINT_PAUSE "breakpoint pause"
 #define MESSAGE_CONFIGURATION_DONE "configuration done"
