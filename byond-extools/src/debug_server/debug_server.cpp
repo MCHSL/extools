@@ -601,7 +601,7 @@ extern "C" void on_singlestep()
 	}
 	else if (debug_server.step_mode == StepMode::INTO)
 	{
-		if (ctx->bytecode[ctx->current_opcode] != (std::uint32_t) BYTECODE_DBG_LINENO)
+		if (ctx->bytecode[ctx->current_opcode] != BYTECODE_DBG_LINENO)
 		{
 			return;
 		}
@@ -614,7 +614,7 @@ extern "C" void on_singlestep()
 			debug_server.step_mode = StepMode::NONE;
 			return;
 		}
-		if (ctx->bytecode[ctx->current_opcode] != (std::uint32_t) BYTECODE_DBG_LINENO)
+		if (ctx->bytecode[ctx->current_opcode] != BYTECODE_DBG_LINENO)
 		{
 			return;
 		}
@@ -625,7 +625,7 @@ extern "C" void on_singlestep()
 			debug_server.step_over_parent_sequence_number = UINT32_MAX;
 			debug_server.on_step(ctx);
 		}
-		if (!ctx->parent_context && (ctx->bytecode[ctx->current_opcode] == (std::uint32_t) BYTECODE_RET || ctx->bytecode[ctx->current_opcode] == (std::uint32_t) BYTECODE_END))
+		if (!ctx->parent_context && (ctx->bytecode[ctx->current_opcode] == BYTECODE_RET || ctx->bytecode[ctx->current_opcode] == BYTECODE_END))
 		{
 			debug_server.step_over_sequence_number = UINT32_MAX; //there is nothing to return to, we missed our chance
 			debug_server.step_over_parent_sequence_number = UINT32_MAX;
