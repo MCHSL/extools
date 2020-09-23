@@ -59,6 +59,7 @@ enum class DebugServer::HandleMessageResult
 };
 
 DebugServer::HandleMessageResult DebugServer::handle_one_message()
+try
 {
 	nlohmann::json data = debugger.recv_message();
 	//Core::Alert("Message!!");
@@ -259,6 +260,11 @@ DebugServer::HandleMessageResult DebugServer::handle_one_message()
 	{
 		return HandleMessageResult::CONFIGURATION_DONE;
 	}
+	return HandleMessageResult::CONTINUE;
+}
+catch (const std::exception& e)
+{
+	Core::Alert(e.what());
 	return HandleMessageResult::CONTINUE;
 }
 
