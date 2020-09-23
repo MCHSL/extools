@@ -5,6 +5,11 @@
 #include "context.h"
 #include "instr_custom.h"
 
+static_assert(BYTECODE_END == Bytecode::END);
+static_assert(BYTECODE_RET == Bytecode::RET);
+static_assert(BYTECODE_DBG_LINENO == Bytecode::DBG_LINENO);
+static_assert(BYTECODE_UNK == Bytecode::UNK);
+
 // ----------------------------------------------------------------------------
 // Mnemonic lookup
 
