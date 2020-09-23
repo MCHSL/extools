@@ -151,7 +151,7 @@ DebugServer::HandleMessageResult DebugServer::handle_one_message()
 	}
 	else if (type == MESSAGE_BREAKPOINT_PAUSE)
 	{
-		debug_server.step_mode = StepMode::INTO;
+		debug_server.step_mode = StepMode::PAUSE;
 	}
 	else if (type == MESSAGE_BREAKPOINT_RESUME)
 	{
@@ -386,11 +386,11 @@ void DebugServer::on_breakpoint(ExecutionContext* ctx)
 	ctx->current_opcode--;
 }
 
-void DebugServer::on_step(ExecutionContext* ctx)
+void DebugServer::on_step(ExecutionContext* ctx, const char* reason)
 {
 	auto& proc = Core::get_proc(ctx);
 	send_call_stack(ctx);
-	send(MESSAGE_BREAKPOINT_HIT, { {"proc", proc.name }, {"offset", ctx->current_opcode }, {"override_id", proc.override_id}, {"reason", "step"} });
+	send(MESSAGE_BREAKPOINT_HIT, { {"proc", proc.name }, {"offset", ctx->current_opcode }, {"override_id", proc.override_id}, {"reason", reason} });
 	on_break(ctx);
 }
 
@@ -594,7 +594,12 @@ extern "C" void on_singlestep()
 	{
 		debug_server.restore_breakpoint();
 	}
-	if (debug_server.step_mode == StepMode::INTO)
+
+	if (debug_server.step_mode == StepMode::PAUSE)
+	{
+		debug_server.on_step(ctx, "pause");
+	}
+	else if (debug_server.step_mode == StepMode::INTO)
 	{
 		debug_server.on_step(ctx);
 	}
