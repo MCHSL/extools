@@ -49,6 +49,18 @@ Instruction Disassembler::disassemble_next()
 	return instr;
 }
 
+std::vector<unsigned int> Disassembler::disassemble_subvar_follows(Instruction& instr)
+{
+	std::vector<unsigned int> result;
+	while ((AccessModifier)context_->peek() == AccessModifier::SUBVAR || (AccessModifier)context_->peek() == AccessModifier::CACHE)
+	{
+		context_->eat(&instr);
+		result.push_back(context_->eat(&instr));
+	}
+	result.push_back(context_->eat(&instr));
+	return result;
+}
+
 bool Disassembler::disassemble_var(Instruction& instr)
 {
 	switch ((AccessModifier) context_->peek())

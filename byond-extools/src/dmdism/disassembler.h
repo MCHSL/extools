@@ -22,6 +22,7 @@ public:
 	Context* context() const { return context_.get(); }
 
 	bool disassemble_var(Instruction& instr);
+	std::vector<unsigned int> disassemble_subvar_follows(Instruction& instr);
 	bool disassemble_proc(Instruction& instr);
 	void add_call_args(Instruction& instr, unsigned int num_args);
 

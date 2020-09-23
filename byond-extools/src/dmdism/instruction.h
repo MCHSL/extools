@@ -57,4 +57,6 @@ protected:
 	std::vector<std::string> extra_info_;
 
 	std::vector<unsigned short> jump_locations_; //this is probably a sin but I don't feel like making a subtype of Instruction that supports jump destinations and then having to untangle the disassembler to make them work with all the other types.
+
+
 };
