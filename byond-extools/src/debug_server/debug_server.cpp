@@ -380,7 +380,7 @@ void DebugServer::on_breakpoint(ExecutionContext* ctx)
 	{
 		breakpoint_to_restore = bp;
 	}
-	send_call_stack(ctx);
+	send_call_stacks(ctx);
 	send(MESSAGE_BREAKPOINT_HIT, { {"proc", bp->proc->name }, {"offset", bp->offset }, {"override_id", Core::get_proc(ctx).override_id}, {"reason", "breakpoint opcode"} });
 	on_break(ctx);
 	ctx->current_opcode--;
@@ -389,7 +389,7 @@ void DebugServer::on_breakpoint(ExecutionContext* ctx)
 void DebugServer::on_step(ExecutionContext* ctx, const char* reason)
 {
 	auto& proc = Core::get_proc(ctx);
-	send_call_stack(ctx);
+	send_call_stacks(ctx);
 	send(MESSAGE_BREAKPOINT_HIT, { {"proc", proc.name }, {"offset", ctx->current_opcode }, {"override_id", proc.override_id}, {"reason", reason} });
 	on_break(ctx);
 }
@@ -428,7 +428,7 @@ void DebugServer::on_break(ExecutionContext* ctx)
 void DebugServer::on_error(ExecutionContext* ctx, const char* error)
 {
 	Core::Proc& p = Core::get_proc(ctx);
-	send_call_stack(ctx);
+	send_call_stacks(ctx);
 	debug_server.send(MESSAGE_RUNTIME, { {"proc", p.name }, {"offset", ctx->current_opcode }, {"override_id", p.override_id}, {"message", std::string(error)} });
 	debug_server.wait_for_action();
 }
@@ -510,45 +510,71 @@ nlohmann::json value_to_text(Value val)
 	return result;
 }
 
-void DebugServer::send_call_stack(ExecutionContext* ctx)
+nlohmann::json frame_to_json(ExecutionContext* frame)
 {
-	std::vector<nlohmann::json> res;
+	nlohmann::json j;
+	Core::Proc& p = Core::get_proc(frame);
+
+	j["proc"] = p.name;
+	j["override_id"] = p.override_id;
+	j["offset"] = frame->current_opcode;
+
+	j["usr"] = value_to_text(frame->constants->usr);
+	j["src"] = value_to_text(frame->constants->src);
+	j["dot"] = value_to_text(frame->dot);
+
+	std::vector<nlohmann::json> locals;
+	for (int i = 0; i < frame->local_var_count; i++)
+		locals.push_back(value_to_text(frame->local_variables[i]));
+	j["locals"] = locals;
+
+	std::vector<nlohmann::json> args;
+	for (int i = 0; i < frame->constants->arg_count; i++)
+		args.push_back(value_to_text(frame->constants->args[i]));
+	j["args"] = args;
+
+	std::vector<std::string> local_names;
+	for (int i = 0; i < p.get_local_count(); ++i)
+		local_names.push_back(p.get_local_name(i));
+	j["local_names"] = local_names;
+
+	std::vector<std::string> arg_names;
+	for (int i = 0; i < p.get_param_count(); ++i)
+		arg_names.push_back(p.get_param_name(i));
+	j["arg_names"] = arg_names;
+	return j;
+}
+
+void DebugServer::send_call_stacks(ExecutionContext* ctx)
+{
+	std::vector<nlohmann::json> current_frames;
 	do
 	{
-		nlohmann::json j;
-		Core::Proc& p = Core::get_proc(ctx);
-
-		j["proc"] = p.name;
-		j["override_id"] = p.override_id;
-		j["offset"] = ctx->current_opcode;
-
-		j["usr"] = value_to_text(ctx->constants->usr);
-		j["src"] = value_to_text(ctx->constants->src);
-		j["dot"] = value_to_text(ctx->dot);
-
-		std::vector<nlohmann::json> locals;
-		for (int i = 0; i < ctx->local_var_count; i++)
-			locals.push_back(value_to_text(ctx->local_variables[i]));
-		j["locals"] = locals;
-
-		std::vector<nlohmann::json> args;
-		for (int i = 0; i < ctx->constants->arg_count; i++)
-			args.push_back(value_to_text(ctx->constants->args[i]));
-		j["args"] = args;
-
-		std::vector<std::string> local_names;
-		for (int i = 0; i < p.get_local_count(); ++i)
-			local_names.push_back(p.get_local_name(i));
-		j["local_names"] = local_names;
-
-		std::vector<std::string> arg_names;
-		for (int i = 0; i < p.get_param_count(); ++i)
-			arg_names.push_back(p.get_param_name(i));
-		j["arg_names"] = arg_names;
-
-		res.push_back(j);
+		current_frames.push_back(frame_to_json(ctx));
 	} while(ctx = ctx->parent_context);
-	debug_server.send(MESSAGE_CALL_STACK, res);
+	
+
+	std::vector<nlohmann::json> suspended;
+	for (uint32_t i = Core::suspended_proc_list->front; i < Core::suspended_proc_list->back; i++)
+	{
+		std::vector<nlohmann::json> frames;
+		ProcConstants* inst = Core::suspended_proc_list->buffer[i];
+
+		for (ExecutionContext* ctx = inst->context; ctx != nullptr; ctx = ctx->parent_context)
+		{
+			frames.push_back(frame_to_json(ctx));
+		}
+
+		// Suspended procs have their call stack flipped, so we have to reverse it to see something sane
+		std::reverse(frames.begin(), frames.end());
+		
+		suspended.push_back(frames);
+	}
+
+	nlohmann::json stacks;
+	stacks["current"] = current_frames;
+	stacks["suspended"] = suspended;
+	debug_server.send(MESSAGE_CALL_STACK, stacks);
 }
 
 void on_nop(ExecutionContext* ctx)

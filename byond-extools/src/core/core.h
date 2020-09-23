@@ -100,6 +100,7 @@ namespace Core
 	extern TableHolder2* datum_table;
 	extern TableHolder2* list_table; //list list honk
 	extern TableHolder2* mob_table;
+	extern SuspendedProcList* suspended_proc_list;
 
 	extern RawDatum*** datum_pointer_table;
 	extern unsigned int* datum_pointer_table_length;

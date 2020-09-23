@@ -34,6 +34,7 @@ TableHolder2* Core::obj_table = nullptr;
 TableHolder2* Core::datum_table = nullptr;
 TableHolder2* Core::list_table = nullptr;
 TableHolder2* Core::mob_table = nullptr;
+SuspendedProcList* Core::suspended_proc_list = nullptr;
 
 Core::ManagedString::ManagedString(unsigned int id) : string_id(id)
 {

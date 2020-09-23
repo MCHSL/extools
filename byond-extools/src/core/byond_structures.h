@@ -543,3 +543,11 @@ struct VarListEntry
 	std::uint32_t name_id;
 	trvh value;
 };
+
+struct SuspendedProcList
+{
+	ProcConstants** buffer;
+	std::uint32_t front;
+	std::uint32_t back;
+	std::uint32_t max_elements;
+};
