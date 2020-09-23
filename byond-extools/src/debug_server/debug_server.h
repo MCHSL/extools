@@ -27,6 +27,7 @@ enum class StepMode
 	PRE_INTO,
 	INTO,
 	PRE_OVER,
+	PAUSE,
 	OVER
 };
 
@@ -94,7 +95,7 @@ public:
 
 	void on_error(ExecutionContext* ctx, const char* error);
 	void on_breakpoint(ExecutionContext* ctx);
-	void on_step(ExecutionContext* ctx);
+	void on_step(ExecutionContext* ctx, const char* reason = "step");
 	void on_break(ExecutionContext* ctx);
 	void on_data_breakpoint(ExecutionContext* ctx, unsigned int type, unsigned int value, std::string var_name);
 

@@ -26,7 +26,7 @@ void inline_into(Disassembly& recipient, Disassembly& donor, int which_instructi
 	{
 		for (int i = arg_count-1; i >= 0; i--)
 		{
-			Instruction instr = Instruction::create(Bytecode::SETVAR);
+			Instruction instr { Bytecode::SETVAR };
 			instr.add_byte((std::uint32_t) AccessModifier::LOCAL);
 			instr.add_byte(local_count + i + 1);
 			recipient.instructions.push_back(instr);
@@ -42,7 +42,7 @@ void inline_into(Disassembly& recipient, Disassembly& donor, int which_instructi
 		}
 		if (instr == Bytecode::END || instr == Bytecode::RET)
 		{
-			instr = Instruction::create(Bytecode::JMP);
+			instr = Instruction { Bytecode::JMP };
 			instr.add_byte(0);
 			return_jump_patch_locations.push_back(recipient.instructions.size());
 		}

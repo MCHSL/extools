@@ -8,7 +8,19 @@
 enum class Bytecode : uint32_t;
 const Bytecode BYTECODE_END = (Bytecode) 0x0;
 const Bytecode BYTECODE_RET = (Bytecode) 0x12;
+const Bytecode BYTECODE_DBG_LINENO = (Bytecode) 0x85;
 const Bytecode BYTECODE_UNK = (Bytecode) 0xFFFFFFFF;
+
+inline bool operator==(std::uint32_t lhs, Bytecode rhs)
+{
+	return lhs == (std::uint32_t) rhs;
+}
+
+inline bool operator!=(std::uint32_t lhs, Bytecode rhs)
+{
+	return lhs != (std::uint32_t) rhs;
+}
+
 
 enum class AccessModifier : std::uint32_t
 {

@@ -35,10 +35,9 @@ Instruction Disassembler::disassemble_next()
 {
 	auto offset = context_->current_offset();
 	auto root = context_->eat(nullptr);
-	Instruction instr { (Bytecode) root };
 
+	Instruction instr { root };
 	instr.set_offset(offset);
-	instr.add_byte(root);
 
 	DisassembleCallback callback = get_disassemble_callback(root);
 	if (callback)
