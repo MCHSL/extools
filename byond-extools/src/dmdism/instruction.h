@@ -48,6 +48,10 @@ public:
 
 	std::vector<std::string> extra_info() { return extra_info_; }
 	void add_info(std::string s) { extra_info_.push_back(s); }
+
+	std::pair<AccessModifier, unsigned int> acc_base; // If this instruction accesses variables, this will contain the necessary information.
+	std::vector<unsigned int> acc_chain; // For example, 'world.a.b.c' results in acc_base of {AccessModifier::WORLD, 0} and acc_chain of {41, 42, 43} (example string IDs)
+	
 protected:
 	std::uint8_t size_;
 	std::vector<std::uint32_t> bytes_;
@@ -57,6 +61,4 @@ protected:
 	std::vector<std::string> extra_info_;
 
 	std::vector<unsigned short> jump_locations_; //this is probably a sin but I don't feel like making a subtype of Instruction that supports jump destinations and then having to untangle the disassembler to make them work with all the other types.
-
-
 };

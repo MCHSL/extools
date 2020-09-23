@@ -69,16 +69,35 @@ bool Disassembler::disassemble_var(Instruction& instr)
 	{
 		std::uint32_t val = context_->eat(&instr);
 		instr.opcode().add_info(" SUBVAR");
-		if (!disassemble_var(instr))
+
+		const AccessModifier mod = (AccessModifier)context_->eat(&instr);
+		if (mod == AccessModifier::SRC_PROC_SPEC || mod == AccessModifier::PROC)
 		{
-			return true;
+			instr.acc_base = { (AccessModifier)0, 0 };
+			instr.acc_chain = std::vector<unsigned int>();
+			break;
 		}
-		instr.add_comment(".");
-		if (!disassemble_var(instr))
+		unsigned int id = 0;
+		if (mod != AccessModifier::SRC && mod != AccessModifier::WORLD && mod != AccessModifier::CACHE && mod != AccessModifier::DOT)
 		{
-			return true;
+			id = context_->eat(&instr);
+		}
+		instr.acc_base = { mod, id };
+		instr.acc_chain = disassemble_subvar_follows(instr);
+
+		std::string modifier_name = "UNKNOWN_MODIFIER";
+		if (const auto ptr = modifier_names.find(static_cast<AccessModifier>(instr.acc_base.first)); ptr != modifier_names.end())
+		{
+			modifier_name = ptr->second;
 		}
 
+		instr.add_comment(modifier_name);
+		for(const auto follow_name_id : instr.acc_chain)
+		{
+			instr.add_comment("." + Core::GetStringFromId(follow_name_id));
+		}
+		instr.add_comment(" ");
+			
 		break;
 	}
 

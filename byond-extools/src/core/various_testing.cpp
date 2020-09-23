@@ -120,6 +120,12 @@ trvh test_invoke(unsigned int argcount, Value* args, Value src)
 
 void init_testing()
 {
+	auto d = Core::get_proc("/client/verb/access_thingy").disassemble();
+	std::ofstream o("out.txt");
+	for (Instruction& i : d)
+	{
+		o << i.offset() << "\t\t\t" << i.bytes_str() << "\t\t\t" << i.opcode().mnemonic() << " " << i.comment() << "\n";
+	}
 	//Value a(5.0f);
 	//Value b = a + 5.0f;
 	//b += 1.0f;
