@@ -92,7 +92,7 @@ std::size_t Disassembly::size()
 
 std::size_t Disassembly::bytecount()
 {
-	int sum = 0;
+	std::size_t sum = 0;
 	for (Instruction& i : instructions)
 	{
 		sum += i.size();
