@@ -51,13 +51,27 @@ Instruction Disassembler::disassemble_next()
 std::vector<unsigned int> Disassembler::disassemble_subvar_follows(Instruction& instr)
 {
 	std::vector<unsigned int> result;
-	while ((AccessModifier)context_->peek() == AccessModifier::SUBVAR || (AccessModifier)context_->peek() == AccessModifier::CACHE)
+	while (true)
 	{
-		context_->eat(&instr);
-		result.push_back(context_->eat(&instr));
+		switch ((AccessModifier) context_->peek())
+		{
+			case AccessModifier::SUBVAR:
+			case AccessModifier::CACHE:
+				context_->eat(&instr);
+				result.push_back(context_->eat(&instr));
+				break;
+
+			case AccessModifier::PROC_NO_RET:
+			case AccessModifier::PROC:
+			case AccessModifier::SRC_PROC:
+			case AccessModifier::SRC_PROC_SPEC:
+				return result;
+
+			default:
+				result.push_back(context_->eat(&instr));
+				return result;
+		}
 	}
-	result.push_back(context_->eat(&instr));
-	return result;
 }
 
 bool Disassembler::disassemble_var(Instruction& instr)
@@ -96,7 +110,7 @@ bool Disassembler::disassemble_var(Instruction& instr)
 			instr.add_comment("." + Core::GetStringFromId(follow_name_id));
 		}
 		instr.add_comment(" ");
-			
+
 		break;
 	}
 
