@@ -101,7 +101,7 @@ public:
 
 	void send_simple(std::string message_type);
 	void send(std::string message_type, nlohmann::json content);
-	void send_call_stack(ExecutionContext* ctx);
+	void send_call_stacks(ExecutionContext* ctx);
 };
 
 

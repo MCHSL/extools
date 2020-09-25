@@ -200,7 +200,10 @@ interface MessageDeclarations {
         response: WriteBreakpointHit,
     },
     "call stack": {
-        response: StackFrame[],
+        response: {
+            "current": StackFrame[],
+            "suspended": StackFrame[][],
+        },
     },
     "runtime": {
         response: Runtime,
