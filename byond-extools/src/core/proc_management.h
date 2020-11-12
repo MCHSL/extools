@@ -30,11 +30,12 @@ namespace Core
 		unsigned int override_id = 0;
 
 		ProcArrayEntry* proc_table_entry = nullptr;
-		ProcSetupEntry* setup_entry_bytecode = nullptr;
-		ProcSetupEntry* setup_entry_varcount = nullptr;
+		BytecodeEntry* bytecode_entry = nullptr;
+		LocalVarsEntry* locals_entry = nullptr;
+		ParamsEntry* params_entry = nullptr;
 
-		std::uint16_t bytecode_idx = 0;
-		std::uint16_t varcount_idx = 0;
+		std::uint32_t bytecode_idx = 0;
+		std::uint32_t varcount_idx = 0;
 
 		std::uint32_t* original_bytecode_ptr = nullptr;
 		std::vector<std::uint32_t> bytecode;
@@ -44,7 +45,12 @@ namespace Core
 		std::uint16_t get_bytecode_length();
 		void reset_bytecode();
 
-		std::uint16_t get_local_varcount();
+		std::uint32_t get_local_count();
+		std::string get_local_name(std::uint32_t index);
+
+		std::uint32_t get_param_count();
+		std::string get_param_name(std::uint32_t index);
+
 		Disassembly disassemble();
 		void assemble(Disassembly disasm);
 

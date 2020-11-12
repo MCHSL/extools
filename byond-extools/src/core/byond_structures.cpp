@@ -32,9 +32,24 @@ Value::operator float()
 	return valuef;
 }
 
+static bool to_bool(Value& v)
+{
+	switch (v.type)
+	{
+		case DataType::NULL_D:
+			return false;
+		case DataType::NUMBER:
+			return v.valuef != 0.0f;
+		case DataType::STRING:
+			return *(GetStringTableEntry(v.value)->stringData) != 0;
+		default:
+			return v.value != 0xFFFF;
+	}
+}
+
 Value::operator void*() //if you attempt to delete a value I will eat you
 {
-	return (void*)((type == 0x2A && valuef != 0.0f) || (type == 0x06 && *(GetStringTableEntry(value)->stringData) != 0) || (type != 0 && value != 0xFFFF));
+	return (void*) to_bool(*this);
 }
 
 ManagedValue Value::get(std::string name)
@@ -125,9 +140,9 @@ ManagedValue Value::invoke_by_id(int id, std::vector<Value> args, Value usr)
 
 Value& Value::operator+=(const Value& rhs)
 {
-	if (type == 0x2A && rhs.type == 0x2A)
+	if (type == DataType::NUMBER && rhs.type == DataType::NUMBER)
 		valuef += rhs.valuef;
-	else if (type == 0x06 && rhs.type == 0x06)
+	else if (type == DataType::STRING && rhs.type == DataType::STRING)
 		value = Core::GetStringId(Core::GetStringFromId(value) + Core::GetStringFromId(rhs.value));
 	else
 	{
@@ -139,7 +154,7 @@ Value& Value::operator+=(const Value& rhs)
 
 Value& Value::operator-=(const Value& rhs)
 {
-	if (type == 0x2A && rhs.type == 0x2A)
+	if (type == DataType::NUMBER && rhs.type == DataType::NUMBER)
 		valuef -= rhs.valuef;
 	else
 	{
@@ -151,7 +166,7 @@ Value& Value::operator-=(const Value& rhs)
 
 Value& Value::operator*=(const Value& rhs)
 {
-	if (type == 0x2A && rhs.type == 0x2A)
+	if (type == DataType::NUMBER && rhs.type == DataType::NUMBER)
 		valuef *= rhs.valuef;
 	else
 	{
@@ -163,7 +178,7 @@ Value& Value::operator*=(const Value& rhs)
 
 Value& Value::operator/=(const Value& rhs)
 {
-	if (type == 0x2A && rhs.type == 0x2A)
+	if (type == DataType::NUMBER && rhs.type == DataType::NUMBER)
 		valuef /= rhs.valuef;
 	else
 	{

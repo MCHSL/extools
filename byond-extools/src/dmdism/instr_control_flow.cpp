@@ -1,83 +1,56 @@
-
-
+#include "instr_custom.h"
+#include "instruction.h"
+#include "context.h"
+#include "disassembler.h"
+#include "helpers.h"
 
 #include <algorithm>
 
-#include "instr_control_flow.h"
-#include "helpers.h"
-#include "context.h"
-#include "disassembler.h"
-
-//TODO: finish
-void Instr_CALL::Disassemble(Context* context, Disassembler* dism)
+void dis_custom_call(Instruction* instruction, Context* context, Disassembler* dism)
 {
-	comment_ = "";
-	if (dism->disassemble_var(*this))
+	instruction->set_comment("");
+	if (!dism->disassemble_var(*instruction))
 	{
-		return;
+		instruction->add_comment("CACHE.");
 	}
-
-	std::uint32_t procid = context->eat(this);
-	std::string name = byond_tostring(procid);
-	std::replace(name.begin(), name.end(), ' ', '_');
-	comment_ += name;
-	std::uint32_t num_args = context->eat(this);
-
-	dism->add_call_args(*this, num_args);
+	dism->disassemble_proc(*instruction);
 }
 
-void Instr_CALLNR::Disassemble(Context* context, Disassembler* dism)
+void dis_custom_callglob(Instruction* instruction, Context* context, Disassembler* dism)
 {
-	comment_ = "";
-	if (dism->disassemble_var(*this))
-	{
-		return;
-	}
-
-	std::uint32_t procid = context->eat(this);
-	std::string name = byond_tostring(procid);
-	std::replace(name.begin(), name.end(), ' ', '_');
-	comment_ += name;
-	std::uint32_t num_args = context->eat(this);
-
-	dism->add_call_args(*this, num_args);
-}
-
-void Instr_CALLGLOB::Disassemble(Context* context, Disassembler* dism)
-{
-	std::uint32_t num_args = context->eat(this);
-	std::uint32_t proc_id = context->eat(this);
+	std::uint32_t num_args = context->eat(instruction);
+	std::uint32_t proc_id = context->eat(instruction);
 
 	if (proc_id < context->procs().size())
 	{
-		comment_ += context->procs().at(proc_id).name;
+		instruction->add_comment(context->procs().at(proc_id).name);
 	}
 	else
 	{
-		comment_ += "INVALID_PROC";
+		instruction->add_comment("INVALID_PROC");
 	}
-	dism->add_call_args(*this, num_args);
+	dism->add_call_args(*instruction, num_args);
 }
 
-void Instr_CALL_GLOBAL_ARGLIST::Disassemble(Context* context, Disassembler* dism)
+void dis_custom_call_global_arglist(Instruction* instruction, Context* context, Disassembler* dism)
 {
-	std::uint32_t proc_id = context->eat(this);
+	std::uint32_t proc_id = context->eat(instruction);
 
 	if (proc_id < context->procs().size())
 	{
-		comment_ += context->procs().at(proc_id).name;
+		instruction->add_comment(context->procs().at(proc_id).name);
 	}
 	else
 	{
-		comment_ += "INVALID_PROC";
+		instruction->add_comment("INVALID_PROC");
 	}
 }
 
-void Instr_SWITCH::Disassemble(Context* context, Disassembler* dism)
+void dis_custom_switch(Instruction* instruction, Context* context, Disassembler* dism)
 {
-	std::uint32_t case_count = context->eat(this);
-	comment_ += std::to_string(case_count) + " cases, default jump to ";
-	add_info("Cases");
+	std::uint32_t case_count = context->eat(instruction);
+	instruction->add_comment(std::to_string(case_count) + " cases, default jump to ");
+	instruction->add_info("Cases");
 	for (int i = 0; i < case_count; i++)
 	{
 		std::uint32_t type = context->take(); //TODO: Perhaps extract into a separate function to disassemble variables.
@@ -92,31 +65,48 @@ void Instr_SWITCH::Disassemble(Context* context, Disassembler* dism)
 			std::uint32_t second_part = context->take();
 			f.i = first_part << 16 | second_part;
 			std::uint16_t jmp = context->take();
-			add_jump(jmp);
-			add_info("NUMBER " + std::to_string(f.f) + " -> " + std::to_string(jmp));
+			instruction->add_jump(jmp);
+			instruction->add_info("NUMBER " + std::to_string(f.f) + " -> " + std::to_string(jmp));
 			continue;
 		}
 
-		if (datatype_names.find(static_cast<DataType>(type)) != datatype_names.end())
+		if (auto ptr = datatype_names.find(static_cast<DataType>(type)); ptr != datatype_names.end())
 		{
-			add_info(datatype_names.at(static_cast<DataType>(type)) + " ");
+			instruction->add_info(ptr->second + " ");
 		}
 		else
 		{
-			add_info("??? ");
+			instruction->add_info("??? ");
 		}
 		std::uint32_t value = context->take();
 		if (type == STRING)
 		{
-			add_info('"' + byond_tostring(value) + '"');
+			instruction->add_info('"' + byond_tostring(value) + '"');
 		}
 		else
 		{
-			add_info(tohex(value));
+			instruction->add_info(tohex(value));
 		}
-		add_info(" -> " + std::to_string(context->take()));
+		instruction->add_info(" -> " + std::to_string(context->take()));
 	}
 	std::uint16_t default_jump = context->take();
-	add_jump(default_jump);
-	comment_ += std::to_string(default_jump);
+	instruction->add_jump(default_jump);
+	instruction->add_comment(std::to_string(default_jump));
+}
+
+void dis_custom_pick_switch(Instruction* instruction, Context* context, Disassembler* dism)
+{
+	std::uint32_t case_count = context->eat(instruction);
+	instruction->add_comment(std::to_string(case_count) + " cases, default jump to ");
+	instruction->add_info("Cases");
+	for (int i = 0; i < case_count; i++)
+	{
+		std::uint32_t threshold = context->take();
+		std::uint32_t jmp = context->take();
+		instruction->add_jump(jmp);
+		instruction->add_info("if <= " + std::to_string(threshold) + " -> " + std::to_string(jmp));
+	}
+	std::uint16_t default_jump = context->take();
+	instruction->add_jump(default_jump);
+	instruction->add_comment(std::to_string(default_jump));
 }

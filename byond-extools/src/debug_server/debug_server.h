@@ -17,6 +17,7 @@ enum class NextAction
 	WAIT,
 	STEP_INTO,
 	STEP_OVER,
+	STEP_OUT,
 	RESUME
 };
 
@@ -26,6 +27,7 @@ enum class StepMode
 	PRE_INTO,
 	INTO,
 	PRE_OVER,
+	PAUSE,
 	OVER
 };
 
@@ -69,8 +71,8 @@ public:
 	NextAction next_action = NextAction::WAIT;
 	StepMode step_mode = StepMode::NONE;
 	bool break_on_runtimes = false;
-	ExecutionContext* step_over_context = nullptr;
-	ExecutionContext* step_over_parent_context = nullptr;
+	std::uint32_t step_over_sequence_number = UINT32_MAX;
+	std::uint32_t step_over_parent_sequence_number = UINT32_MAX;
 	std::optional<Breakpoint> breakpoint_to_restore = {};
 
 	std::unordered_map<int, std::unordered_map<int, Breakpoint>> breakpoints;
@@ -81,9 +83,11 @@ public:
 	void remove_breakpoint(int proc_id, int offset);
 	void restore_breakpoint();
 
+	enum class HandleMessageResult;
+
 	bool connect(const char* port);
 	bool listen(const char* port);
-	int handle_one_message();
+	HandleMessageResult handle_one_message();
 	bool loop_until_configured();
 	void debug_loop();
 
@@ -91,13 +95,13 @@ public:
 
 	void on_error(ExecutionContext* ctx, const char* error);
 	void on_breakpoint(ExecutionContext* ctx);
-	void on_step(ExecutionContext* ctx);
+	void on_step(ExecutionContext* ctx, const char* reason = "step");
 	void on_break(ExecutionContext* ctx);
 	void on_data_breakpoint(ExecutionContext* ctx, unsigned int type, unsigned int value, std::string var_name);
 
 	void send_simple(std::string message_type);
 	void send(std::string message_type, nlohmann::json content);
-	void send_call_stack(ExecutionContext* ctx);
+	void send_call_stacks(ExecutionContext* ctx);
 };
 
 

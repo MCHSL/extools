@@ -1,27 +1,27 @@
-
-
-#include "instr_text.h"
-#include "helpers.h"
+#include "instr_custom.h"
+#include "instruction.h"
 #include "context.h"
+#include "disassembler.h"
+#include "helpers.h"
 
-void Instr_OUTPUT_FORMAT::Disassemble(Context* context, Disassembler* dism)
+void dis_custom_output_format(Instruction* instruction, Context* context, Disassembler* dism)
 {
-	std::uint32_t str_id = context->eat(this);
-	context->eat(this);
+	std::uint32_t str_id = context->eat(instruction);
+	context->eat(instruction);
 	std::string woop = byond_tostring(str_id);
-	comment_ = '"';
+	instruction->set_comment("\"");
 	int bruh = 0;
 	for (char& c : woop)
 	{
 		if (c == -1)
 		{
-			comment_ += "[STACK" + std::to_string(bruh) + "]";
+			instruction->add_comment("[STACK" + std::to_string(bruh) + "]");
 			bruh++;
 		}
 		else
 		{
-			comment_ += c;
+			instruction->add_comment(std::string(1, c));
 		}
 	}
-	comment_ += '"';
+	instruction->add_comment("\"");
 }

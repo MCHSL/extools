@@ -6,7 +6,6 @@
 #include "disassembler.h"
 #include "opcodes.h"
 #include "helpers.h"
-#include "callbacks.h"
 #include "context.h"
 
 
@@ -36,166 +35,183 @@ Instruction Disassembler::disassemble_next()
 {
 	auto offset = context_->current_offset();
 	auto root = context_->eat(nullptr);
-	std::unique_ptr<Instruction> instr = get_instr(root);
-	/*auto cb = callbacks.find(static_cast<Bytecode>(root));
-	if (cb != callbacks.end())
+
+	Instruction instr { root };
+	instr.set_offset(offset);
+
+	DisassembleCallback callback = get_disassemble_callback(root);
+	if (callback)
 	{
-		instr = cb->second();
+		callback(&instr, context(), this);
 	}
-	else
-	{
-		instr = new Instr_UNK;
-	}*/
 
-	instr->set_offset(offset);
-	instr->add_byte(root);
-	instr->Disassemble(context(), this);
-
-	return *instr;
+	return instr;
 }
 
-bool Disassembler::disassemble_var_alt(Instruction& instr)
+std::vector<unsigned int> Disassembler::disassemble_subvar_follows(Instruction& instr)
 {
-	std::uint32_t accessor = context_->eat(&instr);
-	switch (accessor)
+	std::vector<unsigned int> result;
+	while (true)
 	{
-	case LOCAL:
-	case GLOBAL:
-	case ARG:
-	{
-		std::uint32_t id = context_->eat(&instr);
-		std::string modifier_name = modifier_names.at(static_cast<AccessModifier>(accessor));
+		switch ((AccessModifier) context_->peek())
+		{
+			case AccessModifier::SUBVAR:
+			case AccessModifier::CACHE:
+				context_->eat(&instr);
+				result.push_back(context_->eat(&instr));
+				break;
 
-		instr.opcode().add_info(" " + modifier_name + std::to_string(id));
-		instr.add_comment(modifier_name + std::to_string(id));
-		break;
+			case AccessModifier::PROC_NO_RET:
+			case AccessModifier::PROC:
+			case AccessModifier::SRC_PROC:
+			case AccessModifier::SRC_PROC_SPEC:
+				return result;
+
+			default:
+				result.push_back(context_->eat(&instr));
+				return result;
+		}
 	}
-	}
-	return false;
 }
 
 bool Disassembler::disassemble_var(Instruction& instr)
 {
-	switch (context_->peek())
+	switch ((AccessModifier) context_->peek())
 	{
-	case SUBVAR:
+	case AccessModifier::SUBVAR:
 	{
 		std::uint32_t val = context_->eat(&instr);
 		instr.opcode().add_info(" SUBVAR");
-		if (disassemble_var(instr))
+
+		const AccessModifier mod = (AccessModifier)context_->eat(&instr);
+		if (mod == AccessModifier::SRC_PROC_SPEC || mod == AccessModifier::PROC)
 		{
-			return true;
+			instr.acc_base = { (AccessModifier)0, 0 };
+			instr.acc_chain = std::vector<unsigned int>();
+			break;
+		}
+		unsigned int id = 0;
+		if (mod != AccessModifier::SRC && mod != AccessModifier::WORLD && mod != AccessModifier::CACHE && mod != AccessModifier::DOT)
+		{
+			id = context_->eat(&instr);
+		}
+		instr.acc_base = { mod, id };
+		instr.acc_chain = disassemble_subvar_follows(instr);
+
+		std::string modifier_name = "UNKNOWN_MODIFIER";
+		if (const auto ptr = modifier_names.find(static_cast<AccessModifier>(instr.acc_base.first)); ptr != modifier_names.end())
+		{
+			modifier_name = ptr->second;
 		}
 
-		val = context_->eat(&instr);
-		if (val == SUBVAR)
+		instr.add_comment(modifier_name);
+		for(const auto follow_name_id : instr.acc_chain)
 		{
-			if (disassemble_var(instr))
-			{
-				return true;
-			}
+			instr.add_comment("." + Core::GetStringFromId(follow_name_id));
 		}
-		else if (val == PROC_)
-		{
-			instr.add_comment("." + Core::get_proc(context_->eat(&instr)).simple_name);
-			add_call_args(instr, context_->eat(&instr));
-			return true;
-		}
-		else
-		{
-			instr.opcode().add_info(" " + std::to_string(val));
-			instr.add_comment("." + byond_tostring(val));
-		}
+		instr.add_comment(" ");
 
 		break;
 	}
 
-	case LOCAL:
-	case GLOBAL:
+	case AccessModifier::LOCAL:
+	case AccessModifier::GLOBAL:
 	//case CACHE:
-	case ARG:
+	case AccessModifier::ARG:
 	{
 		std::uint32_t type = context_->eat(&instr);
 		std::uint32_t localno = context_->eat(&instr);
 
 		std::string modifier_name = "UNKNOWN_MODIFIER";
-		if (modifier_names.find(static_cast<AccessModifier>(type)) != modifier_names.end())
+		if (auto ptr = modifier_names.find(static_cast<AccessModifier>(type)); ptr != modifier_names.end())
 		{
-			modifier_name = modifier_names.at(static_cast<AccessModifier>(type));
+			modifier_name = ptr->second;
 		}
 
 		instr.opcode().add_info(" " + modifier_name + std::to_string(localno));
 		instr.add_comment(modifier_name + std::to_string(localno));
 		break;
 	}
-	case CACHE:
+	case AccessModifier::INITIAL:
+	{
+		context_->eat(&instr);
+		instr.add_comment("INITIAL(");
+		std::uint32_t val = context_->eat(&instr);
+		instr.add_comment(byond_tostring(val));
+		instr.add_comment(")");
+		break;
+	}
+	case AccessModifier::CACHE:
 	{
 		context_->eat(&instr);
 		instr.add_comment("CACHE");
 		break;
 	}
-	case WORLD:
-	case NULL_:
-	case DOT:
-	case SRC:
+	case AccessModifier::WORLD:
+	case AccessModifier::NULL_:
+	case AccessModifier::DOT:
+	case AccessModifier::SRC:
 	{
 		std::uint32_t type = context_->eat(&instr);
 
 		std::string modifier_name = "UNKNOWN_MODIFIER";
-		if (modifier_names.find(static_cast<AccessModifier>(type)) != modifier_names.end())
+		if (auto ptr = modifier_names.find(static_cast<AccessModifier>(type)); ptr != modifier_names.end())
 		{
-			modifier_name = modifier_names.at(static_cast<AccessModifier>(type));
+			modifier_name = ptr->second;
 		}
 
 		instr.opcode().add_info(" " + modifier_name);
 		instr.add_comment(modifier_name);
 		break;
 	}
-	case ARGS:
+	case AccessModifier::ARGS:
 		context_->eat(&instr);
 		instr.add_comment("ARGS");
 		break;
-	case PROC_NO_RET: //WAKE ME UP INSIDE
-	case PROC_:
-	{
-		context_->eat(&instr);
-		instr.add_comment("CACHE." + Core::get_proc(context_->eat(&instr)).simple_name);
-		add_call_args(instr, context_->eat(&instr));
-		return true;
-	}
-	case SRC_PROC: //CAN'T WAKE UP
-	case SRC_PROC_SPEC:
-	{
-		context_->eat(&instr);
-		/*std::uint32_t val = context_->eat();
-		//Core::Alert(std::to_string(val));
-		std::string name = GetStringTableEntry(val)->stringData;
-		std::replace(name.begin(), name.end(), ' ', '_');*/
-		instr.add_comment("CACHE.");
-		break;
-	}
+	case AccessModifier::PROC_NO_RET:
+	case AccessModifier::PROC:
+	case AccessModifier::SRC_PROC:
+	case AccessModifier::SRC_PROC_SPEC:
+		return false;
 	default:
 	{
 		std::uint32_t val = context_->eat(&instr);
-		instr.add_comment("CACHE."+byond_tostring(val));
+		instr.add_comment(byond_tostring(val));
 		break;
 	}
 	}
-	return false;
+	return true;
+}
+
+bool Disassembler::disassemble_proc(Instruction& instr)
+{
+	switch ((AccessModifier) context_->peek())
+	{
+		case AccessModifier::PROC_NO_RET:
+		case AccessModifier::PROC:
+		{
+			context_->eat(&instr);
+			instr.add_comment(Core::get_proc(context_->eat(&instr)).simple_name);
+			add_call_args(instr, context_->eat(&instr));
+			return true;
+		}
+		case AccessModifier::SRC_PROC:
+		case AccessModifier::SRC_PROC_SPEC:
+		{
+			context_->eat(&instr);
+			std::string name = byond_tostring(context_->eat(&instr));
+			std::replace(name.begin(), name.end(), ' ', '_');
+			instr.add_comment(name);
+			add_call_args(instr, context_->eat(&instr));
+			return true;
+		}
+		default:
+			instr.add_comment("<!>");
+			return false;
+	}
 }
 
 void Disassembler::add_call_args(Instruction& instr, unsigned int num_args)
 {
-	num_args = std::min((int)num_args, 16);
-	instr.add_comment("(");
-	for (unsigned int i = 0; i < num_args; i++)
-	{
-		instr.add_comment("STACK" + std::to_string(i) + ", ");
-	}
-
-	if (num_args) {
-		instr.set_comment(instr.comment().substr(0, instr.comment().size() - 2));
-	}
-
-	instr.add_comment(")");
+	instr.add_comment(" [num_args: " + std::to_string(num_args) + "]");
 }

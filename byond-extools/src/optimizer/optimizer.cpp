@@ -1,6 +1,7 @@
 #define NOMINMAX
 #include "optimizer.h"
 #include "../dmdism/disassembly.h"
+#include "../dmdism/opcodes_enum.h"
 #include <fstream>
 #include <algorithm>
 
@@ -12,7 +13,7 @@ void inline_into(Disassembly& recipient, Disassembly& donor, int which_instructi
 	int arg_count = 0;
 	for (Instruction& i : donor)
 	{
-		if (i == Bytecode::GETVAR && i.bytes().at(1) == AccessModifier::ARG)
+		if (i == Bytecode::GETVAR && i.bytes().at(1) == (std::uint32_t) AccessModifier::ARG)
 		{
 			arg_count = std::max(arg_count, (int)i.bytes().at(2)+1);
 		}
@@ -25,8 +26,8 @@ void inline_into(Disassembly& recipient, Disassembly& donor, int which_instructi
 	{
 		for (int i = arg_count-1; i >= 0; i--)
 		{
-			Instruction instr = Instruction::create(SETVAR);
-			instr.add_byte(AccessModifier::LOCAL);
+			Instruction instr { Bytecode::SETVAR };
+			instr.add_byte((std::uint32_t) AccessModifier::LOCAL);
 			instr.add_byte(local_count + i + 1);
 			recipient.instructions.push_back(instr);
 		}
@@ -41,23 +42,23 @@ void inline_into(Disassembly& recipient, Disassembly& donor, int which_instructi
 		}
 		if (instr == Bytecode::END || instr == Bytecode::RET)
 		{
-			instr = Instruction::create(Bytecode::JMP);
+			instr = Instruction { Bytecode::JMP };
 			instr.add_byte(0);
 			return_jump_patch_locations.push_back(recipient.instructions.size());
 		}
 		if (instr == Bytecode::GETVAR || instr == Bytecode::SETVAR)
 		{
-			if (instr.bytes()[1] == AccessModifier::LOCAL)
+			if (instr.bytes()[1] == (std::uint32_t) AccessModifier::LOCAL)
 			{
 				instr.bytes()[2] += local_count;
 			}
-			else if (instr.bytes().at(1) == AccessModifier::ARG)
+			else if (instr.bytes().at(1) == (std::uint32_t) AccessModifier::ARG)
 			{
-				instr.bytes().at(1) = AccessModifier::LOCAL;
+				instr.bytes().at(1) = (std::uint32_t) AccessModifier::LOCAL;
 				instr.bytes().at(2) += local_count + 1;
 			}
 		}
-		if (instr == JMP || instr == JMP2 || instr == JZ || instr == JNZ || instr == FOR_RANGE)
+		if (instr == Bytecode::JMP || instr == Bytecode::JMP2 || instr == Bytecode::JZ || instr == Bytecode::JNZ || instr == Bytecode::FOR_RANGE)
 		{
 			instr.bytes().at(1) += which_instruction;
 		}
@@ -78,7 +79,7 @@ void inline_into(Disassembly& recipient, Disassembly& donor, int which_instructi
 	for (int i = 0; i < recipient.size()-1; i++)
 	{
 		Instruction& instr = recipient.at(i);
-		if (instr == JMP || instr == JMP2 || instr == JZ || instr == JNZ)
+		if (instr == Bytecode::JMP || instr == Bytecode::JMP2 || instr == Bytecode::JZ || instr == Bytecode::JNZ)
 		{
 			if (instr.bytes().at(1) == recipient.at(i + 1).offset())
 			{
@@ -90,14 +91,14 @@ void inline_into(Disassembly& recipient, Disassembly& donor, int which_instructi
 	for (int i = 0; i < which_instruction; i++)
 	{
 		Instruction& instr = recipient.at(i);
-		if (instr == JMP || instr == JMP2 || instr == JZ || instr == JNZ || instr == FOR_RANGE)
+		if (instr == Bytecode::JMP || instr == Bytecode::JMP2 || instr == Bytecode::JZ || instr == Bytecode::JNZ || instr == Bytecode::FOR_RANGE)
 		{
 			instr.bytes().at(1) += added_instructions;
 		}
 	}
 	for (Instruction& instr : plop_after_inlining)
 	{
-		if (instr == JMP || instr == JMP2 || instr == JZ || instr == JNZ || instr == FOR_RANGE)
+		if (instr == Bytecode::JMP || instr == Bytecode::JMP2 || instr == Bytecode::JZ || instr == Bytecode::JNZ || instr == Bytecode::FOR_RANGE)
 		{
 			if (instr.bytes().at(1) <= starting_bytecount)
 			{
@@ -125,7 +126,7 @@ void optimize_inline(Core::Proc& recipient, Disassembly& recipient_code)
 			}
 			optimize_proc(donor);
 			Disassembly d = donor.disassemble();
-			inline_into(recipient_code, d, i, recipient.get_local_varcount());
+			inline_into(recipient_code, d, i, recipient.get_local_count());
 			i = 0;
 		}
 	}

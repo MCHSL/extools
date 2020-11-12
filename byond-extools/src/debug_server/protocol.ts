@@ -140,6 +140,9 @@ interface MessageDeclarations {
     "breakpoint step over": {
         request: {},
     },
+    "breakpoint step out": {
+        request: {}
+    },
     "breakpoint resume": {
         request: {},
     },
@@ -197,7 +200,10 @@ interface MessageDeclarations {
         response: WriteBreakpointHit,
     },
     "call stack": {
-        response: StackFrame[],
+        response: {
+            "current": StackFrame[],
+            "suspended": StackFrame[][],
+        },
     },
     "runtime": {
         response: Runtime,

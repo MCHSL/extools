@@ -1,17 +1,20 @@
-#include "instr_debug.h"
+#include "instr_custom.h"
+#include "instruction.h"
 #include "context.h"
+#include "disassembler.h"
 #include "helpers.h"
 
-void Instr_DBG_FILE::Disassemble(Context* context, Disassembler* dism)
+void dis_custom_dbg_file(Instruction* instruction, Context* context, Disassembler* dism)
 {
-	const std::uint32_t file = context->eat(this);
-
-	comment_ = "Source file: \"" + byond_tostring(file) + "\"";
+	const std::uint32_t file = context->eat(instruction);
+	std::string filename = byond_tostring(file);
+	instruction->set_comment("Source file: \"" + filename + "\"");
+	dism->debug_file(filename);
 }
 
-void Instr_DBG_LINENO::Disassemble(Context* context, Disassembler* dism)
+void dis_custom_dbg_lineno(Instruction* instruction, Context* context, Disassembler* dism)
 {
-	const std::uint32_t line = context->eat(this);
-
-	comment_ = "Line number: " + todec(line);
+	const std::uint32_t line = context->eat(instruction);
+	instruction->set_comment("Line number: " + todec(line));
+	dism->debug_line(line);
 }

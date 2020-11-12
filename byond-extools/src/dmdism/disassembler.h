@@ -22,11 +22,17 @@ public:
 	Context* context() const { return context_.get(); }
 
 	bool disassemble_var(Instruction& instr);
-	bool disassemble_var_alt(Instruction& instr);
+	std::vector<unsigned int> disassemble_subvar_follows(Instruction& instr);
+	bool disassemble_proc(Instruction& instr);
 	void add_call_args(Instruction& instr, unsigned int num_args);
+
+	void debug_file(std::string file) { last_file = file; }
+	void debug_line(uint32_t line) { last_line = line; }
 
 private:
 	std::unique_ptr<Context> context_;
+	std::string last_file;
+	uint32_t last_line = 0;
 
 	Instruction disassemble_next();
 };

@@ -9,7 +9,10 @@
 
 ExecutionContext** Core::current_execution_context_ptr;
 ExecutionContext** Core::parent_context_ptr_hack;
-ProcSetupEntry** Core::proc_setup_table;
+MiscEntry** Core::misc_entry_table;
+
+RawDatum*** Core::datum_pointer_table;
+unsigned int* Core::datum_pointer_table_length;
 
 RawDatum*** Core::datum_pointer_table;
 unsigned int* Core::datum_pointer_table_length;
@@ -34,6 +37,7 @@ TableHolder2* Core::obj_table = nullptr;
 TableHolder2* Core::datum_table = nullptr;
 TableHolder2* Core::list_table = nullptr;
 TableHolder2* Core::mob_table = nullptr;
+SuspendedProcList* Core::suspended_proc_list = nullptr;
 
 Core::ManagedString::ManagedString(unsigned int id) : string_id(id)
 {
@@ -252,10 +256,9 @@ Value* locate_global_by_name(std::string name)
 
 void Core::global_direct_set(std::string name, Value val)
 {
-	if (global_direct_cache.find(name) != global_direct_cache.end())
+	if (auto ptr = global_direct_cache.find(name); ptr != global_direct_cache.end())
 	{
-		*global_direct_cache[name] = val;
-		return;
+		*ptr->second = val;
 	}
 	Value* var = locate_global_by_name(name);
 	*var = val;
@@ -264,9 +267,9 @@ void Core::global_direct_set(std::string name, Value val)
 
 Value Core::global_direct_get(std::string name)
 {
-	if (global_direct_cache.find(name) != global_direct_cache.end())
+	if (auto ptr = global_direct_cache.find(name); ptr != global_direct_cache.end())
 	{
-		return *global_direct_cache[name];
+		return *ptr->second;
 	}
 	Value* var = locate_global_by_name(name);
 	global_direct_cache[name] = var;

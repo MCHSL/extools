@@ -2,8 +2,8 @@
 External tools for BYOND. Used to fiddle with the game engine's internals.
 
 <table>
-<tr><td align="right" valign="middle"><a href="https://ci.appveyor.com/project/MCHSL/extools"><img src="https://ci.appveyor.com/api/projects/status/github/MCHSL/extools?svg=true" alt="Appveyor status" /></a></td><td>Windows build (with <a href="https://ci.appveyor.com/project/MCHSL/extools/build/artifacts">binaries</a>)</td></tr>
-<tr><td align="right" valign="middle"><a href="https://travis-ci.org/MCHSL/extools"><img src="https://travis-ci.org/MCHSL/extools.svg?branch=master" alt="Travis status" /></td><td>Linux build (work in progress)</td></tr>
+<tr><td align="right" valign="middle"><a href="https://ci.appveyor.com/project/MCHSL/extools"><img src="https://ci.appveyor.com/api/projects/status/github/MCHSL/extools?svg=true" alt="Appveyor status" /></a></td><td>Windows build (latest <a href="https://ci.appveyor.com/api/projects/MCHSL/extools/artifacts/build/RelWithDebInfo/byond-extools.dll?job=Image%3A%20Visual%20Studio%202017">.dll binary</a>, latest <a href="https://ci.appveyor.com/api/projects/MCHSL/extools/artifacts/build/RelWithDebInfo/byond-extools.pdb?job=Image%3A%20Visual%20Studio%202017">.pdb binary</a>)</td></tr>
+<tr><td align="right" valign="middle"><a href="https://travis-ci.org/MCHSL/extools"><img src="https://travis-ci.org/MCHSL/extools.svg?branch=master" alt="Travis status" /></td><td>Linux build (latest <a href="https://ci.appveyor.com/api/projects/MCHSL/extools/artifacts/build/libbyond-extools.so?job=Image%3A%20Ubuntu">.so binary</a>)</td></tr>
 </table>
 
 ## Isn't there a project just like this already?
@@ -33,6 +33,17 @@ Known issues:
 - Procs with sleeps in them may behave oddly and cause corrupted results.
 - Spawn()s are entirely untested and may not work at all.
 - The files containing profile results can become extremely large, in the range of gigabytes, preventing speedscope from importing them. Be careful when profiling procs that could run for longer than several seconds.
+
+#### Memory Profiler
+
+Counts all soft-code objects currently instantiated in the game world and dumps
+these numbers into a JSON file of your choosing for later inspection. The code
+also attempts to approximate the number of bytes that each object type takes
+up, though the accuracy is not guaranteed.
+
+To use, simply invoke `dump_memory_usage("myfile.json")` with the appropriate
+`call()()` syntax and away you go. This will halt the server for a moment as the
+counting is done.
 
 #### Optimizer
 Currently a proof of concept. The only optimization available is inlining - the optimizer will go through all procs and attempt to inline global proc calls to eliminate call overhead. At the time of writing optimizing takes an incredibly long time to finish, which makes it infeasible to use.

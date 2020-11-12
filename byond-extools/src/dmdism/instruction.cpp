@@ -1,41 +1,11 @@
-
-
-
 #include "instruction.h"
 #include "helpers.h"
 #include "context.h"
 
-
 Instruction::Instruction(Bytecode op)
+	: opcode_ { op }
+	, bytes_ { (std::uint32_t) op }
 {
-	opcode_ = Opcode(op);
-}
-
-Instruction::Instruction(unsigned int unknown_op)
-{
-	opcode_ = Opcode((Bytecode)unknown_op);
-	add_byte(unknown_op);
-}
-
-Instruction Instruction::create(Bytecode op)
-{
-	Instruction instr;
-	instr.opcode_ = Opcode(op);
-	instr.add_byte(op);
-	return instr;
-}
-
-Instruction Instruction::create(unsigned int op)
-{
-	return Instruction::create((Bytecode)op);
-}
-
-void Instruction::Disassemble(Context* context, Disassembler* dism)
-{
-	for (unsigned int i = 0; i < arguments(); i++)
-	{
-		std::uint32_t val = context->eat_add(this);
-	}
 }
 
 std::string Instruction::bytes_str()
@@ -61,8 +31,7 @@ bool Instruction::operator==(const Bytecode rhs)
 	return opcode().opcode() == rhs;
 }
 
-bool Instruction::operator==(const unsigned int rhs)
+bool Instruction::operator==(const std::uint32_t rhs)
 {
-	return opcode().opcode() == (Bytecode)rhs;
+	return rhs == opcode().opcode();
 }
-

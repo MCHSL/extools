@@ -44,9 +44,9 @@ trvh REGPARM3 hCallGlobalProc(char usr_type, int usr_value, int proc_type, unsig
 		calling_queue = false;
 	}*/
 	Core::extended_profiling_insanely_hacky_check_if_its_a_new_call_or_resume = proc_id;
-	if (proc_hooks.find((unsigned short)proc_id) != proc_hooks.end())
+	if (auto ptr = proc_hooks.find((unsigned short)proc_id); ptr != proc_hooks.end())
 	{
-		trvh result = proc_hooks[proc_id](argListLen, argList, src_type ? Value(src_type, src_value) : static_cast<Value>(Value::Null()));
+		trvh result = ptr->second(argListLen, argList, src_type ? Value(src_type, src_value) : static_cast<Value>(Value::Null()));
 		for (int i = 0; i < argListLen; i++)
 		{
 			DecRefCount(argList[i].type, argList[i].value);
@@ -61,9 +61,9 @@ trvh REGPARM3 hCallGlobalProc(char usr_type, int usr_value, int proc_type, unsig
 void hCrashProc(char *error, variadic_arg_hack hack) //this is a hack to pass variadic arguments to the original function, the struct contains a 1024 byte array
 {
 	int argument = *(int*)hack.data;
-	if (Core::opcode_handlers.find(argument) != Core::opcode_handlers.end())
+	if (auto ptr = Core::opcode_handlers.find(argument); ptr != Core::opcode_handlers.end())
 	{
-		Core::opcode_handlers[argument](*Core::current_execution_context_ptr);
+		ptr->second(*Core::current_execution_context_ptr);
 		return;
 	}
 	oCrashProc(error, hack);

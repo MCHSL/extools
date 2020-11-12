@@ -51,18 +51,22 @@ DataType datatype_name_to_val(std::string name)
 	return DataType::NULL_D;
 }
 
-const int RES_BREAK = 0;
-const int RES_CONTINUE = 1;
-const int RES_CONFIGURATION_DONE = 2;
+enum class DebugServer::HandleMessageResult
+{
+	BREAK = 0,
+	CONTINUE = 1,
+	CONFIGURATION_DONE = 2,
+};
 
-int DebugServer::handle_one_message()
+DebugServer::HandleMessageResult DebugServer::handle_one_message()
+try
 {
 	nlohmann::json data = debugger.recv_message();
 	//Core::Alert("Message!!");
 	if (data.is_null())
 	{
 		//Core::Alert("null message, leaving");
-		return RES_BREAK;
+		return HandleMessageResult::BREAK;
 	}
 	const std::string& type = data.at("type");
 	if (type == MESSAGE_RAW)
@@ -140,9 +144,15 @@ int DebugServer::handle_one_message()
 		next_action = NextAction::STEP_OVER;
 		notifier.notify_all();
 	}
+	else if (type == MESSAGE_BREAKPOINT_STEP_OUT)
+	{
+		std::lock_guard<std::mutex> lk(notifier_mutex);
+		next_action = NextAction::STEP_OUT;
+		notifier.notify_all();
+	}
 	else if (type == MESSAGE_BREAKPOINT_PAUSE)
 	{
-		debug_server.step_mode = StepMode::INTO;
+		debug_server.step_mode = StepMode::PAUSE;
 	}
 	else if (type == MESSAGE_BREAKPOINT_RESUME)
 	{
@@ -248,17 +258,22 @@ int DebugServer::handle_one_message()
 	}
 	else if (type == MESSAGE_CONFIGURATION_DONE)
 	{
-		return RES_CONFIGURATION_DONE;
+		return HandleMessageResult::CONFIGURATION_DONE;
 	}
-	return RES_CONTINUE;
+	return HandleMessageResult::CONTINUE;
+}
+catch (const std::exception& e)
+{
+	Core::Alert(e.what());
+	return HandleMessageResult::CONTINUE;
 }
 
 void DebugServer::debug_loop()
 {
 	while (true)
 	{
-		int res = debug_server.handle_one_message();
-		if (res == RES_BREAK)
+		HandleMessageResult res = debug_server.handle_one_message();
+		if (res == HandleMessageResult::BREAK)
 		{
 			return;
 		}
@@ -269,12 +284,12 @@ bool DebugServer::loop_until_configured()
 {
 	while (true)
 	{
-		int res = debug_server.handle_one_message();
-		if (res == RES_CONFIGURATION_DONE)
+		HandleMessageResult res = debug_server.handle_one_message();
+		if (res == HandleMessageResult::CONFIGURATION_DONE)
 		{
 			break;
 		}
-		else if (res != RES_CONTINUE)
+		else if (res != HandleMessageResult::CONTINUE)
 		{
 			return false;
 		}
@@ -322,11 +337,11 @@ void DebugServer::set_breakpoint(int proc_id, int offset, bool singleshot)
 
 std::optional<Breakpoint> DebugServer::get_breakpoint(int proc_id, int offset)
 {
-	if (breakpoints.find(proc_id) != breakpoints.end())
+	if (auto ptr1 = breakpoints.find(proc_id); ptr1 != breakpoints.end())
 	{
-		if (breakpoints[proc_id].find(offset) != breakpoints[proc_id].end())
+		if (auto ptr2 = ptr1->second.find(offset); ptr2 != ptr1->second.end())
 		{
-			return breakpoints[proc_id][offset];
+			return ptr2->second;
 		}
 	}
 	return {};
@@ -371,17 +386,17 @@ void DebugServer::on_breakpoint(ExecutionContext* ctx)
 	{
 		breakpoint_to_restore = bp;
 	}
-	send_call_stack(ctx);
+	send_call_stacks(ctx);
 	send(MESSAGE_BREAKPOINT_HIT, { {"proc", bp->proc->name }, {"offset", bp->offset }, {"override_id", Core::get_proc(ctx).override_id}, {"reason", "breakpoint opcode"} });
 	on_break(ctx);
 	ctx->current_opcode--;
 }
 
-void DebugServer::on_step(ExecutionContext* ctx)
+void DebugServer::on_step(ExecutionContext* ctx, const char* reason)
 {
 	auto& proc = Core::get_proc(ctx);
-	send_call_stack(ctx);
-	send(MESSAGE_BREAKPOINT_HIT, { {"proc", proc.name }, {"offset", ctx->current_opcode }, {"override_id", proc.override_id}, {"reason", "step"} });
+	send_call_stacks(ctx);
+	send(MESSAGE_BREAKPOINT_HIT, { {"proc", proc.name }, {"offset", ctx->current_opcode }, {"override_id", proc.override_id}, {"reason", reason} });
 	on_break(ctx);
 }
 
@@ -394,8 +409,21 @@ void DebugServer::on_break(ExecutionContext* ctx)
 		break;
 	case NextAction::STEP_OVER:
 		step_mode = StepMode::PRE_OVER;
-		step_over_context = ctx;
-		step_over_parent_context = ctx->parent_context;
+		step_over_sequence_number = ctx->constants->sequence_number;
+		step_over_parent_sequence_number = ctx->parent_context ? ctx->parent_context->constants->sequence_number : UINT32_MAX;
+		break;
+	case NextAction::STEP_OUT:
+		if (ExecutionContext* parent = ctx->parent_context)
+		{
+			step_mode = StepMode::PRE_OVER;
+			step_over_sequence_number = parent->constants->sequence_number;
+			step_over_parent_sequence_number = parent->parent_context ? parent->parent_context->constants->sequence_number : UINT32_MAX;
+		}
+		else
+		{
+			// Step Out of bottom stack frame = resume
+			step_mode = StepMode::NONE;
+		};
 		break;
 	case NextAction::RESUME:
 		step_mode = StepMode::NONE;
@@ -406,7 +434,7 @@ void DebugServer::on_break(ExecutionContext* ctx)
 void DebugServer::on_error(ExecutionContext* ctx, const char* error)
 {
 	Core::Proc& p = Core::get_proc(ctx);
-	send_call_stack(ctx);
+	send_call_stacks(ctx);
 	debug_server.send(MESSAGE_RUNTIME, { {"proc", p.name }, {"offset", ctx->current_opcode }, {"override_id", p.override_id}, {"message", std::string(error)} });
 	debug_server.wait_for_action();
 }
@@ -488,35 +516,71 @@ nlohmann::json value_to_text(Value val)
 	return result;
 }
 
-void DebugServer::send_call_stack(ExecutionContext* ctx)
+nlohmann::json frame_to_json(ExecutionContext* frame)
 {
-	std::vector<nlohmann::json> res;
+	nlohmann::json j;
+	Core::Proc& p = Core::get_proc(frame);
+
+	j["proc"] = p.name;
+	j["override_id"] = p.override_id;
+	j["offset"] = frame->current_opcode;
+
+	j["usr"] = value_to_text(frame->constants->usr);
+	j["src"] = value_to_text(frame->constants->src);
+	j["dot"] = value_to_text(frame->dot);
+
+	std::vector<nlohmann::json> locals;
+	for (int i = 0; i < frame->local_var_count; i++)
+		locals.push_back(value_to_text(frame->local_variables[i]));
+	j["locals"] = locals;
+
+	std::vector<nlohmann::json> args;
+	for (int i = 0; i < frame->constants->arg_count; i++)
+		args.push_back(value_to_text(frame->constants->args[i]));
+	j["args"] = args;
+
+	std::vector<std::string> local_names;
+	for (int i = 0; i < p.get_local_count(); ++i)
+		local_names.push_back(p.get_local_name(i));
+	j["local_names"] = local_names;
+
+	std::vector<std::string> arg_names;
+	for (int i = 0; i < p.get_param_count(); ++i)
+		arg_names.push_back(p.get_param_name(i));
+	j["arg_names"] = arg_names;
+	return j;
+}
+
+void DebugServer::send_call_stacks(ExecutionContext* ctx)
+{
+	std::vector<nlohmann::json> current_frames;
 	do
 	{
-		nlohmann::json j;
-		Core::Proc& p = Core::get_proc(ctx);
-
-		j["proc"] = p.name;
-		j["override_id"] = p.override_id;
-		j["offset"] = ctx->current_opcode;
-
-		j["usr"] = value_to_text(ctx->constants->usr);
-		j["src"] = value_to_text(ctx->constants->src);
-		j["dot"] = value_to_text(ctx->dot);
-
-		std::vector<nlohmann::json> locals;
-		for (int i = 0; i < ctx->local_var_count; i++)
-			locals.push_back(value_to_text(ctx->local_variables[i]));
-		j["locals"] = locals;
-
-		std::vector<nlohmann::json> args;
-		for (int i = 0; i < ctx->constants->arg_count; i++)
-			args.push_back(value_to_text(ctx->constants->args[i]));
-		j["args"] = args;
-
-		res.push_back(j);
+		current_frames.push_back(frame_to_json(ctx));
 	} while(ctx = ctx->parent_context);
-	debug_server.send(MESSAGE_CALL_STACK, res);
+	
+
+	std::vector<nlohmann::json> suspended;
+	for (uint32_t i = Core::suspended_proc_list->front; i < Core::suspended_proc_list->back; i++)
+	{
+		std::vector<nlohmann::json> frames;
+		ProcConstants* inst = Core::suspended_proc_list->buffer[i];
+
+		for (ExecutionContext* ctx = inst->context; ctx != nullptr; ctx = ctx->parent_context)
+		{
+			frames.push_back(frame_to_json(ctx));
+		}
+
+		// Suspended procs have their call stack flipped, so we have to reverse it to see something sane
+		std::reverse(frames.begin(), frames.end());
+		
+		suspended.push_back(frames);
+	}
+
+	nlohmann::json stacks;
+	stacks["current"] = current_frames;
+	stacks["suspended"] = suspended;
+	debug_server.send(MESSAGE_CALL_STACK, stacks);
 }
 
 void on_nop(ExecutionContext* ctx)
@@ -557,32 +621,46 @@ void hRuntime(const char* error)
 
 extern "C" void on_singlestep()
 {
-	if (debug_server.breakpoint_to_restore && Core::get_context()->current_opcode != debug_server.breakpoint_to_restore->offset)
+	ExecutionContext* ctx = Core::get_context();
+	if (debug_server.breakpoint_to_restore && ctx->current_opcode != debug_server.breakpoint_to_restore->offset)
 	{
 		debug_server.restore_breakpoint();
 	}
-	if (debug_server.step_mode == StepMode::INTO)
+
+	if (debug_server.step_mode == StepMode::PAUSE)
 	{
-		debug_server.on_step(Core::get_context());
+		debug_server.on_step(ctx, "pause");
+	}
+	else if (debug_server.step_mode == StepMode::INTO)
+	{
+		if (ctx->bytecode[ctx->current_opcode] != BYTECODE_DBG_LINENO)
+		{
+			return;
+		}
+		debug_server.on_step(ctx);
 	}
 	else if (debug_server.step_mode == StepMode::OVER)
 	{
-		if (!debug_server.step_over_context)
+		if (debug_server.step_over_sequence_number == UINT32_MAX)
 		{
 			debug_server.step_mode = StepMode::NONE;
 			return;
 		}
-		ExecutionContext* ctx = Core::get_context();
-		if (debug_server.step_over_context == ctx || debug_server.step_over_parent_context == ctx)
+		if (ctx->bytecode[ctx->current_opcode] != BYTECODE_DBG_LINENO)
 		{
-			debug_server.step_over_context = nullptr;
-			debug_server.step_over_parent_context = nullptr;
-			debug_server.on_step(Core::get_context());
+			return;
 		}
-		if (!ctx->parent_context && (ctx->bytecode[ctx->current_opcode] == RET || ctx->bytecode[ctx->current_opcode] == END))
+
+		if (debug_server.step_over_sequence_number == ctx->constants->sequence_number || debug_server.step_over_parent_sequence_number == ctx->constants->sequence_number)
 		{
-			debug_server.step_over_context = nullptr; //there is nothing to return to, we missed our chance
-			debug_server.step_over_parent_context = nullptr;
+			debug_server.step_over_sequence_number = UINT32_MAX;
+			debug_server.step_over_parent_sequence_number = UINT32_MAX;
+			debug_server.on_step(ctx);
+		}
+		if (!ctx->parent_context && (ctx->bytecode[ctx->current_opcode] == BYTECODE_RET || ctx->bytecode[ctx->current_opcode] == BYTECODE_END))
+		{
+			debug_server.step_over_sequence_number = UINT32_MAX; //there is nothing to return to, we missed our chance
+			debug_server.step_over_parent_sequence_number = UINT32_MAX;
 			debug_server.step_mode = StepMode::NONE;
 		}
 	}

@@ -11,7 +11,7 @@ std::uint32_t Context::peek()
 	if (current_offset_ >= buffer_.size())
 	{
 		std::cout << "READ PAST END OF BYTECODE" << std::endl;
-		return RET;
+		return (std::uint32_t) BYTECODE_RET;
 	}
 	return buffer_[current_offset_];
 }
@@ -21,7 +21,7 @@ std::uint32_t Context::take()
 	if (current_offset_ >= buffer_.size())
 	{
 		std::cout << "READ PAST END OF BYTECODE" << std::endl;
-		return END;
+		return (std::uint32_t) BYTECODE_END;
 	}
 
 	return buffer_[current_offset_++];
