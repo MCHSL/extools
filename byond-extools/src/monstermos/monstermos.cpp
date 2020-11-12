@@ -181,7 +181,11 @@ trvh gasmixture_set_temperature(unsigned int args_len, Value* args, Value src)
 {
 	float vf = args_len > 0 ? args[0].valuef : 0;
 	if (std::isnan(vf) || std::isinf(vf)) {
+		get_gas_mixture(src)->set_temperature(0);
 		Runtime("Attempt to set temperature to NaN or Infinity");
+	} else if(vf < 0) {
+		get_gas_mixture(src)->set_temperature(0);
+		Runtime("Attempt to set temperature to negative number");
 	} else {
 		get_gas_mixture(src)->set_temperature(vf);
 	}
@@ -207,7 +211,16 @@ trvh gasmixture_set_moles(unsigned int args_len, Value* args, Value src)
 	if (args_len < 2 || args[0].type != DATUM_TYPEPATH)
 		return Value::Null();
 	int index = gas_ids[args[0].value];
-	get_gas_mixture(src)->set_moles(index, args[1].valuef);
+	float vf = args[1].valuef;
+	if (std::isnan(vf) || std::isinf(vf)) {
+		get_gas_mixture(src)->set_moles(index, 0);
+		Runtime("Attempt to set moles to NaN or Infinity");
+	} else if(vf < 0) {
+		get_gas_mixture(src)->set_moles(index, 0);
+		Runtime("Attempt to set moles to negative number");
+	} else {
+		get_gas_mixture(src)->set_moles(index, vf);
+	}
 	return Value::Null();
 }
 
