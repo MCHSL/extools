@@ -14,9 +14,6 @@ MiscEntry** Core::misc_entry_table;
 RawDatum*** Core::datum_pointer_table;
 unsigned int* Core::datum_pointer_table_length;
 
-RawDatum*** Core::datum_pointer_table;
-unsigned int* Core::datum_pointer_table_length;
-
 int ByondVersion;
 int ByondBuild;
 unsigned int* Core::some_flags_including_profile;
