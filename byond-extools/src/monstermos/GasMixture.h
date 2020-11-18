@@ -2,7 +2,7 @@
 
 #include "atmos_defines.h"
 
-#define TOTAL_NUM_GASES 14
+#define TOTAL_NUM_GASES 21
 
 #define GAS_MIN_MOLES 0.00000005
 #define MINIMUM_HEAT_CAPACITY	0.0003
