@@ -173,7 +173,6 @@ bool Core::find_functions()
 		case 513:
 			FIND_OR_DIE(SetVariable, "55 89 E5 81 EC ?? ?? ?? ?? 8B 55 ?? 8B 45 ??");
 			FIND_OR_DIE(GetStringTableIndexUTF8, "55 89 E5 57 56 89 CE 53 89 D3 83 EC ?? 8B 55 ?? 85 C0") // regparm3
-			parent_context_ptr_hack = *(ExecutionContext***)Pocket::Sigscan::FindPattern(BYONDCORE, "A1 ?? ?? ?? ?? 8B 4D ?? 0F B7 50", 1);
 			break;
 		default: break;
 	}
