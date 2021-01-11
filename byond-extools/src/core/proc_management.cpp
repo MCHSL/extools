@@ -1,7 +1,6 @@
 #include "proc_management.h"
 #include "../dmdism/disassembly.h"
 #include "../dmdism/disassembler.h"
-#include "../extended_profiling/extended_profiling.h"
 #include <optional>
 
 std::vector<Core::Proc> procs_by_id;
@@ -25,18 +24,19 @@ void Core::Proc::set_bytecode(std::vector<std::uint32_t>&& new_bytecode)
 {
 	if (!original_bytecode_ptr)
 	{
-		original_bytecode_ptr = bytecode_entry->bytecode;
+		original_bytecode_ptr = *bytecode_entry.ppBytecode;
 	}
 
+
 	bytecode = std::move(new_bytecode);
-	bytecode_entry->bytecode = bytecode.data();
+	*bytecode_entry.ppBytecode = bytecode.data();
 }
 
 void Core::Proc::reset_bytecode()
 {
 	if (original_bytecode_ptr)
 	{
-		bytecode_entry->bytecode = original_bytecode_ptr;
+		*(bytecode_entry.ppBytecode) = original_bytecode_ptr;
 		original_bytecode_ptr = nullptr;
 		bytecode.clear();
 	}
@@ -44,48 +44,43 @@ void Core::Proc::reset_bytecode()
 
 std::uint32_t* Core::Proc::get_bytecode()
 {
-	return bytecode_entry->bytecode;
+	return *bytecode_entry.ppBytecode;
 }
 
 std::uint16_t Core::Proc::get_bytecode_length()
 {
-	return bytecode_entry->bytecode_length;
+	return bytecode_entry.length;
 }
 
 std::uint32_t Core::Proc::get_local_count()
 {
-	return locals_entry->count;
+	return locals_entry.count;
 }
 
 std::string Core::Proc::get_local_name(std::uint32_t index)
 {
-	if (index >= locals_entry->count)
+	if (index >= locals_entry.count)
 		return nullptr;
 
-	return GetStringFromId(name_table[locals_entry->var_name_indices[index]]);
+	return GetStringFromId(name_table[locals_entry.var_name_indices[index]]);
 }
 
 std::uint32_t Core::Proc::get_param_count()
 {
-	return params_entry->count();
+	return params_entry.count;
 }
 
 std::string Core::Proc::get_param_name(std::uint32_t index)
 {
-	if (index >= params_entry->count())
+	if (index >= params_entry.count)
 		return nullptr;
 
-	return GetStringFromId(name_table[params_entry->params[index].name_index]);
+	return GetStringFromId(name_table[params_entry.params[index].name_index]);
 }
 
 ProfileInfo* Core::Proc::profile() const
 {
 	return GetProfileInfo(id);
-}
-
-void Core::Proc::extended_profile()
-{
-	procs_to_profile[id] = true;
 }
 
 void Core::Proc::hook(ProcHook hook_func)
@@ -107,15 +102,6 @@ Value Core::Proc::call(std::vector<Value> arguments, Value usr)
 Disassembly Core::Proc::disassemble()
 {
 	return Disassembly::from_proc(*this);
-}
-
-void Core::Proc::assemble(Disassembly disasm)
-{
-	std::vector<std::uint32_t> bc = disasm.assemble();
-	auto size = bc.size();
-	set_bytecode(std::move(bc));
-	bytecode_entry->bytecode_length = size;
-	//proc_table_entry->local_var_count_idx = Core::get_proc("/proc/twelve_locals").proc_table_entry->local_var_count_idx;
 }
 
 Core::Proc& Core::get_proc(std::string name, unsigned int override_id)
@@ -175,9 +161,9 @@ bool Core::populate_proc_list()
 		strip_proc_path(p.name);
 		p.simple_name = p.name.substr(p.name.rfind("/") + 1);
 		p.proc_table_entry = entry;
-		p.bytecode_entry = &misc_entry_table[entry->bytecode_idx]->bytecode;
-		p.locals_entry = &misc_entry_table[entry->local_var_count_idx]->local_vars;
-		p.params_entry = &misc_entry_table[entry->params_idx]->parameters;
+		p.bytecode_entry = misc_entry_table[entry->bytecode_idx]->as_bytecode();
+		p.locals_entry = misc_entry_table[entry->local_var_count_idx]->as_locals();
+		p.params_entry = misc_entry_table[entry->params_idx]->as_params();
 		p.bytecode_idx = entry->bytecode_idx;
 		p.varcount_idx = entry->local_var_count_idx;
 		auto& procs_by_name_entry = procs_by_name[p.name];

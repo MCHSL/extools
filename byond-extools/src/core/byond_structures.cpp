@@ -358,3 +358,48 @@ ManagedValue::~ManagedValue()
 {
 	DecRefCount(type, value);
 }
+
+Params MiscEntry::as_params()
+{
+	if (ByondVersion > 513 || ByondBuild >= 1539) {
+		return Params {
+			parameters2.count(),
+			parameters2.params,
+		};
+	}
+
+	return Params {
+		parameters1.count(),
+		parameters1.params,
+	};
+}
+
+LocalVars MiscEntry::as_locals()
+{
+	if (ByondVersion > 513 || ByondBuild >= 1539) {
+		return LocalVars {
+			local_vars2.count,
+			local_vars2.var_name_indices,
+		};
+	}
+
+	return LocalVars {
+		local_vars1.count,
+		local_vars1.var_name_indices,
+	};
+}
+
+ProcBytecode MiscEntry::as_bytecode()
+{
+	if (ByondVersion > 513 || ByondBuild >= 1539) {
+		return ProcBytecode {
+			bytecode2.bytecode_length,
+			&bytecode2.bytecode,
+		};
+	}
+
+	return ProcBytecode {
+		bytecode1.bytecode_length,
+		&bytecode1.bytecode,
+	};
+}

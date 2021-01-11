@@ -1,6 +1,5 @@
 #include "core.h"
 #include "find_functions.h"
-#include "../extended_profiling/extended_profiling.h"
 #include "socket/socket.h"
 #include "../datum_socket/datum_socket.h"
 #include <fstream>
@@ -8,7 +7,6 @@
 #include <chrono>
 
 ExecutionContext** Core::current_execution_context_ptr;
-ExecutionContext** Core::parent_context_ptr_hack;
 MiscEntry** Core::misc_entry_table;
 
 RawDatum*** Core::datum_pointer_table;
@@ -163,11 +161,6 @@ ExecutionContext* Core::get_context()
 	return *current_execution_context_ptr;
 }
 
-ExecutionContext* Core::_get_parent_context()
-{
-	return *parent_context_ptr_hack;
-}
-
 Value Core::get_stack_value(unsigned int which)
 {
 	return (*Core::current_execution_context_ptr)->stack[(*Core::current_execution_context_ptr)->stack_size - which - 1];
@@ -296,7 +289,6 @@ void Core::cleanup()
 	Core::remove_all_hooks();
 	Core::opcode_handlers.clear();
 	Core::destroy_proc_list();
-	procs_to_profile.clear();
 	proc_hooks.clear();
 	global_direct_cache.clear();
 	clean_sockets();

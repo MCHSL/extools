@@ -90,7 +90,6 @@ namespace Core
 	extern std::map<unsigned int, opcode_handler> opcode_handlers;
 	extern std::map<std::string, unsigned int> name_to_opcode;
 	extern ExecutionContext** current_execution_context_ptr;
-	extern ExecutionContext** parent_context_ptr_hack;
 	extern MiscEntry** misc_entry_table;
 	extern unsigned int* some_flags_including_profile;
 	extern unsigned int* name_table_id_ptr;
@@ -120,7 +119,6 @@ namespace Core
 	Value get_turf(int x, int y, int z);
 	extern unsigned int extended_profiling_insanely_hacky_check_if_its_a_new_call_or_resume;
 	ExecutionContext* get_context();
-	ExecutionContext* _get_parent_context();
 	unsigned int register_opcode(std::string name, opcode_handler handler);
 	void Alert(const std::string& what);
 	void Alert(int what);

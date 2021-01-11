@@ -1,10 +1,7 @@
 #include "core.h"
 #include "../dmdism/disassembly.h"
 #include "../debug_server/debug_server.h"
-#include "../optimizer/optimizer.h"
 #include "../crash_guard/crash_guard.h"
-#include "../extended_profiling/normal_profiling.h"
-#include "../extended_profiling/memory_profiling.h"
 
 #include <fstream>
 

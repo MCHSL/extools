@@ -30,9 +30,9 @@ namespace Core
 		unsigned int override_id = 0;
 
 		ProcArrayEntry* proc_table_entry = nullptr;
-		BytecodeEntry* bytecode_entry = nullptr;
-		LocalVarsEntry* locals_entry = nullptr;
-		ParamsEntry* params_entry = nullptr;
+		ProcBytecode bytecode_entry;
+		LocalVars locals_entry;
+		Params params_entry;
 
 		std::uint32_t bytecode_idx = 0;
 		std::uint32_t varcount_idx = 0;
@@ -52,10 +52,8 @@ namespace Core
 		std::string get_param_name(std::uint32_t index);
 
 		Disassembly disassemble();
-		void assemble(Disassembly disasm);
 
 		ProfileInfo* profile() const;
-		void extended_profile();
 		void hook(ProcHook hook_func);
 		Value call(std::vector<Value> arguments, Value usr = Value::Null());
 

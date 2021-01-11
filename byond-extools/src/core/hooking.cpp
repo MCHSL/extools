@@ -4,7 +4,6 @@
 #include <fstream>
 #include "../third_party/json.hpp"
 #include <stack>
-#include "../extended_profiling/extended_profiling.h"
 #include <mutex>
 
 CrashProcPtr oCrashProc;
